@@ -24,6 +24,7 @@ namespace Window {
     }
     void Spotlight::handleCommand() {
         QString input = searchBox->text().trimmed();
+        searchBox->clear();
         if (input.isEmpty()) {
             return;
         }
