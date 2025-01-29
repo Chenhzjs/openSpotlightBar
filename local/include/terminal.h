@@ -13,7 +13,12 @@ namespace Command {
 class Terminal : public CommandBase {
 public:
     Terminal() {
+        
+    }
+    void registerCommand() {
+        // printf("term::%p\n", &(CommandParser::getInstance()));
         CommandParser::getInstance().Register("term", this);
+        // printf("register::%p\n", this);
     }
     void execute(const std::vector<std::string> &argument, QListWidget *resultList) override {
         resultList->addItem("Opening Terminal...");
@@ -45,7 +50,7 @@ private:
             system("open -a Terminal");
         }
 #elif __linux__
-        system("gnome-terminal &"); // for gnome
+        system("gnome-terminal -x bash -c " exec bash;""); // for gnome
 #endif
     }
     void openWindowsCmd() {
@@ -53,5 +58,4 @@ private:
     }
 
 };
-Terminal terminal;
 };

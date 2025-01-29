@@ -2,15 +2,23 @@
 #include <cstdio>
 
 namespace Command {
+
+    
     CommandParser::CommandParser() {
     }
 
     CommandParser::~CommandParser() {
 
     }
-
-    CommandBase *CommandParser::parse(const QString &input, std::vector<std::string> &arguments) {
-        for (const QString &prefix : commandMap.keys()) {
+    CommandParser& CommandParser::getInstance() {
+        static CommandParser parser;
+        // printf("access::%p\n", &parser);
+        return parser;
+    }
+    CommandBase* CommandParser::parse(const QString &input, std::vector<std::string> &arguments) {
+        // printf("parse::%p\n", &(getInstance()));
+        for (const QString &prefix : getInstance().commandMap.keys()) {
+            std::cout << "Prefix: " << prefix.toStdString() << std::endl;
             if (input.startsWith(prefix)) {
                 std::string arguments_builder = input.mid(prefix.length()).trimmed().toStdString();
                 std::stringstream ss(arguments_builder);
@@ -19,7 +27,8 @@ namespace Command {
                 while (std::getline(ss, token, ' ')) {
                     arguments.push_back(token);
                 }
-                return commandMap[prefix];
+                // printf("command:: %p\n", getInstance().commandMap[prefix]);
+                return getInstance().commandMap[prefix];
             }
         }
         return nullptr;

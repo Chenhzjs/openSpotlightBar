@@ -31,6 +31,7 @@ namespace Window {
 
         std::vector<std::string> arguments;
         Command::CommandBase *command = parser.parse(input, arguments);
+        // printf("command:: %p\n", command);
         if (command) {
             command->execute(arguments, resultList);
         } else {

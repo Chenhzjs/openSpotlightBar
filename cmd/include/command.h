@@ -1,8 +1,9 @@
 #ifndef _COMMAND_H_
 #define _COMMAND_H_
 
-#include <QtCore/QString>
+
 #include <QtWidgets/QListWidget>
+#include <QtCore/QString>
 #include <string>
 #include <vector>
 #include <iostream>
@@ -15,15 +16,23 @@ public:
     virtual ~CommandBase() = default;
     
     virtual void execute(const std::vector<std::string> &argument, QListWidget *resultList) = 0;
+
+    virtual void registerCommand() = 0;
 };
 
 class CommandRegister {
 public:
+    // static CommandRegister& getInstance() {
+    //     static CommandRegister commandRegister;
+    //     return commandRegister;
+    // }
     CommandRegister() {
         commandMap.clear();
     }
     void Register(const QString &prefix, CommandBase *command) {
         commandMap[prefix] = command;
+        printf("Registering command: %s\n", prefix.toStdString().c_str());
+        
     }
 
     ~CommandRegister() {
@@ -35,16 +44,13 @@ public:
 
 class CommandParser : public CommandRegister {
 public:
-    static CommandParser& getInstance() {
-        static CommandParser parser;
-        return parser;
-    }
+    static CommandParser& getInstance();
 
     CommandParser();
 
     ~CommandParser();
 
-    CommandBase *parse(const QString &input, std::vector<std::string> &arguments);
+    CommandBase* parse(const QString &input, std::vector<std::string> &arguments);
 };
 
 
