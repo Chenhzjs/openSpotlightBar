@@ -13,6 +13,9 @@ public:
     Spotlight(QWidget *parent);
 
     ~Spotlight() {
+        delete searchBox;
+        delete resultList;
+        delete layout;
     }
 
 private slots:
@@ -21,6 +24,7 @@ private slots:
 private:
     QLineEdit *searchBox;
     QListWidget *resultList;
+    QVBoxLayout *layout;
     Command::CommandParser parser;
 };
 }

@@ -17,7 +17,7 @@ namespace Window {
 
         resultList = new QListWidget(this);
 
-        QVBoxLayout *layout = new QVBoxLayout();
+        layout = new QVBoxLayout();
         layout->addWidget(searchBox);
         layout->addWidget(resultList);
         setLayout(layout);
@@ -28,12 +28,11 @@ namespace Window {
         if (input.isEmpty()) {
             return;
         }
-
         std::vector<std::string> arguments;
         Command::CommandBase *command = parser.parse(input, arguments);
         // printf("command:: %p\n", command);
         if (command) {
-            command->execute(arguments, resultList);
+            command->execute(arguments, resultList, layout, this);
         } else {
             resultList->addItem("Invalid command: " + input);
         }

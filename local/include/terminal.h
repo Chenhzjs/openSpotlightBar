@@ -20,7 +20,7 @@ public:
         CommandParser::getInstance().Register("term", this);
         // printf("register::%p\n", this);
     }
-    void execute(const std::vector<std::string> &argument, QListWidget *resultList) override {
+    void execute(const std::vector<std::string> &argument, QListWidget *resultList, QVBoxLayout *layout, QWidget *parent) override {
         resultList->addItem("Opening Terminal...");
 #ifdef __WIN32
         openWindowsCmd();

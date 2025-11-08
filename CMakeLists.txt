@@ -81,3 +81,10 @@ target_link_libraries(spotlight PRIVATE
     Qt6::Widgets
 )
 
+# test
+add_executable(test 
+    test/test_search.cpp
+)
+target_link_libraries(test PRIVATE 
+    Qt6::Widgets
+)
