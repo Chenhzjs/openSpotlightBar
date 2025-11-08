@@ -3,7 +3,8 @@
 
 
 #include <QtWidgets/QListWidget>
-#include <QtCore/QString>
+#include <QtWidgets/QVBoxLayout>
+#include <QtWidgets/QWidget>
 #include <string>
 #include <vector>
 #include <iostream>
@@ -15,9 +16,7 @@ class CommandBase {
 public:
     virtual ~CommandBase() = default;
     
-    virtual void execute(const std::vector<std::string> &argument, QListWidget *resultList) = 0;
-
-    virtual void registerCommand() = 0;
+    virtual void execute(const std::vector<std::string> &argument, QListWidget *resultList, QVBoxLayout *layout, QWidget *parent) = 0;
 };
 
 class CommandRegister {
