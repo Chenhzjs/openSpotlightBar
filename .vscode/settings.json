@@ -1,0 +1,43 @@
+{
+  // 文件关联
+  "files.associations": {
+    "CMakeLists.txt": "cmake",
+    "*.cmake": "cmake",
+    "*.h": "cpp"
+  },
+
+  // 使用 CMake Tools 作为 C/C++ 扩展配置提供者
+  "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+
+  // CMake Tools 配置
+  "cmake.sourceDirectory": "${workspaceFolder}",
+  "cmake.configureOnOpen": true,
+  "cmake.generateCompileCommands": true,
+
+  // 告诉 C/C++ 扩展使用 compile_commands.json
+  "C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json",
+
+  // 启用语义高亮
+  "editor.semanticHighlighting.enabled": true,
+
+  // 额外 includePath，帮助 IntelliSense 找到 Qt 头文件
+  "C_Cpp.default.includePath": [
+    "${workspaceFolder}/**",
+    "${workspaceFolder}/qt5/build/include",
+    "${workspaceFolder}/qt5/build/lib/QtWidgets.framework/Headers",
+    "${workspaceFolder}/qt5/build/lib/QtCore.framework/Headers",
+    "${workspaceFolder}/qt5/build/lib/QtGui.framework/Headers"
+  ],
+
+  // macOS 框架路径（Qt 可能用到）
+  "C_Cpp.default.macFrameworkPath": [
+    "/System/Library/Frameworks",
+    "/Library/Frameworks"
+  ],
+
+  // 编译器路径和标准
+  "C_Cpp.default.compilerPath": "/usr/bin/clang",
+  "C_Cpp.default.cStandard": "c17",
+  "C_Cpp.default.cppStandard": "c++17",
+  "C_Cpp.default.intelliSenseMode": "macos-clang-arm64"
+}

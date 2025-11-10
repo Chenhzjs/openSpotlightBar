@@ -1,11 +1,10 @@
 #include "command.h"
-#include "import.h"
+#include "search.h"
 #include "terminal.h"
-namespace Command {
 
-Terminal terminal;
-void import() {
-    printf("Importing Command...\n");
-    terminal.registerCommand();
-}
+struct ImportCommands {
+    ImportCommands() {
+        commandMap.insert("find", new Search());
+        commandMap.insert("terminal", new Terminal());
+    }
 };

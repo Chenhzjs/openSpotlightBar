@@ -1,90 +1,58 @@
 cmake_minimum_required(VERSION 3.11)
-
 project(Spotlight VERSION 1.0 LANGUAGES CXX)
 
+set(CMAKE_PREFIX_PATH "./qt5/build")
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-
-
 set(CMAKE_CXX_FLAGS_DEBUG "-Og -g")
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR})
 
-if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-    include_directories(/opt/homebrew/Cellar/qt/6.7.3/include)
-    link_directories(/opt/homebrew/Cellar/qt/6.7.3/lib)
-elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    include_directories(/usr/include/x86_64-linux-gnu/qt6)
-    link_directories(/usr/lib/x86_64-linux-gnu/qt6)
-elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-    set(CMAKE_PREFIX_PATH "C:/Users/Chenhz/Software/Qt/6.8.1/mingw_64/lib/cmake")
-    # set(Qt6_DIR "C:/Users/Chenhz/Software/Qt/6.8.1/mingw_64/lib/cmake/Qt6")
-    include_directories(C:/Users/Chenhz/Software/Qt/6.8.1/mingw_64/include)
-    link_directories(C:/Users/Chenhz/Software/Qt/6.8.1/mingw_64/lib)
-endif()
-
 find_package(Qt6 COMPONENTS Widgets Core REQUIRED)
 
-# link_directories(${CMAKE_BINARY_DIR}/lib)
-# utils
-file(GLOB UTILS_SRC "utils/src/*.cpp")
-add_library(utils SHARED 
-    ${UTILS_SRC}
-)
-target_include_directories(utils PRIVATE 
-    utils/include
-)
-# cmd
-add_library(cmd SHARED 
-    cmd/command.cpp
-)
-target_include_directories(cmd PRIVATE 
-    cmd/include
+# 公共 include
+set(COMMON_INCLUDE
+    ${CMAKE_SOURCE_DIR}/utils
+    ${CMAKE_SOURCE_DIR}/cmd
+    ${CMAKE_SOURCE_DIR}/local
+    ${CMAKE_SOURCE_DIR}/window
 )
 
-target_link_libraries(cmd PRIVATE 
-    Qt6::Widgets
-    Qt6::Core
-    utils
-)
+# 收集所有模块的 cpp 文件
+file(GLOB_RECURSE UTILS_SRC utils/*.cpp)
+file(GLOB_RECURSE CMD_SRC cmd/*.cpp)
+file(GLOB_RECURSE LOCAL_SRC local/*.cpp)
+file(GLOB_RECURSE WINDOW_SRC window/*.cpp)
 
-# customF
-file(GLOB LOCAL_SRC "local/*.cpp")
-add_library(customF SHARED 
-    ${LOCAL_SRC}
-)
-target_include_directories(customF PRIVATE 
-    cmd/include
-    utils/include
-    local/include
-)
-target_link_libraries(customF PRIVATE 
-    Qt6::Widgets
-    Qt6::Core
-    cmd
-    utils
-)
-# spotlight
-add_executable(spotlight 
-    window/gui.cpp
-    window/main.cpp
-)
-target_include_directories(spotlight PRIVATE 
-    window/include
-    cmd/include
-    local/include
-)
-target_link_libraries(spotlight PRIVATE 
-    customF
-    cmd 
-    Qt6::Widgets
-)
+# 合并所有非空列表
+set(SPOTLIGHT_SRC ${WINDOW_SRC})  # window 必须有 cpp，否则 add_executable 也会报错
 
-# test
-add_executable(test 
-    test/test_search.cpp
+if(UTILS_SRC)
+    list(APPEND SPOTLIGHT_SRC ${UTILS_SRC})
+endif()
+if(CMD_SRC)
+    list(APPEND SPOTLIGHT_SRC ${CMD_SRC})
+endif()
+if(LOCAL_SRC)
+    list(APPEND SPOTLIGHT_SRC ${LOCAL_SRC})
+endif()
+
+add_executable(spotlight ${SPOTLIGHT_SRC} ${CMAKE_SOURCE_DIR}/main.cpp)
+target_include_directories(spotlight PRIVATE
+    ${CMAKE_SOURCE_DIR}/utils
+    ${CMAKE_SOURCE_DIR}/cmd
+    ${CMAKE_SOURCE_DIR}/local
+    ${CMAKE_SOURCE_DIR}/window
 )
-target_link_libraries(test PRIVATE 
-    Qt6::Widgets
-)
+target_link_libraries(spotlight PRIVATE Qt6::Widgets Qt6::Core)
+
+# 自动生成 test 可执行文件
+file(GLOB TEST_FILES test/test_*.cpp)
+foreach(test_file ${TEST_FILES})
+    get_filename_component(test_name ${test_file} NAME_WE)
+    add_executable(${test_name} ${test_file} ${SPOTLIGHT_SRC})
+    target_include_directories(${test_name} PRIVATE ${COMMON_INCLUDE} ${CMAKE_SOURCE_DIR}/test)
+    target_link_libraries(${test_name} PRIVATE Qt6::Widgets Qt6::Core)
+endforeach()

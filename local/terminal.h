@@ -1,3 +1,5 @@
+ #ifndef _LOCAL_TERMINAL_H_
+ #define _LOCAL_TERMINAL_H_
 #include "command.h"
 #include <cstdlib>
 #include <unistd.h>
@@ -9,17 +11,12 @@
 #endif
 
 #include "file.h"
-namespace Command {
 class Terminal : public CommandBase {
 public:
+
     Terminal() {
-        
     }
-    void registerCommand() {
-        // printf("term::%p\n", &(CommandParser::getInstance()));
-        CommandParser::getInstance().Register("term", this);
-        // printf("register::%p\n", this);
-    }
+
     void execute(const std::vector<std::string> &argument, QListWidget *resultList, QVBoxLayout *layout, QWidget *parent) override {
         resultList->addItem("Opening Terminal...");
 #ifdef __WIN32
@@ -58,4 +55,5 @@ private:
     }
 
 };
-};
+
+#endif

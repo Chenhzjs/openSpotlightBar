@@ -1,13 +1,15 @@
+#ifndef _GUI_H_
+#define _GUI_H_
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QLineEdit>
 #include <QtWidgets/QListWidget>
 #include <QtWidgets/QVBoxLayout>
 #include <QtWidgets/QWidget>
 #include "command.h"
-#include "gui.h"
 
-namespace Window {
-    Spotlight::Spotlight(QWidget *parent) : QWidget(parent), parser(Command::CommandParser::getInstance()) {
+class Spotlight : public QWidget {
+public:
+    Spotlight(QWidget *parent) : QWidget(parent), parser(commandParser) {
         setWindowTitle("Spotlight Search");
         setFixedSize(600, 400);
 
@@ -22,19 +24,34 @@ namespace Window {
         layout->addWidget(resultList);
         setLayout(layout);
     }
-    void Spotlight::handleCommand() {
+
+    ~Spotlight() {
+        delete searchBox;
+        delete resultList;
+        delete layout;
+    }
+
+private slots:
+    void handleCommand() {
         QString input = searchBox->text().trimmed();
         searchBox->clear();
         if (input.isEmpty()) {
             return;
         }
         std::vector<std::string> arguments;
-        Command::CommandBase *command = parser.parse(input, arguments);
-        // printf("command:: %p\n", command);
+        CommandBase *command = parser.parse(input, arguments);
         if (command) {
             command->execute(arguments, resultList, layout, this);
         } else {
             resultList->addItem("Invalid command: " + input);
         }
     }
-}
+
+private:
+    QLineEdit *searchBox;
+    QListWidget *resultList;
+    QVBoxLayout *layout;
+    CommandParser parser;
+};
+
+#endif // _GUI_H_
