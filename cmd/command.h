@@ -5,10 +5,11 @@
 #include <QtWidgets/QListWidget>
 #include <QtWidgets/QVBoxLayout>
 #include <QtWidgets/QWidget>
+#include <QtCore/QRegularExpression>
 #include <string>
 #include <vector>
-#include <iostream>
 #include <sstream>
+#include <algorithm>
 
 extern QMap<QString, class CommandBase *> commandMap;
 
@@ -22,17 +23,27 @@ class CommandParser {
 public:
 
     CommandBase* parse(const QString &input, std::vector<std::string> &arguments) {
-        for (const QString &prefix : commandMap.keys()) {
-            std::cout << "Prefix: " << prefix.toStdString() << std::endl;
-            if (input.startsWith(prefix)) {
-                std::string arguments_builder = input.mid(prefix.length()).trimmed().toStdString();
-                std::stringstream ss(arguments_builder);
-                std::string token;
-                while (std::getline(ss, token, ' ')) {
-                    arguments.push_back(token);
-                }
-                return commandMap[prefix];
+        const QString trimmed = input.trimmed();
+        auto keys = commandMap.keys();
+        std::sort(keys.begin(), keys.end(), [](const QString &lhs, const QString &rhs) {
+            if (lhs.length() == rhs.length()) {
+                return lhs < rhs;
             }
+            return lhs.length() > rhs.length();
+        });
+        for (const QString &prefix : keys) {
+            if (!trimmed.startsWith(prefix, Qt::CaseInsensitive)) {
+                continue;
+            }
+            if (trimmed.length() > prefix.length() && !trimmed.at(prefix.length()).isSpace()) {
+                continue;
+            }
+            const QString remaining = trimmed.mid(prefix.length()).trimmed();
+            const QStringList tokens = remaining.split(QRegularExpression(QStringLiteral("\\s+")), Qt::SkipEmptyParts);
+            for (const QString &token : tokens) {
+                arguments.push_back(token.toStdString());
+            }
+            return commandMap[prefix];
         }
         return nullptr;
     }
