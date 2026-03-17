@@ -1,0 +1,123 @@
+mod commands;
+mod db;
+mod error;
+mod models;
+mod platform;
+mod services;
+mod state;
+
+use std::sync::Arc;
+
+use commands::{
+    bootstrap_state, delete_snippet, get_file_index_status, hide_window, list_clipboard_items,
+    list_snippets, perform_action, plugin_exec_shell, plugin_read_clipboard_text,
+    plugin_write_clipboard_text, rebuild_file_index, record_selection, save_snippet, search_apps,
+    search_files, update_settings,
+};
+use db::Database;
+use error::{AppError, AppResult};
+use state::AppState;
+use tauri::{AppHandle, Manager};
+use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
+
+pub fn run() {
+    tauri::Builder::default()
+        .plugin(
+            tauri_plugin_global_shortcut::Builder::new()
+                .with_handler(|app, _shortcut, event| {
+                    if event.state == ShortcutState::Pressed {
+                        let _ = toggle_main_window(app);
+                    }
+                })
+                .build(),
+        )
+        .setup(|app| {
+            let app_dir = app
+                .path()
+                .app_data_dir()
+                .map_err(|error| AppError::Message(error.to_string()))?;
+            let db = Arc::new(Database::new(&app_dir)?);
+            let settings = db.get_settings()?;
+            let state = AppState::new(db.clone(), settings.hotkey.clone());
+            app.manage(state.clone());
+
+            refresh_app_cache(app.handle());
+            register_hotkey(app.handle(), &settings.hotkey)?;
+            services::clipboard_monitor::spawn(app.handle().clone());
+            services::file_index::spawn_rebuild(app.handle().clone());
+
+            Ok(())
+        })
+        .invoke_handler(tauri::generate_handler![
+            bootstrap_state,
+            search_apps,
+            search_files,
+            list_clipboard_items,
+            list_snippets,
+            save_snippet,
+            delete_snippet,
+            update_settings,
+            record_selection,
+            rebuild_file_index,
+            get_file_index_status,
+            plugin_exec_shell,
+            plugin_read_clipboard_text,
+            plugin_write_clipboard_text,
+            perform_action,
+            hide_window
+        ])
+        .run(tauri::generate_context!())
+        .expect("error while running Pulse Launcher");
+}
+
+pub fn refresh_app_cache(app_handle: &AppHandle) {
+    let state = app_handle.state::<AppState>().inner().clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let apps = platform::apps::discover_apps();
+        if let Ok(mut cache) = state.app_cache.lock() {
+            *cache = apps;
+        }
+    });
+}
+
+pub fn register_hotkey(app: &AppHandle, hotkey: &str) -> AppResult<()> {
+    let shortcut: Shortcut = hotkey
+        .parse()
+        .map_err(|error| AppError::Message(format!("Invalid hotkey {hotkey}: {error}")))?;
+    app.global_shortcut()
+        .register(shortcut)
+        .map_err(|error| AppError::Message(error.to_string()))?;
+    if let Some(state) = app.try_state::<AppState>() {
+        if let Ok(mut current_hotkey) = state.current_hotkey.lock() {
+            *current_hotkey = hotkey.to_string();
+        }
+    }
+    Ok(())
+}
+
+pub fn update_hotkey(app: &AppHandle, hotkey: &str) -> AppResult<()> {
+    if let Some(state) = app.try_state::<AppState>() {
+        if let Ok(current) = state.current_hotkey.lock() {
+            if !current.is_empty() {
+                if let Ok(existing) = current.parse::<Shortcut>() {
+                    let _ = app.global_shortcut().unregister(existing);
+                }
+            }
+        }
+    }
+    register_hotkey(app, hotkey)
+}
+
+pub fn toggle_main_window(app: &AppHandle) -> AppResult<()> {
+    let window = app
+        .get_webview_window("main")
+        .ok_or_else(|| AppError::from("Main window was not found"))?;
+
+    if window.is_visible()? {
+        window.hide()?;
+    } else {
+        window.show()?;
+        window.set_focus()?;
+    }
+    Ok(())
+}

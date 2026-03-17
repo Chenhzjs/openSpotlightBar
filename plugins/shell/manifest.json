@@ -1,0 +1,14 @@
+{
+  "id": "com.pulse.shell",
+  "name": "Shell Command",
+  "version": "0.1.0",
+  "entry": "src/index.js",
+  "description": "Run an ad-hoc shell command from the launcher.",
+  "commands": [
+    {
+      "name": ">",
+      "title": "Shell command"
+    }
+  ],
+  "permissions": ["shell.exec"]
+}

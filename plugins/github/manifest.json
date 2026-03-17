@@ -1,0 +1,14 @@
+{
+  "id": "com.pulse.github",
+  "name": "GitHub Search",
+  "version": "0.1.0",
+  "entry": "src/index.js",
+  "description": "Open GitHub repository and code searches from the launcher.",
+  "commands": [
+    {
+      "name": "gh",
+      "title": "GitHub search"
+    }
+  ],
+  "permissions": ["network"]
+}

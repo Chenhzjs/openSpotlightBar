@@ -1,0 +1,68 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Space+Grotesk:wght@400;500;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  background:
+    radial-gradient(circle at top, rgba(84, 198, 235, 0.16), transparent 34%),
+    radial-gradient(circle at bottom right, rgba(242, 197, 107, 0.12), transparent 28%),
+    #06070c;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: linear-gradient(180deg, rgba(6, 7, 12, 0.94), rgba(6, 7, 12, 1)), #06070c;
+  color: #edf4ff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::selection {
+  background: rgba(122, 215, 242, 0.3);
+}
+
+@layer components {
+  .input {
+    @apply w-full rounded-2xl px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: rgba(0, 0, 0, 0.25);
+  }
+
+  .input:focus {
+    border-color: rgba(122, 215, 242, 0.6);
+  }
+
+  .button-primary {
+    @apply rounded-full px-4 py-2 text-sm font-medium text-white transition;
+    border: 1px solid rgba(122, 215, 242, 0.5);
+    background-color: rgba(84, 198, 235, 0.18);
+  }
+
+  .button-primary:hover {
+    border-color: rgba(172, 232, 247, 0.7);
+    background-color: rgba(84, 198, 235, 0.26);
+  }
+
+  .button-secondary {
+    @apply rounded-full px-4 py-2 text-sm font-medium text-slate-200 transition;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 255, 255, 0.04);
+  }
+
+  .button-secondary:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+    background-color: rgba(255, 255, 255, 0.08);
+  }
+}

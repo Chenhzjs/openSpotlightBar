@@ -1,0 +1,14 @@
+{
+  "id": "com.pulse.calculator",
+  "name": "Calculator",
+  "version": "0.1.0",
+  "entry": "src/index.js",
+  "description": "Evaluate arithmetic expressions inline.",
+  "commands": [
+    {
+      "name": "=",
+      "title": "Calculate expression"
+    }
+  ],
+  "permissions": []
+}
