@@ -1,0 +1,40 @@
+{
+  "name": "pulse-launcher-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@9.12.2",
+  "scripts": {
+    "dev": "pnpm tauri:dev",
+    "build": "pnpm -r build",
+    "desktop:build": "pnpm --filter @pulse/desktop build",
+    "desktop:dev": "pnpm --filter @pulse/desktop dev",
+    "macos:native:build": "bash scripts/build-macos-native.sh",
+    "macos:native:dev": "bash scripts/run-macos-native.sh",
+    "macos:native:test": "swift test --package-path apps/macos",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint apps packages plugins --ext .ts,.tsx,.js --max-warnings=0",
+    "release:linux": "bash scripts/build-linux.sh",
+    "release:macos": "bash scripts/build-macos.sh",
+    "release:windows": "pwsh -File scripts/build-windows.ps1",
+    "rust:check": "cargo fmt --check --manifest-path apps/desktop/src-tauri/Cargo.toml && cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml",
+    "tauri:build": "pnpm --filter @pulse/desktop tauri build",
+    "tauri:dev": "pnpm --filter @pulse/desktop tauri dev",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm --filter @pulse/desktop build && pnpm rust:check",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.23.0",
+    "eslint": "^9.23.0",
+    "eslint-config-prettier": "^10.1.1",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.19",
+    "globals": "^15.15.0",
+    "prettier": "^3.5.3",
+    "typescript-eslint": "^8.28.0",
+    "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "^3.1.1"
+  }
+}

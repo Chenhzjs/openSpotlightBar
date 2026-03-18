@@ -1,0 +1,9 @@
+qt5
+local
+window
+cmd
+node_modules
+dist
+coverage
+apps/desktop/src-tauri/target
+pnpm-lock.yaml

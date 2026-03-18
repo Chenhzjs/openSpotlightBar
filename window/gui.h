@@ -217,7 +217,7 @@ private:
         settingsButton->setCursor(Qt::PointingHandCursor);
         settingsButton->setToolTip(tr("Open Settings"));
         settingsButton->setText(QString::fromUtf8(u8"\u2699"));
-        settingsButton->setFixedSize(32, 32);
+        settingsButton->setFixedSize(40, 40);
 #ifdef Q_OS_MAC
         settingsButton->setVisible(true);
 #else
@@ -309,7 +309,7 @@ private:
             QToolButton#settingsButton {
                 border: none;
                 color: #FFFFFF;
-                font-size: 16px;
+                font-size: 20px;
                 background: transparent;
             }
             QToolButton#settingsButton:hover {
@@ -430,6 +430,7 @@ private:
         if (!settingsDialog) {
             settingsDialog = new SettingsDialog(this);
         }
+        settingsDialog->refreshWorkflowsView();
         settingsDialog->show();
         settingsDialog->raise();
         settingsDialog->activateWindow();

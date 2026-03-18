@@ -30,10 +30,7 @@
   ],
 
   // macOS 框架路径（Qt 可能用到）
-  "C_Cpp.default.macFrameworkPath": [
-    "/System/Library/Frameworks",
-    "/Library/Frameworks"
-  ],
+  "C_Cpp.default.macFrameworkPath": ["/System/Library/Frameworks", "/Library/Frameworks"],
 
   // 编译器路径和标准
   "C_Cpp.default.compilerPath": "/usr/bin/clang",
