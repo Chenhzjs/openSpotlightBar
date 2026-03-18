@@ -3,7 +3,10 @@ import type { LauncherSettings } from "@pulse/shared-types";
 export const DEFAULT_SETTINGS: LauncherSettings = {
   hotkey: "Alt+Space",
   theme: "dark",
+  language: "system",
   indexPaths: [],
+  indexExclusions: [],
+  indexingPaused: false,
   search: {
     maxResults: 9,
     sourceWeights: {
@@ -13,6 +16,7 @@ export const DEFAULT_SETTINGS: LauncherSettings = {
       clipboard: 0.95,
       snippets: 1.02,
       plugins: 0.9,
+      workflows: 1.06,
       system: 0.85
     }
   },

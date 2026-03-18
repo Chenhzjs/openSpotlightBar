@@ -37,6 +37,34 @@ QString WorkflowManager::configLocation() const {
     return configPath();
 }
 
+bool WorkflowManager::saveAll(const QList<WorkflowDefinition> &items) {
+    QDir dir(configDirectory());
+    if (!dir.exists()) {
+        dir.mkpath(QStringLiteral("."));
+    }
+    QFile file(configPath());
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        return false;
+    }
+    QJsonArray array;
+    for (const WorkflowDefinition &def : items) {
+        if (def.keyword.trimmed().isEmpty() || def.command.trimmed().isEmpty()) {
+            continue;
+        }
+        QJsonObject obj;
+        obj.insert(QStringLiteral("keyword"), def.keyword.trimmed());
+        obj.insert(QStringLiteral("description"), def.description);
+        obj.insert(QStringLiteral("command"), def.command);
+        array.append(obj);
+    }
+    QJsonDocument doc(array);
+    file.write(doc.toJson(QJsonDocument::Indented));
+    file.close();
+    definitions = items;
+    loaded = true;
+    return true;
+}
+
 WorkflowDefinition WorkflowManager::find(const QString &keyword) const {
     ensureLoaded();
     for (const WorkflowDefinition &definition : definitions) {

@@ -1,4 +1,13 @@
-import { parseQuery } from "@pulse/core";
+import {
+  createWorkflowTriggerRegistry,
+  getWorkflowPrimaryArgumentName,
+  getWorkflowTriggerExampleInvocation,
+  getWorkflowTriggerDisplayLabel,
+  matchWorkflowTriggerInvocation,
+  parseQuery,
+  parseSlashCommandInvocation,
+  type WorkflowTriggerRegistration
+} from "@pulse/core";
 import type {
   ActionItem,
   AppRecord,
@@ -22,11 +31,13 @@ const SEARCHABLE_SCOPES: SearchScope[] = [
   "clipboard",
   "snippets",
   "plugins",
+  "workflows",
   "system"
 ];
 
 export function createProviders(pluginHost: PluginHost): SearchProvider[] {
   return [
+    createWorkflowProvider(),
     createSystemProvider(),
     createAppProvider(),
     createFileProvider(),
@@ -35,6 +46,95 @@ export function createProviders(pluginHost: PluginHost): SearchProvider[] {
     createPluginProvider(pluginHost),
     createWebProvider()
   ];
+}
+
+function createWorkflowProvider(): SearchProvider {
+  return {
+    id: "workflows",
+    label: "Workflow commands",
+    source: "workflows",
+    sourceWeight: 1.06,
+    async search(query, context) {
+      if (!shouldSearch(context, "workflows") || context.workflows.length === 0) {
+        return [];
+      }
+
+      const trimmed = query.trim();
+      const registry = createWorkflowTriggerRegistry(context.workflows);
+      const invocationMatch = matchWorkflowTriggerInvocation(trimmed, registry);
+      const candidates = new Map<
+        string,
+        {
+          workflow: SearchContext["workflows"][number];
+          registration: WorkflowTriggerRegistration;
+          matchKind: "invocation" | "suggestion";
+        }
+      >();
+
+      if (trimmed.startsWith("/")) {
+        const normalizedCommand = parseSlashCommandInvocation(trimmed)?.command ?? "/";
+        for (const registration of registry.activeRegistrations) {
+          if (
+            registration.triggerType !== "slash-command" ||
+            !registration.normalizedToken
+          ) {
+            continue;
+          }
+
+          if (
+            trimmed === "/" ||
+            registration.normalizedToken.startsWith(normalizedCommand) ||
+            normalizedCommand.startsWith(registration.normalizedToken)
+          ) {
+            candidates.set(registration.workflowId, {
+              workflow: registration.workflow,
+              registration,
+              matchKind:
+                registration.normalizedToken === normalizedCommand
+                  ? "invocation"
+                  : "suggestion"
+            });
+          }
+        }
+      } else {
+        if (invocationMatch) {
+          candidates.set(invocationMatch.workflow.id, {
+            workflow: invocationMatch.workflow,
+            registration: invocationMatch.registration,
+            matchKind: "invocation"
+          });
+        }
+
+        for (const registration of registry.activeRegistrations) {
+          if (!shouldSuggestWorkflowRegistration(registration, trimmed)) {
+            continue;
+          }
+
+          const existing = candidates.get(registration.workflowId);
+          if (existing?.matchKind === "invocation") {
+            continue;
+          }
+
+          candidates.set(registration.workflowId, {
+            workflow: registration.workflow,
+            registration,
+            matchKind: "suggestion"
+          });
+        }
+      }
+
+      return [...candidates.values()]
+        .slice(0, trimmed.startsWith("/") ? 12 : 8)
+        .map((candidate) =>
+          toWorkflowResult(
+            candidate.workflow,
+            trimmed,
+            candidate.registration,
+            candidate.matchKind
+          )
+        );
+    }
+  };
 }
 
 function createSystemProvider(): SearchProvider {
@@ -355,6 +455,88 @@ function matchesSnippet(snippet: SnippetRecord, query: string): boolean {
   return haystack.includes(query);
 }
 
+function toWorkflowResult(
+  workflow: SearchContext["workflows"][number],
+  rawQuery: string,
+  registration: WorkflowTriggerRegistration,
+  matchKind: "invocation" | "suggestion"
+): ResultItem {
+  const triggerLabel = getWorkflowTriggerDisplayLabel(workflow);
+  const exampleInvocation = getWorkflowTriggerExampleInvocation(workflow);
+  const triggerTypeLabel =
+    registration.triggerType === "keyword" ? "Keyword workflow" : "Slash workflow";
+  const subtitle = [
+    workflow.description ?? "",
+    `${triggerTypeLabel}: ${registration.token ?? triggerLabel}`,
+    exampleInvocation ? `Try ${exampleInvocation}` : undefined
+  ]
+    .filter(Boolean)
+    .join(" • ");
+
+  return {
+    id: `workflow:${workflow.id}`,
+    title: workflow.name,
+    subtitle,
+    type: "workflow",
+    source: "workflows",
+    score:
+      matchKind === "invocation"
+        ? registration.triggerType === "keyword"
+          ? 1.26
+          : 1.18
+        : registration.triggerType === "keyword"
+          ? 1.02
+          : 0.94,
+    tags: [...workflow.tags, registration.triggerType, registration.isAlias ? "alias" : "primary"],
+    payload: {
+      workflowId: workflow.id,
+      rawQuery,
+      command: triggerLabel,
+      triggerType: registration.triggerType,
+      triggerToken: registration.token,
+      exampleInvocation,
+      argumentName: getWorkflowPrimaryArgumentName(workflow)
+    },
+    actions: [
+      {
+        id: `workflow:run:${workflow.id}`,
+        title: "Run workflow",
+        kind: "run-workflow",
+        shortcut: "Enter",
+        description:
+          registration.triggerType === "keyword"
+            ? `Execute keyword workflow ${registration.token}`
+            : `Execute ${triggerLabel}`,
+        payload: {
+          workflowId: workflow.id,
+          rawQuery
+        }
+      }
+    ]
+  };
+}
+
+function shouldSuggestWorkflowRegistration(
+  registration: WorkflowTriggerRegistration,
+  query: string
+): boolean {
+  if (!query) {
+    return true;
+  }
+
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) {
+    return true;
+  }
+
+  const firstToken = normalized.split(/\s+/)[0] ?? normalized;
+  if (registration.normalizedToken?.startsWith(firstToken)) {
+    return true;
+  }
+
+  return registration.searchText.includes(normalized);
+}
+
 function toAppResult(app: AppRecord): ResultItem {
   return {
     id: `app:${app.id}`,
@@ -401,16 +583,21 @@ function toAppResult(app: AppRecord): ResultItem {
 }
 
 function toFileResult(file: FileRecord): ResultItem {
+  const relativeTime = formatRelativeTime(file.mtimeMs);
+
   return {
     id: `file:${file.path}`,
     title: file.name,
-    subtitle: file.path,
+    subtitle: `${file.path} • ${relativeTime}`,
     type: file.kind,
     source: "files",
-    score: 0.82,
+    score: file.kind === "folder" ? 0.8 : 0.82,
     payload: {
       path: file.path,
-      kind: file.kind
+      kind: file.kind,
+      extension: file.extension,
+      mtimeMs: file.mtimeMs,
+      relativeTime
     },
     actions: [
       {

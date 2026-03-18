@@ -21,8 +21,19 @@ export function rankResult(
   sourceWeight = 1,
   now = Date.now()
 ): RankedResult {
-  const { fuzzyScore, prefixBonus, exactBonus } = scoreTextMatch(item.title, query);
-  const recencyBonus = computeRecencyBonus(usage?.lastSelectedAt, now);
+  const primaryMatch = scoreTextMatch(item.title, query);
+  const secondaryMatch =
+    item.source === "files" && item.subtitle
+      ? scoreTextMatch(item.subtitle, query)
+      : { fuzzyScore: 0, prefixBonus: 0, exactBonus: 0 };
+  const fuzzyScore = primaryMatch.fuzzyScore + secondaryMatch.fuzzyScore * 0.35;
+  const prefixBonus = primaryMatch.prefixBonus + secondaryMatch.prefixBonus * 0.2;
+  const exactBonus = primaryMatch.exactBonus + secondaryMatch.exactBonus * 0.15;
+  const recencyBonus = computeRecencyBonus(
+    usage?.lastSelectedAt,
+    item.source === "files" ? readFileModifiedAt(item) : undefined,
+    now
+  );
   const usageBonus = usage ? Math.min(usage.selectedCount * 0.035, 0.22) : 0;
   const providerScore = item.score;
   const score =
@@ -49,7 +60,20 @@ export function rankResult(
   };
 }
 
-function computeRecencyBonus(lastSelectedAt?: number, now = Date.now()): number {
+function computeRecencyBonus(
+  lastSelectedAt?: number,
+  fileModifiedAt?: number,
+  now = Date.now()
+): number {
+  const usageRecency = lastSelectedAt
+    ? computeSelectionRecencyBonus(lastSelectedAt, now)
+    : 0;
+  const fileRecency = fileModifiedAt ? computeFileRecencyBonus(fileModifiedAt, now) : 0;
+
+  return Math.min(usageRecency + fileRecency, 0.38);
+}
+
+function computeSelectionRecencyBonus(lastSelectedAt: number, now = Date.now()): number {
   if (!lastSelectedAt) {
     return 0;
   }
@@ -65,4 +89,29 @@ function computeRecencyBonus(lastSelectedAt?: number, now = Date.now()): number 
     return 0.08;
   }
   return 0;
+}
+
+function computeFileRecencyBonus(fileModifiedAt: number, now = Date.now()): number {
+  const ageHours = (now - fileModifiedAt) / (1000 * 60 * 60);
+  if (ageHours < 0) {
+    return 0;
+  }
+  if (ageHours < 6) {
+    return 0.16;
+  }
+  if (ageHours < 24) {
+    return 0.1;
+  }
+  if (ageHours < 24 * 7) {
+    return 0.05;
+  }
+  if (ageHours < 24 * 30) {
+    return 0.02;
+  }
+  return 0;
+}
+
+function readFileModifiedAt(item: ResultItem): number | undefined {
+  const value = item.payload?.mtimeMs;
+  return typeof value === "number" ? value : undefined;
 }

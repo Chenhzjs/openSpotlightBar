@@ -11,7 +11,7 @@ use crate::{
     error::AppResult,
     models::{
         BootstrapPayload, ClipboardItem, DiscoveredPlugin, FileIndexStatus, FileRecord,
-        LauncherSettings, SnippetInput, SnippetRecord, UsageStat,
+        LauncherSettings, SnippetInput, SnippetRecord, UsageStat, WorkflowRecord,
     },
 };
 
@@ -74,6 +74,17 @@ impl Database {
               created_at INTEGER NOT NULL,
               updated_at INTEGER NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS workflows (
+              id TEXT PRIMARY KEY,
+              name TEXT NOT NULL,
+              trigger_type TEXT NOT NULL,
+              trigger_command TEXT,
+              enabled INTEGER DEFAULT 1,
+              built_in INTEGER DEFAULT 0,
+              created_at INTEGER NOT NULL,
+              updated_at INTEGER NOT NULL,
+              definition_json TEXT NOT NULL
+            );
         "#,
         )?;
         drop(connection);
@@ -95,6 +106,7 @@ impl Database {
             clipboard_items: self.list_clipboard_items()?,
             snippets: self.list_snippets()?,
             plugins,
+            workflows: self.list_workflows()?,
         })
     }
 
@@ -122,6 +134,34 @@ impl Database {
         let raw = serde_json::to_string(settings)?;
         connection.execute(
             "INSERT INTO settings (key, value) VALUES ('launcher_settings', ?1)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+            [raw],
+        )?;
+        Ok(())
+    }
+
+    pub fn get_file_index_status(&self) -> AppResult<FileIndexStatus> {
+        let connection = self.connection.lock().expect("database mutex poisoned");
+        let raw = connection
+            .query_row(
+                "SELECT value FROM settings WHERE key = 'file_index_status'",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()?;
+        drop(connection);
+
+        match raw {
+            Some(value) => Ok(serde_json::from_str(&value).unwrap_or_default()),
+            None => Ok(FileIndexStatus::default()),
+        }
+    }
+
+    pub fn save_file_index_status(&self, status: &FileIndexStatus) -> AppResult<()> {
+        let connection = self.connection.lock().expect("database mutex poisoned");
+        let raw = serde_json::to_string(status)?;
+        connection.execute(
+            "INSERT INTO settings (key, value) VALUES ('file_index_status', ?1)
              ON CONFLICT(key) DO UPDATE SET value = excluded.value",
             [raw],
         )?;
@@ -380,17 +420,122 @@ impl Database {
         Ok(())
     }
 
+    pub fn list_workflows(&self) -> AppResult<Vec<WorkflowRecord>> {
+        let connection = self.connection.lock().expect("database mutex poisoned");
+        let mut statement = connection.prepare(
+            "SELECT definition_json
+             FROM workflows
+             ORDER BY built_in DESC, updated_at DESC, name ASC",
+        )?;
+        let rows = statement.query_map([], |row| row.get::<_, String>(0))?;
+        let workflows = rows
+            .filter_map(Result::ok)
+            .filter_map(|raw| serde_json::from_str::<WorkflowRecord>(&raw).ok())
+            .collect();
+        Ok(workflows)
+    }
+
+    pub fn save_workflow(&self, workflow: &WorkflowRecord) -> AppResult<WorkflowRecord> {
+        let connection = self.connection.lock().expect("database mutex poisoned");
+        let now = now_ms();
+        let id = if workflow.id.trim().is_empty() {
+            Uuid::new_v4().to_string()
+        } else {
+            workflow.id.clone()
+        };
+
+        let created_at = connection
+            .query_row(
+                "SELECT created_at FROM workflows WHERE id = ?1",
+                [id.clone()],
+                |row| row.get::<_, i64>(0),
+            )
+            .optional()?
+            .unwrap_or_else(|| {
+                if workflow.created_at > 0 {
+                    workflow.created_at
+                } else {
+                    now
+                }
+            });
+
+        let saved = WorkflowRecord {
+            id,
+            name: workflow.name.clone(),
+            description: workflow.description.clone(),
+            enabled: workflow.enabled,
+            built_in: workflow.built_in,
+            reusable: workflow.reusable.clone(),
+            tags: workflow.tags.clone(),
+            trigger: workflow.trigger.clone(),
+            nodes: workflow.nodes.clone(),
+            edges: workflow.edges.clone(),
+            created_at,
+            updated_at: now,
+        };
+
+        let raw = serde_json::to_string(&saved)?;
+        connection.execute(
+            "INSERT INTO workflows
+             (id, name, trigger_type, trigger_command, enabled, built_in, created_at, updated_at, definition_json)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
+             ON CONFLICT(id) DO UPDATE SET
+               name = excluded.name,
+               trigger_type = excluded.trigger_type,
+               trigger_command = excluded.trigger_command,
+               enabled = excluded.enabled,
+               built_in = excluded.built_in,
+               updated_at = excluded.updated_at,
+               definition_json = excluded.definition_json",
+            params![
+                saved.id,
+                saved.name,
+                saved.trigger.trigger_type,
+                saved.trigger.command,
+                if saved.enabled { 1 } else { 0 },
+                if saved.built_in { 1 } else { 0 },
+                saved.created_at,
+                saved.updated_at,
+                raw
+            ],
+        )?;
+
+        Ok(saved)
+    }
+
+    pub fn delete_workflow(&self, id: &str) -> AppResult<()> {
+        let connection = self.connection.lock().expect("database mutex poisoned");
+        connection.execute("DELETE FROM workflows WHERE id = ?1", [id])?;
+        Ok(())
+    }
+
     pub fn search_files(&self, query: &str, limit: usize) -> AppResult<Vec<FileRecord>> {
         let connection = self.connection.lock().expect("database mutex poisoned");
-        let pattern = format!("%{}%", query.to_lowercase());
+        let normalized = query.trim().to_lowercase();
+        if normalized.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let prefix = format!("{normalized}%");
+        let pattern = format!("%{normalized}%");
         let mut statement = connection.prepare(
             "SELECT path, name, kind, extension, mtime_ms
              FROM indexed_files
-             WHERE lower(name) LIKE ?1 OR lower(path) LIKE ?1
-             ORDER BY mtime_ms DESC
-             LIMIT ?2",
+             WHERE lower(name) LIKE ?3 OR lower(path) LIKE ?3
+             ORDER BY
+               CASE
+                 WHEN lower(name) = ?1 THEN 6
+                 WHEN lower(path) = ?1 THEN 5
+                 WHEN lower(name) LIKE ?2 THEN 4
+                 WHEN lower(path) LIKE ?2 THEN 3
+                 WHEN lower(name) LIKE ?3 THEN 2
+                 ELSE 1
+               END DESC,
+               mtime_ms DESC,
+               length(name) ASC
+             LIMIT ?4",
         )?;
-        let rows = statement.query_map(params![pattern, limit as i64], |row| {
+        let rows = statement.query_map(params![normalized, prefix, pattern, limit as i64], |row| {
             Ok(FileRecord {
                 path: row.get(0)?,
                 name: row.get(1)?,
@@ -400,6 +545,14 @@ impl Database {
             })
         })?;
         Ok(rows.filter_map(Result::ok).collect())
+    }
+
+    pub fn count_indexed_files(&self) -> AppResult<usize> {
+        let connection = self.connection.lock().expect("database mutex poisoned");
+        let count = connection.query_row("SELECT COUNT(*) FROM indexed_files", [], |row| {
+            row.get::<_, i64>(0)
+        })?;
+        Ok(count.max(0) as usize)
     }
 
     pub fn replace_indexed_files(&self, files: &[FileRecord]) -> AppResult<()> {

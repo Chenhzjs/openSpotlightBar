@@ -2,6 +2,11 @@
 
 This document covers the local build and packaging flow for the current Phase 4 codebase. It does not cover signing, notarization, or auto-update publishing yet.
 
+The repository now has two macOS-facing entry paths:
+
+- the shared Tauri desktop app under `apps/desktop`, which remains the cross-platform runtime used for Windows and Linux packaging
+- the native SwiftUI/AppKit macOS host under `apps/macos`, which currently owns the Spotlight-style shell on macOS
+
 ## Shared prerequisites
 
 - Node.js 20+
@@ -14,6 +19,38 @@ All platform scripts install dependencies with `--frozen-lockfile`, run workspac
 Artifacts are emitted under `apps/desktop/src-tauri/target/release/bundle`.
 
 ## macOS
+
+### Native SwiftUI/AppKit host
+
+Prerequisites:
+
+- Xcode Command Line Tools
+
+Run locally:
+
+```bash
+pnpm macos:native:dev
+```
+
+Compile:
+
+```bash
+pnpm macos:native:build
+```
+
+Run Swift tests:
+
+```bash
+pnpm macos:native:test
+```
+
+Current native-host limitations:
+
+- the native host currently implements the shell, hotkey, app search, action panel, and `/config` routing
+- clipboard, snippets, file index, usage persistence, and plugin runtime still need to be bridged from the existing Rust-backed desktop stack
+- signing, notarization, and `.app` packaging are not configured yet
+
+### Tauri macOS bundle
 
 Prerequisites:
 
@@ -32,7 +69,7 @@ Skip verification if you already ran it:
 SKIP_VERIFY=1 pnpm release:macos
 ```
 
-Current macOS limitations:
+Current Tauri macOS limitations:
 
 - app discovery currently scans `/Applications` and `~/Applications`; deeper Launch Services integration is still TODO
 - hotkey editing is still a scaffold, not a native recorder

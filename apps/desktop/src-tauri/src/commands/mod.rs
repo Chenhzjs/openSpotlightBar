@@ -2,6 +2,10 @@ use std::{path::Path, process::Command as StdCommand, time::Duration};
 
 use arboard::Clipboard;
 use chrono::Local;
+use reqwest::{
+    header::{HeaderMap, HeaderName, HeaderValue, CONTENT_TYPE},
+    Client, Method,
+};
 use serde_json::Value;
 use tauri::{AppHandle, Manager, State};
 use tokio::process::Command as TokioCommand;
@@ -12,11 +16,39 @@ use crate::{
     models::{
         ActionItem, ActionResponse, AppRecord, BootstrapPayload, ClipboardItem, FileIndexStatus,
         FileRecord, LauncherSettings, ResultItem, ShellCommandResult, SnippetInput, SnippetRecord,
+        WorkflowHttpRequest, WorkflowHttpResponse, WorkflowRecord,
     },
     services::{file_index, plugins},
     state::AppState,
     update_hotkey,
 };
+
+#[tauri::command]
+pub async fn resize_window(app: AppHandle, width: f64, height: f64) -> Result<(), String> {
+    let window = app
+        .get_webview_window("main")
+        .ok_or_else(|| "Main window not found".to_string())?;
+
+    use tauri::LogicalSize;
+
+    #[cfg(target_os = "macos")]
+    {
+        use tauri::utils::config::WindowEffectsConfig;
+        use tauri::window::Effect;
+        let _ = window.set_effects(WindowEffectsConfig {
+            effects: vec![Effect::UnderWindowBackground],
+            state: None,
+            radius: Some(30.0),
+            color: None,
+        });
+    }
+
+    window
+        .set_size(tauri::Size::Logical(LogicalSize { width, height }))
+        .map_err(|e| e.to_string())?;
+    window.center().map_err(|e| e.to_string())?;
+    Ok(())
+}
 
 #[tauri::command]
 pub async fn bootstrap_state(
@@ -81,7 +113,7 @@ pub async fn search_files(
 ) -> Result<Vec<FileRecord>, String> {
     state
         .db
-        .search_files(&query, 32)
+        .search_files(&query, 64)
         .map_err(|error| error.to_string())
 }
 
@@ -120,6 +152,30 @@ pub async fn delete_snippet(id: String, state: State<'_, AppState>) -> Result<()
 }
 
 #[tauri::command]
+pub async fn list_workflows(state: State<'_, AppState>) -> Result<Vec<WorkflowRecord>, String> {
+    state.db.list_workflows().map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+pub async fn save_workflow(
+    workflow: WorkflowRecord,
+    state: State<'_, AppState>,
+) -> Result<WorkflowRecord, String> {
+    state
+        .db
+        .save_workflow(&workflow)
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+pub async fn delete_workflow(id: String, state: State<'_, AppState>) -> Result<(), String> {
+    state
+        .db
+        .delete_workflow(&id)
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
 pub async fn update_settings(
     app: AppHandle,
     settings: LauncherSettings,
@@ -130,6 +186,29 @@ pub async fn update_settings(
         .db
         .save_settings(&settings)
         .map_err(|error| error.to_string())?;
+
+    if previous.index_paths != settings.index_paths
+        || previous.index_exclusions != settings.index_exclusions
+        || previous.indexing_paused != settings.indexing_paused
+    {
+        let previous_status = state
+            .file_index_status
+            .lock()
+            .map_err(|error| error.to_string())?
+            .clone();
+        let indexed_count = state
+            .db
+            .count_indexed_files()
+            .map_err(|error| error.to_string())?;
+        let next_status = file_index::reconcile_status(&settings, indexed_count, Some(previous_status));
+        state
+            .db
+            .save_file_index_status(&next_status)
+            .map_err(|error| error.to_string())?;
+        if let Ok(mut guard) = state.file_index_status.lock() {
+            *guard = next_status;
+        }
+    }
 
     if previous.hotkey != settings.hotkey {
         update_hotkey(&app, &settings.hotkey).map_err(|error| error.to_string())?;
@@ -164,6 +243,118 @@ pub async fn plugin_exec_shell(
     .map_err(|error| error.to_string())?;
 
     Ok(output)
+}
+
+#[tauri::command]
+pub async fn workflow_exec_shell(
+    command: String,
+    state: State<'_, AppState>,
+) -> Result<ShellCommandResult, String> {
+    let timeout_ms = state
+        .db
+        .get_settings()
+        .map_err(|error| error.to_string())?
+        .plugins
+        .timeout_ms
+        .max(500);
+
+    let output = tokio::time::timeout(
+        Duration::from_millis(timeout_ms),
+        run_shell_command(&command),
+    )
+    .await
+    .map_err(|_| format!("Workflow shell command timed out after {timeout_ms}ms"))?
+    .map_err(|error| error.to_string())?;
+
+    Ok(output)
+}
+
+#[tauri::command]
+pub async fn workflow_http_request(
+    request: WorkflowHttpRequest,
+    state: State<'_, AppState>,
+) -> Result<WorkflowHttpResponse, String> {
+    let settings_timeout_ms = state
+        .db
+        .get_settings()
+        .map_err(|error| error.to_string())?
+        .plugins
+        .timeout_ms
+        .max(500);
+
+    let timeout_ms = request.timeout_ms.unwrap_or(settings_timeout_ms).max(200);
+    let client = Client::builder()
+        .timeout(Duration::from_millis(timeout_ms))
+        .build()
+        .map_err(|error| error.to_string())?;
+
+    let method = match request.method.to_uppercase().as_str() {
+        "GET" => Method::GET,
+        "POST" => Method::POST,
+        other => return Err(format!("Unsupported workflow HTTP method: {other}")),
+    };
+
+    let mut url = reqwest::Url::parse(&request.url)
+        .map_err(|error| format!("Invalid workflow request URL: {error}"))?;
+    for (key, value) in &request.query_params {
+        url.query_pairs_mut().append_pair(key, value);
+    }
+
+    let mut headers = HeaderMap::new();
+    for (key, value) in &request.headers {
+        let header_name = HeaderName::from_bytes(key.as_bytes())
+            .map_err(|error| format!("Invalid workflow header name '{key}': {error}"))?;
+        let header_value = HeaderValue::from_str(value)
+            .map_err(|error| format!("Invalid workflow header value for '{key}': {error}"))?;
+        headers.insert(header_name, header_value);
+    }
+
+    let mut builder = client.request(method, url.clone()).headers(headers);
+    if let Some(json_body) = &request.json_body {
+        builder = builder.header(CONTENT_TYPE, "application/json");
+        builder = builder.json(json_body);
+    }
+
+    let response = builder.send().await.map_err(|error| error.to_string())?;
+    let status = response.status();
+    let final_url = response.url().to_string();
+    let content_type = response
+        .headers()
+        .get(CONTENT_TYPE)
+        .and_then(|value| value.to_str().ok())
+        .map(|value| value.to_string());
+    let headers = response
+        .headers()
+        .iter()
+        .filter_map(|(name, value)| {
+            value
+                .to_str()
+                .ok()
+                .map(|header_value| (name.to_string(), header_value.to_string()))
+        })
+        .collect::<std::collections::HashMap<_, _>>();
+    let text = response.text().await.map_err(|error| error.to_string())?;
+    let json = if content_type
+        .as_deref()
+        .map(|value| value.to_ascii_lowercase().contains("json"))
+        .unwrap_or(false)
+        || text.trim_start().starts_with('{')
+        || text.trim_start().starts_with('[')
+    {
+        serde_json::from_str::<serde_json::Value>(&text).ok()
+    } else {
+        None
+    };
+
+    Ok(WorkflowHttpResponse {
+        url: final_url,
+        status: status.as_u16(),
+        ok: status.is_success(),
+        headers: Some(headers),
+        content_type,
+        text,
+        json,
+    })
 }
 
 #[tauri::command]
@@ -244,7 +435,7 @@ pub async fn hide_window(app: AppHandle) -> Result<(), String> {
     window.hide().map_err(|error| error.to_string())
 }
 
-fn execute_action(
+pub(crate) fn execute_action(
     action: &ActionItem,
     result: Option<&ResultItem>,
     state: &AppState,

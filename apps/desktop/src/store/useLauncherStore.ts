@@ -11,7 +11,9 @@ import type {
   PluginRuntimeSnapshot,
   ResultItem,
   SnippetRecord,
-  UsageStat
+  UsageStat,
+  WorkflowRecord,
+  WorkflowRunResult
 } from "@pulse/shared-types";
 
 interface LauncherState {
@@ -27,9 +29,11 @@ interface LauncherState {
   fileIndexStatus: FileIndexStatus | null;
   clipboardItems: ClipboardItem[];
   snippets: SnippetRecord[];
+  workflows: WorkflowRecord[];
   discoveredPlugins: DiscoveredPlugin[];
   pluginRuntime: PluginRuntimeSnapshot[];
   pluginPermissionRequests: PluginPermissionRequest[];
+  workflowRuns: Record<string, WorkflowRunResult[]>;
   statusMessage?: string;
   errorMessage?: string;
   hydrate(payload: BootstrapPayload): void;
@@ -45,9 +49,13 @@ interface LauncherState {
   setFileIndexStatus(status: FileIndexStatus): void;
   setClipboardItems(items: ClipboardItem[]): void;
   setSnippets(snippets: SnippetRecord[]): void;
+  setWorkflows(workflows: WorkflowRecord[]): void;
+  upsertWorkflow(workflow: WorkflowRecord): void;
+  removeWorkflow(id: string): void;
   setDiscoveredPlugins(plugins: DiscoveredPlugin[]): void;
   setPluginRuntime(pluginRuntime: PluginRuntimeSnapshot[]): void;
   setPluginPermissionRequests(requests: PluginPermissionRequest[]): void;
+  appendWorkflowRun(workflowId: string, run: WorkflowRunResult): void;
   applySelection(itemId: string, itemType: ResultItem["type"], query: string): void;
   setStatusMessage(message?: string): void;
   setErrorMessage(message?: string): void;
@@ -66,9 +74,11 @@ export const useLauncherStore = create<LauncherState>((set, get) => ({
   fileIndexStatus: null,
   clipboardItems: [],
   snippets: [],
+  workflows: [],
   discoveredPlugins: [],
   pluginRuntime: [],
   pluginPermissionRequests: [],
+  workflowRuns: {},
   hydrate(payload) {
     set({
       initialized: true,
@@ -79,6 +89,7 @@ export const useLauncherStore = create<LauncherState>((set, get) => ({
       fileIndexStatus: payload.fileIndexStatus,
       clipboardItems: payload.clipboardItems,
       snippets: payload.snippets,
+      workflows: payload.workflows,
       discoveredPlugins: payload.plugins
     });
   },
@@ -137,6 +148,28 @@ export const useLauncherStore = create<LauncherState>((set, get) => ({
   setSnippets(snippets) {
     set({ snippets });
   },
+  setWorkflows(workflows) {
+    set({ workflows });
+  },
+  upsertWorkflow(workflow) {
+    set({
+      workflows: [
+        workflow,
+        ...get().workflows.filter((entry) => entry.id !== workflow.id)
+      ].sort(
+        (left, right) =>
+          Number(right.builtIn) - Number(left.builtIn) || right.updatedAt - left.updatedAt
+      )
+    });
+  },
+  removeWorkflow(id) {
+    set({
+      workflows: get().workflows.filter((entry) => entry.id !== id),
+      workflowRuns: Object.fromEntries(
+        Object.entries(get().workflowRuns).filter(([workflowId]) => workflowId !== id)
+      )
+    });
+  },
   setDiscoveredPlugins(plugins) {
     set({ discoveredPlugins: plugins });
   },
@@ -145,6 +178,15 @@ export const useLauncherStore = create<LauncherState>((set, get) => ({
   },
   setPluginPermissionRequests(requests) {
     set({ pluginPermissionRequests: requests });
+  },
+  appendWorkflowRun(workflowId, run) {
+    const current = get().workflowRuns[workflowId] ?? [];
+    set({
+      workflowRuns: {
+        ...get().workflowRuns,
+        [workflowId]: [run, ...current].slice(0, 12)
+      }
+    });
   },
   applySelection(itemId, itemType, query) {
     const current = get().usageByItemId[itemId];

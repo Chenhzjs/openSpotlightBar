@@ -25,9 +25,22 @@ const config: Config = {
         halo: "0 24px 80px rgba(0, 0, 0, 0.38)"
       },
       fontFamily: {
-        display: ["'Space Grotesk'", "system-ui", "sans-serif"],
-        body: ["'IBM Plex Sans'", "system-ui", "sans-serif"],
-        mono: ["'IBM Plex Mono'", "ui-monospace", "monospace"]
+        display: [
+          '"SF Pro Display"',
+          '"SF Pro Text"',
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "system-ui",
+          "sans-serif"
+        ],
+        body: [
+          '"SF Pro Text"',
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "system-ui",
+          "sans-serif"
+        ],
+        mono: ['"SF Mono"', "ui-monospace", "monospace"]
       }
     }
   },

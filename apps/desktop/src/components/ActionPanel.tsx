@@ -18,17 +18,19 @@ export function ActionPanel({
   onClose
 }: ActionPanelProps) {
   return (
-    <section className="rounded-[28px] border border-pulse-400/30 bg-ink-900/92 p-4 shadow-halo backdrop-blur-xl">
-      <div className="mb-3 flex items-center justify-between">
+    <section className="shell-panel rounded-[24px] p-4">
+      <div className="mb-3 flex items-center justify-between gap-3">
         <div>
-          <div className="text-xs uppercase tracking-[0.24em] text-pulse-300/80">
+          <div className="shell-kicker">
             Actions
           </div>
-          <div className="mt-1 font-display text-xl text-white">{result.title}</div>
+          <div className="mt-1 text-xl font-semibold text-[color:var(--shell-text-primary)]">
+            {result.title}
+          </div>
         </div>
         <button
           type="button"
-          className="rounded-full border border-white/10 px-3 py-1 text-xs text-slate-300 transition hover:border-white/20 hover:text-white"
+          className="button-secondary px-3 py-1 text-xs"
           onClick={onClose}
         >
           Esc
@@ -43,20 +45,24 @@ export function ActionPanel({
             className={clsx(
               "flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition",
               index === selectedIndex
-                ? "border-amber-400/60 bg-amber-400/10"
-                : "border-white/8 bg-white/4 hover:border-white/12"
+                ? "border-[color:var(--shell-accent-soft)] bg-[color:var(--shell-accent-muted)]"
+                : "border-[color:var(--shell-border)] bg-[color:var(--shell-fill-muted)] hover:border-[color:var(--shell-border-strong)]"
             )}
             onMouseEnter={() => onSelect(index)}
             onClick={() => onExecute(index)}
           >
             <div>
-              <div className="font-medium text-white">{action.title}</div>
+              <div className="font-medium text-[color:var(--shell-text-primary)]">
+                {action.title}
+              </div>
               {action.description ? (
-                <div className="text-sm text-slate-400">{action.description}</div>
+                <div className="text-sm text-[color:var(--shell-text-secondary)]">
+                  {action.description}
+                </div>
               ) : null}
             </div>
             {action.shortcut ? (
-              <div className="rounded-full border border-white/8 px-2 py-1 font-mono text-[11px] text-slate-300">
+              <div className="rounded-full border border-[color:var(--shell-border)] px-2 py-1 font-mono text-[11px] text-[color:var(--shell-text-secondary)]">
                 {action.shortcut}
               </div>
             ) : null}

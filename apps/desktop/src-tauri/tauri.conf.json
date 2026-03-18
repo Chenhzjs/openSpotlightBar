@@ -10,14 +10,15 @@
     "frontendDist": "../dist"
   },
   "app": {
+    "macOSPrivateApi": true,
     "windows": [
       {
         "label": "main",
         "title": "Pulse Launcher",
-        "width": 1180,
-        "height": 820,
+        "width": 940,
+        "height": 108,
         "center": true,
-        "resizable": true,
+        "resizable": false,
         "fullscreen": false,
         "visible": false,
         "decorations": false,

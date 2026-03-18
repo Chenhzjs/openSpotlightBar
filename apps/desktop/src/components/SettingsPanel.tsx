@@ -12,6 +12,8 @@ import type {
   SnippetRecord
 } from "@pulse/shared-types";
 
+import type { ConfigSection } from "../features/commands/config-command";
+
 interface SettingsPanelProps {
   settings: LauncherSettings;
   snippets: SnippetRecord[];
@@ -19,6 +21,7 @@ interface SettingsPanelProps {
   clipboardCount: number;
   plugins: PluginRuntimeSnapshot[];
   permissionRequests: PluginPermissionRequest[];
+  initialSection?: ConfigSection;
   onSaveSettings(settings: LauncherSettings): Promise<void>;
   onRebuildIndex(): Promise<void>;
   onSaveSnippet(snippet: SnippetInput): Promise<SnippetRecord>;
@@ -48,7 +51,58 @@ const SOURCE_WEIGHT_FIELDS: ResultSource[] = [
   "clipboard",
   "snippets",
   "plugins",
+  "workflows",
   "system"
+];
+
+const SETTINGS_SECTIONS: Array<{
+  id: ConfigSection;
+  label: string;
+  command: string;
+  description: string;
+}> = [
+  {
+    id: "general",
+    label: "General",
+    command: "/config",
+    description: "Launcher defaults and hotkey scaffolding."
+  },
+  {
+    id: "search",
+    label: "Search",
+    command: "/config search",
+    description: "Provider weights, result limits, and scope hints."
+  },
+  {
+    id: "clipboard",
+    label: "Clipboard",
+    command: "/config clipboard",
+    description: "Local clipboard retention and privacy scaffolding."
+  },
+  {
+    id: "indexing",
+    label: "Indexing",
+    command: "/config indexing",
+    description: "Directory roots for lightweight file search."
+  },
+  {
+    id: "snippets",
+    label: "Snippets",
+    command: "/config snippets",
+    description: "Snippet CRUD and expansion settings."
+  },
+  {
+    id: "plugins",
+    label: "Plugins",
+    command: "/config plugins",
+    description: "Plugin host state, permissions, and timeouts."
+  },
+  {
+    id: "appearance",
+    label: "Appearance",
+    command: "/config appearance",
+    description: "Theme and density placeholders."
+  }
 ];
 
 const EMPTY_SNIPPET: SnippetFormState = {
@@ -67,6 +121,7 @@ export function SettingsPanel({
   clipboardCount,
   plugins,
   permissionRequests,
+  initialSection = "general",
   onSaveSettings,
   onRebuildIndex,
   onSaveSnippet,
@@ -79,10 +134,12 @@ export function SettingsPanel({
   onClose
 }: SettingsPanelProps) {
   const [draft, setDraft] = useState(() => cloneSettings(settings));
+  const [activeSection, setActiveSection] = useState<ConfigSection>(initialSection);
   const [privateAppsDraft, setPrivateAppsDraft] = useState(
     settings.clipboard.privateApps.join("\n")
   );
   const [indexPathDraft, setIndexPathDraft] = useState("");
+  const [indexExclusionDraft, setIndexExclusionDraft] = useState("");
   const [snippetDraft, setSnippetDraft] = useState<SnippetFormState>(EMPTY_SNIPPET);
   const [selectedSnippetId, setSelectedSnippetId] = useState<string | null>(
     snippets[0]?.id ?? null
@@ -94,6 +151,10 @@ export function SettingsPanel({
     setDraft(cloneSettings(settings));
     setPrivateAppsDraft(settings.clipboard.privateApps.join("\n"));
   }, [settings]);
+
+  useEffect(() => {
+    setActiveSection(initialSection);
+  }, [initialSection]);
 
   useEffect(() => {
     if (!selectedSnippetId) {
@@ -113,6 +174,7 @@ export function SettingsPanel({
       await onSaveSettings({
         ...draft,
         indexPaths: draft.indexPaths.filter((entry) => entry.trim().length > 0),
+        indexExclusions: draft.indexExclusions.filter((entry) => entry.trim().length > 0),
         clipboard: {
           ...draft.clipboard,
           privateApps: parseLines(privateAppsDraft)
@@ -156,105 +218,188 @@ export function SettingsPanel({
     }
   }
 
+  const sectionMeta =
+    SETTINGS_SECTIONS.find((section) => section.id === activeSection) ??
+    SETTINGS_SECTIONS[0];
+
   return (
-    <section className="rounded-[28px] border border-white/8 bg-white/4 p-4 md:p-5">
-      <div className="mb-5 flex items-center justify-between gap-4">
-        <div>
-          <div className="text-xs uppercase tracking-[0.22em] text-pulse-300/80">
-            Settings
+    <section className="shell-panel rounded-[28px] p-4 md:p-5">
+      <div className="flex flex-col gap-4 border-b border-[color:var(--shell-border)] pb-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <div className="shell-kicker">Settings</div>
+            <div className="mt-2 text-2xl font-semibold text-[color:var(--shell-text-primary)]">
+              {sectionMeta.label}
+            </div>
+            <div className="mt-1 text-sm text-[color:var(--shell-text-secondary)]">
+              {sectionMeta.description}
+            </div>
           </div>
-          <div className="mt-1 font-display text-2xl text-white">
-            Local-first control surface
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className={secondaryButtonClassName} onClick={onClose}>
+              Back
+            </button>
+            <button
+              type="button"
+              className={primaryButtonClassName}
+              onClick={() => {
+                void handleSaveSettings();
+              }}
+              disabled={savingSettings}
+            >
+              {savingSettings ? "Saving..." : "Save"}
+            </button>
           </div>
         </div>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            className="rounded-full border border-white/10 px-4 py-2 text-sm text-slate-300 transition hover:border-white/20 hover:text-white"
-            onClick={onClose}
-          >
-            Back to launcher
-          </button>
-          <button
-            type="button"
-            className="rounded-full border border-pulse-400/40 bg-pulse-500/14 px-4 py-2 text-sm text-white transition hover:border-pulse-300/60"
-            onClick={() => {
-              void handleSaveSettings();
-            }}
-            disabled={savingSettings}
-          >
-            {savingSettings ? "Saving..." : "Save settings"}
-          </button>
+
+        <div className="flex flex-wrap gap-2">
+          {SETTINGS_SECTIONS.map((section) => (
+            <button
+              key={section.id}
+              type="button"
+              className={clsx(
+                "rounded-full border px-3 py-1.5 text-sm transition",
+                section.id === activeSection
+                  ? "border-[color:var(--shell-accent-soft)] bg-[color:var(--shell-accent-muted)] text-[color:var(--shell-text-primary)]"
+                  : "border-[color:var(--shell-border)] bg-[color:var(--shell-fill-muted)] text-[color:var(--shell-text-secondary)] hover:border-[color:var(--shell-border-strong)] hover:text-[color:var(--shell-text-primary)]"
+              )}
+              onClick={() => setActiveSection(section.id)}
+            >
+              {section.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="rounded-2xl border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-muted)] px-4 py-3 text-sm text-[color:var(--shell-text-secondary)]">
+          Command entry: <code>{sectionMeta.command}</code>
         </div>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.92fr)]">
-        <div className="space-y-4">
-          <SectionCard
-            title="General"
-            description="Search behavior defaults and launcher-wide preferences."
-          >
-            <div className="grid gap-3 md:grid-cols-2">
-              <Field label="Max results">
-                <input
-                  type="number"
-                  min={3}
-                  max={24}
-                  value={draft.search.maxResults}
-                  onChange={(event) =>
-                    setDraft({
-                      ...draft,
-                      search: {
-                        ...draft.search,
-                        maxResults: clampNumber(event.target.value, 9, 3, 24)
-                      }
-                    })
-                  }
-                  className={inputClassName}
-                />
-              </Field>
+      <div className="mt-4">{renderActiveSection()}</div>
+    </section>
+  );
 
-              <Field label="Default web engine">
+  function renderActiveSection(): ReactNode {
+    switch (activeSection) {
+      case "general":
+        return (
+          <div className="space-y-4">
+            <SectionCard
+              title="General"
+              description="Launcher-wide preferences, language, and baseline search defaults."
+            >
+              <div className="grid gap-3 md:grid-cols-2">
+                <Field label="Language">
+                  <select
+                    value={draft.language}
+                    onChange={(event) =>
+                      setDraft({
+                        ...draft,
+                        language: event.target.value as LauncherSettings["language"]
+                      })
+                    }
+                    className={selectClassName}
+                  >
+                    <option value="system">Follow system</option>
+                    <option value="en-US">English</option>
+                    <option value="zh-CN">简体中文</option>
+                  </select>
+                </Field>
+
+                <Field label="Max results">
+                  <input
+                    type="number"
+                    min={3}
+                    max={24}
+                    value={draft.search.maxResults}
+                    onChange={(event) =>
+                      setDraft({
+                        ...draft,
+                        search: {
+                          ...draft.search,
+                          maxResults: clampNumber(event.target.value, 9, 3, 24)
+                        }
+                      })
+                    }
+                    className={inputClassName}
+                  />
+                </Field>
+
+                <Field label="Default web engine">
+                  <input
+                    type="text"
+                    value={draft.webSearch.defaultEngine}
+                    onChange={(event) =>
+                      setDraft({
+                        ...draft,
+                        webSearch: {
+                          ...draft.webSearch,
+                          defaultEngine: event.target.value
+                        }
+                      })
+                    }
+                    className={inputClassName}
+                  />
+                </Field>
+              </div>
+            </SectionCard>
+
+            <SectionCard
+              title="Hotkey"
+              description="Scaffold for global hotkey customization. Native key capture remains a later TODO."
+            >
+              <Field label="Launcher hotkey">
                 <input
                   type="text"
-                  value={draft.webSearch.defaultEngine}
-                  onChange={(event) =>
-                    setDraft({
-                      ...draft,
-                      webSearch: {
-                        ...draft.webSearch,
-                        defaultEngine: event.target.value
-                      }
-                    })
-                  }
+                  value={draft.hotkey}
+                  onChange={(event) => setDraft({ ...draft, hotkey: event.target.value })}
                   className={inputClassName}
                 />
               </Field>
-            </div>
-          </SectionCard>
+              <p className="mt-2 text-sm text-slate-400">
+                TODO: replace free-form input with a platform-aware recorder and conflict
+                detection.
+              </p>
+            </SectionCard>
+          </div>
+        );
 
-          <SectionCard
-            title="Hotkey"
-            description="Scaffold for global hotkey customization. Native key capture remains a later TODO."
-          >
-            <Field label="Launcher hotkey">
-              <input
-                type="text"
-                value={draft.hotkey}
-                onChange={(event) => setDraft({ ...draft, hotkey: event.target.value })}
-                className={inputClassName}
-              />
-            </Field>
-            <p className="mt-2 text-sm text-slate-400">
-              TODO: replace free-form input with a platform-aware recorder and conflict
-              detection.
-            </p>
-          </SectionCard>
-
+      case "search":
+        return (
           <SectionCard
             title="Search"
             description="Provider weights and scope shortcuts that drive the ranking pipeline."
           >
+            <div className="mb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              <StatusMetricCard
+                title="File index"
+                value={fileIndexStatus?.state ?? "bootstrapping"}
+                detail={
+                  fileIndexStatus?.message ??
+                  "Lightweight filename and path indexing powers file search."
+                }
+              />
+              <StatusMetricCard
+                title="Indexed files"
+                value={String(fileIndexStatus?.indexedCount ?? 0)}
+                detail={
+                  fileIndexStatus?.truncated
+                    ? `Current cap reached at ${fileIndexStatus.maxIndexedFiles} items.`
+                    : `${fileIndexStatus?.indexedPaths.length ?? 0} directories included.`
+                }
+              />
+              <StatusMetricCard
+                title="Last rebuild"
+                value={formatTimestamp(fileIndexStatus?.lastIndexedAt)}
+                detail="Use /config indexing to review roots, exclusions, and rebuild health."
+              />
+              <StatusMetricCard
+                title="File ranking"
+                value="Fuzzy + recency"
+                detail="Filename/path matching combines prefix, exact match, modified time, and usage history."
+              />
+            </div>
+
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {SOURCE_WEIGHT_FIELDS.map((source) => (
                 <Field key={source} label={`${source} weight`}>
@@ -287,8 +432,16 @@ export function SettingsPanel({
               <ShortcutTag>`clip deploy`</ShortcutTag>
               <ShortcutTag>`;standup`</ShortcutTag>
             </div>
+            <p className="mt-3 text-sm text-[color:var(--shell-text-secondary)]">
+              File results stay lightweight by design. They rank on filename and path
+              match quality, prefix and exact bonuses, modified-time recency, and local
+              usage history.
+            </p>
           </SectionCard>
+        );
 
+      case "clipboard":
+        return (
           <SectionCard
             title="Clipboard"
             description="Text-first history with local storage, privacy scaffolding, and action hooks."
@@ -363,33 +516,93 @@ export function SettingsPanel({
               </span>
             </div>
           </SectionCard>
+        );
 
+      case "indexing":
+        return (
           <SectionCard
             title="Directory Indexing"
-            description="Lightweight filename/path indexing only. Add directories explicitly, then rebuild."
+            description="Lightweight filename, path, and metadata indexing only. Manage roots and exclusions here, then rebuild."
           >
-            <div className="flex flex-wrap gap-2">
-              {draft.indexPaths.map((path) => (
-                <div
-                  key={path}
-                  className="flex items-center gap-2 rounded-full border border-white/8 bg-black/20 px-3 py-2 text-sm text-slate-200"
-                >
-                  <span>{path}</span>
-                  <button
-                    type="button"
-                    className="text-slate-400 transition hover:text-white"
-                    onClick={() =>
-                      setDraft({
-                        ...draft,
-                        indexPaths: draft.indexPaths.filter((entry) => entry !== path)
-                      })
-                    }
-                  >
-                    Remove
-                  </button>
-                </div>
-              ))}
+            <div className="mb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              <StatusMetricCard
+                title="State"
+                value={fileIndexStatus?.state ?? "bootstrapping"}
+                detail={
+                  fileIndexStatus?.lastError ??
+                  fileIndexStatus?.message ??
+                  "The file index is ready when lightweight metadata has been scanned."
+                }
+              />
+              <StatusMetricCard
+                title="Indexed entries"
+                value={String(fileIndexStatus?.indexedCount ?? 0)}
+                detail={
+                  fileIndexStatus?.truncated
+                    ? `Hit the current cap of ${fileIndexStatus.maxIndexedFiles} indexed items.`
+                    : "Below the current lightweight index cap."
+                }
+              />
+              <StatusMetricCard
+                title="Directories"
+                value={String(draft.indexPaths.length || fileIndexStatus?.indexedPaths.length || 0)}
+                detail="Empty means the default Desktop, Documents, and Downloads roots."
+              />
+              <StatusMetricCard
+                title="Last rebuild"
+                value={formatTimestamp(fileIndexStatus?.lastIndexedAt)}
+                detail={
+                  draft.indexingPaused
+                    ? "Indexing is paused until you resume it."
+                    : "Rebuild after changing roots or exclusions."
+                }
+              />
             </div>
+
+            <div className="mb-4 grid gap-3 md:grid-cols-2">
+              <ToggleRow
+                label="Pause automatic indexing"
+                checked={draft.indexingPaused}
+                onChange={(checked) =>
+                  setDraft({
+                    ...draft,
+                    indexingPaused: checked
+                  })
+                }
+              />
+              <div className="rounded-2xl border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-soft)] px-4 py-3 text-sm text-[color:var(--shell-text-secondary)]">
+                Exclusions and directory changes only apply after a rebuild. Existing
+                indexed results remain searchable until then.
+              </div>
+            </div>
+
+            <Field label="Indexed directories">
+              <div className="flex flex-wrap gap-2">
+                {(draft.indexPaths.length > 0
+                  ? draft.indexPaths
+                  : fileIndexStatus?.indexedPaths ?? []
+                ).map((path) => (
+                  <div
+                    key={path}
+                    className="flex items-center gap-2 rounded-full border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-soft)] px-3 py-2 text-sm text-[color:var(--shell-text-primary)]"
+                  >
+                    <span>{path}</span>
+                    <button
+                      type="button"
+                      className="text-[color:var(--shell-text-secondary)] transition hover:text-[color:var(--shell-text-primary)]"
+                      onClick={() =>
+                        setDraft({
+                          ...draft,
+                          indexPaths: draft.indexPaths.filter((entry) => entry !== path)
+                        })
+                      }
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </Field>
 
             <div className="mt-3 flex flex-col gap-3 md:flex-row">
               <input
@@ -417,25 +630,97 @@ export function SettingsPanel({
               >
                 Add directory
               </button>
+            </div>
+
+            <Field label="Excluded paths">
+              <div className="flex flex-wrap gap-2">
+                {draft.indexExclusions.map((path) => (
+                  <div
+                    key={path}
+                    className="flex items-center gap-2 rounded-full border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-soft)] px-3 py-2 text-sm text-[color:var(--shell-text-primary)]"
+                  >
+                    <span>{path}</span>
+                    <button
+                      type="button"
+                      className="text-[color:var(--shell-text-secondary)] transition hover:text-[color:var(--shell-text-primary)]"
+                      onClick={() =>
+                        setDraft({
+                          ...draft,
+                          indexExclusions: draft.indexExclusions.filter(
+                            (entry) => entry !== path
+                          )
+                        })
+                      }
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </Field>
+
+            <div className="mt-3 flex flex-col gap-3 md:flex-row">
+              <input
+                type="text"
+                value={indexExclusionDraft}
+                onChange={(event) => setIndexExclusionDraft(event.target.value)}
+                className={inputClassName}
+                placeholder="~/Projects/node_modules"
+              />
+              <button
+                type="button"
+                className={secondaryButtonClassName}
+                onClick={() => {
+                  const nextPath = indexExclusionDraft.trim();
+                  if (!nextPath || draft.indexExclusions.includes(nextPath)) {
+                    return;
+                  }
+
+                  setDraft({
+                    ...draft,
+                    indexExclusions: [...draft.indexExclusions, nextPath]
+                  });
+                  setIndexExclusionDraft("");
+                }}
+              >
+                Add exclusion
+              </button>
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-3">
               <button
                 type="button"
                 className={secondaryButtonClassName}
                 onClick={() => {
                   void onRebuildIndex();
                 }}
+                disabled={draft.indexingPaused}
               >
                 Rebuild index
               </button>
+              <div className="text-sm text-[color:var(--shell-text-secondary)]">
+                Implicit ignores: <code>.git</code>, <code>node_modules</code>,{" "}
+                <code>target</code>, <code>Library</code>, <code>.cache</code>.
+              </div>
             </div>
 
-            <p className="mt-3 text-sm text-slate-400">
+            <p className="mt-3 text-sm text-[color:var(--shell-text-secondary)]">
               Current index status: {fileIndexStatus?.state ?? "bootstrapping"} ·{" "}
-              {fileIndexStatus?.indexedCount ?? 0} entries.
+              {fileIndexStatus?.indexedCount ?? 0} entries ·{" "}
+              {fileIndexStatus?.indexedPaths.length ?? draft.indexPaths.length} directories ·{" "}
+              {fileIndexStatus?.excludedPaths.length ?? draft.indexExclusions.length} exclusions.
             </p>
-          </SectionCard>
-        </div>
 
-        <div className="space-y-4">
+            {fileIndexStatus?.lastError ? (
+              <p className="mt-2 text-sm text-amber-200">
+                Last index error: {fileIndexStatus.lastError}
+              </p>
+            ) : null}
+          </SectionCard>
+        );
+
+      case "snippets":
+        return (
           <SectionCard
             title="Snippets"
             description="Local snippet storage with lightweight variable expansion and search integration."
@@ -585,7 +870,7 @@ export function SettingsPanel({
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
-                    className="rounded-full border border-pulse-400/40 bg-pulse-500/14 px-4 py-2 text-sm text-white transition hover:border-pulse-300/60"
+                    className={primaryButtonClassName}
                     onClick={() => {
                       void handleSaveSnippet();
                     }}
@@ -608,7 +893,10 @@ export function SettingsPanel({
               </div>
             </div>
           </SectionCard>
+        );
 
+      case "plugins":
+        return (
           <SectionCard
             title="Plugins"
             description="Worker-isolated plugin host with explicit local permissions and graceful failure handling."
@@ -679,7 +967,7 @@ export function SettingsPanel({
                         <div className="mt-3 flex flex-wrap gap-2">
                           <button
                             type="button"
-                            className="rounded-full border border-pulse-400/40 bg-pulse-500/14 px-4 py-2 text-sm text-white transition hover:border-pulse-300/60"
+                            className={primaryButtonClassName}
                             onClick={() => {
                               void onGrantPluginPermission(
                                 request.pluginId,
@@ -845,7 +1133,10 @@ export function SettingsPanel({
               </p>
             </div>
           </SectionCard>
+        );
 
+      case "appearance":
+        return (
           <SectionCard
             title="Appearance"
             description="Theme and density placeholder while the launcher UI system stays compact."
@@ -902,10 +1193,35 @@ export function SettingsPanel({
               across desktop platforms.
             </p>
           </SectionCard>
-        </div>
-      </div>
-    </section>
-  );
+        );
+
+      case "workflow":
+        return (
+          <SectionCard
+            title="Workflow"
+            description="Command-driven configuration entry for future workflow automation."
+          >
+            <div className="space-y-3 text-sm text-slate-300">
+              <p>
+                This section is the placeholder for workflow authoring and automation
+                rules that should be reachable from the launcher via{" "}
+                <code>/config workflow</code>.
+              </p>
+              <p>
+                Today, the closest extension points are snippets, plugin commands, and
+                action composition. A dedicated workflow editor still needs a separate
+                model and execution layer.
+              </p>
+              <div className="rounded-2xl border border-white/8 bg-black/20 p-4 text-slate-400">
+                TODO: add workflow definitions, ordering, triggers, and per-workflow
+                permissions without turning the launcher shell into a full-page settings
+                app.
+              </div>
+            </div>
+          </SectionCard>
+        );
+    }
+  }
 }
 
 function SectionCard({
@@ -918,10 +1234,14 @@ function SectionCard({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-[24px] border border-white/8 bg-black/20 p-4">
+    <section className="rounded-[24px] border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-muted)] p-4 md:p-5">
       <div className="mb-4">
-        <div className="font-display text-xl text-white">{title}</div>
-        <div className="mt-1 text-sm text-slate-400">{description}</div>
+        <div className="text-xl font-semibold text-[color:var(--shell-text-primary)]">
+          {title}
+        </div>
+        <div className="mt-1 text-sm text-[color:var(--shell-text-secondary)]">
+          {description}
+        </div>
       </div>
       {children}
     </section>
@@ -931,11 +1251,33 @@ function SectionCard({
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="block">
-      <div className="mb-2 text-xs uppercase tracking-[0.18em] text-slate-400">
+      <div className="mb-2 text-[11px] uppercase tracking-[0.22em] text-[color:var(--shell-text-tertiary)]">
         {label}
       </div>
       {children}
     </label>
+  );
+}
+
+function StatusMetricCard({
+  title,
+  value,
+  detail
+}: {
+  title: string;
+  value: string;
+  detail: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-soft)] px-4 py-3">
+      <div className="text-[11px] uppercase tracking-[0.22em] text-[color:var(--shell-text-tertiary)]">
+        {title}
+      </div>
+      <div className="mt-2 text-base font-semibold text-[color:var(--shell-text-primary)]">
+        {value}
+      </div>
+      <div className="mt-1 text-sm text-[color:var(--shell-text-secondary)]">{detail}</div>
+    </div>
   );
 }
 
@@ -949,15 +1291,17 @@ function ToggleRow({
   onChange(value: boolean): void;
 }) {
   return (
-    <label className="flex items-center justify-between gap-3 rounded-2xl border border-white/8 bg-black/20 px-4 py-3">
-      <span className="text-sm text-slate-200">{label}</span>
+    <label className="flex items-center justify-between gap-3 rounded-2xl border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-muted)] px-4 py-3">
+      <span className="text-sm text-[color:var(--shell-text-primary)]">{label}</span>
       <button
         type="button"
         role="switch"
         aria-checked={checked}
         className={clsx(
           "inline-flex h-7 w-14 items-center rounded-full border px-1 transition",
-          checked ? "border-pulse-400/40 bg-pulse-500/20" : "border-white/10 bg-white/6"
+          checked
+            ? "border-[color:var(--shell-accent-soft)] bg-[color:var(--shell-accent-muted)]"
+            : "border-[color:var(--shell-border)] bg-[color:var(--shell-fill-soft)]"
         )}
         onClick={() => onChange(!checked)}
       >
@@ -974,7 +1318,7 @@ function ToggleRow({
 
 function ShortcutTag({ children }: { children: ReactNode }) {
   return (
-    <div className="rounded-full border border-white/8 bg-white/4 px-3 py-1.5">
+    <div className="rounded-full border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-muted)] px-3 py-1.5">
       {children}
     </div>
   );
@@ -1033,6 +1377,8 @@ function cloneSettings(settings: LauncherSettings): LauncherSettings {
   return {
     ...settings,
     indexPaths: [...settings.indexPaths],
+    indexExclusions: [...settings.indexExclusions],
+    indexingPaused: settings.indexingPaused,
     search: {
       ...settings.search,
       sourceWeights: { ...settings.search.sourceWeights }
@@ -1063,14 +1409,36 @@ function cloneSettings(settings: LauncherSettings): LauncherSettings {
   };
 }
 
+function formatTimestamp(value?: number | null): string {
+  if (!value) {
+    return "Not indexed yet";
+  }
+
+  try {
+    return new Intl.DateTimeFormat(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit"
+    }).format(value);
+  } catch {
+    return "Recently";
+  }
+}
+
 const inputClassName =
-  "w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-pulse-400/40";
+  "w-full rounded-2xl border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-muted)] px-4 py-3 text-sm text-[color:var(--shell-text-primary)] outline-none transition placeholder:text-[color:var(--shell-text-muted)] focus:border-[color:var(--shell-border-strong)] focus:bg-[color:var(--shell-fill-soft)]";
+
+const selectClassName = inputClassName;
 
 const textareaClassName =
-  "w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-pulse-400/40";
+  "w-full rounded-2xl border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-muted)] px-4 py-3 text-sm text-[color:var(--shell-text-primary)] outline-none transition placeholder:text-[color:var(--shell-text-muted)] focus:border-[color:var(--shell-border-strong)] focus:bg-[color:var(--shell-fill-soft)]";
 
 const staticFieldClassName =
-  "flex min-h-[50px] items-center rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white";
+  "flex min-h-[50px] items-center rounded-2xl border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-muted)] px-4 py-3 text-sm text-[color:var(--shell-text-primary)]";
+
+const primaryButtonClassName =
+  "button-primary disabled:cursor-not-allowed disabled:opacity-70";
 
 const secondaryButtonClassName =
-  "rounded-full border border-white/10 px-4 py-2 text-sm text-slate-200 transition hover:border-white/20 hover:text-white";
+  "button-secondary";

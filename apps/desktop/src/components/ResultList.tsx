@@ -6,6 +6,9 @@ interface ResultListProps {
   results: ResultItem[];
   selectedIndex: number;
   loading: boolean;
+  emptyTitle?: string;
+  emptyDetail?: string;
+  loadingLabel?: string;
   onSelect(index: number): void;
   onExecute(index: number): void;
 }
@@ -14,43 +17,86 @@ export function ResultList({
   results,
   selectedIndex,
   loading,
+  emptyTitle = "No matching results.",
+  emptyDetail,
+  loadingLabel = "Searching...",
   onSelect,
   onExecute
 }: ResultListProps) {
+  if (loading && results.length === 0) {
+    return (
+      <div className="shell-panel rounded-[24px] px-5 py-4">
+        <div className="text-sm font-medium text-[color:var(--shell-text-primary)]">
+          {loadingLabel}
+        </div>
+        {emptyDetail ? (
+          <div className="mt-1 text-sm text-[color:var(--shell-text-secondary)]">
+            {emptyDetail}
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
   if (!loading && results.length === 0) {
     return (
-      <div className="rounded-[28px] border border-white/8 bg-white/5 px-5 py-7 text-sm text-slate-400">
-        Start typing to search applications, files, clipboard history, snippets, plugins,
-        or a web shortcut.
+      <div className="shell-panel rounded-[24px] px-5 py-4">
+        <div className="text-sm font-medium text-[color:var(--shell-text-primary)]">
+          {emptyTitle}
+        </div>
+        {emptyDetail ? (
+          <div className="mt-1 text-sm text-[color:var(--shell-text-secondary)]">
+            {emptyDetail}
+          </div>
+        ) : null}
       </div>
     );
   }
 
   return (
-    <div className="space-y-2">
+    <div className="shell-panel overflow-hidden rounded-[24px]">
       {results.map((result, index) => (
         <button
           key={result.id}
           type="button"
           className={clsx(
-            "w-full rounded-[24px] border px-4 py-3 text-left transition",
+            "flex w-full items-center gap-4 border-b px-4 py-3 text-left transition last:border-b-0",
             index === selectedIndex
-              ? "border-pulse-400/60 bg-pulse-500/14 shadow-halo"
-              : "border-white/6 bg-white/4 hover:border-white/12 hover:bg-white/7"
+              ? "border-[color:var(--shell-border)] bg-[color:var(--shell-accent-muted)]"
+              : "border-[color:var(--shell-border)] bg-transparent hover:bg-[color:var(--shell-fill-soft)]"
           )}
           onMouseEnter={() => onSelect(index)}
           onDoubleClick={() => onExecute(index)}
         >
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <div className="truncate font-display text-lg text-white">
-                {result.title}
-              </div>
-              <div className="truncate text-sm text-slate-400">{result.subtitle}</div>
+          <div
+            className={clsx(
+              "flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border text-[11px] uppercase tracking-[0.18em]",
+              index === selectedIndex
+                ? "border-[color:var(--shell-accent-soft)] bg-[color:var(--shell-accent-muted)] text-[color:var(--shell-text-primary)]"
+                : "border-[color:var(--shell-border)] bg-[color:var(--shell-fill-muted)] text-[color:var(--shell-text-secondary)]"
+            )}
+          >
+            {result.source.slice(0, 3)}
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-[15px] font-medium text-[color:var(--shell-text-primary)]">
+              {result.title}
             </div>
-            <div className="shrink-0 rounded-full border border-white/8 bg-black/20 px-2 py-1 text-[11px] uppercase tracking-[0.22em] text-slate-300">
+            <div className="truncate text-sm text-[color:var(--shell-text-secondary)]">
+              {result.subtitle}
+            </div>
+          </div>
+
+          <div className="flex shrink-0 flex-col items-end gap-1">
+            <div className="rounded-full border border-[color:var(--shell-border)] px-2 py-1 text-[11px] uppercase tracking-[0.18em] text-[color:var(--shell-text-secondary)]">
               {result.source}
             </div>
+            {index === selectedIndex ? (
+              <div className="text-[11px] text-[color:var(--shell-text-tertiary)]">
+                Enter to open
+              </div>
+            ) : null}
           </div>
         </button>
       ))}

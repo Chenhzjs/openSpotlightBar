@@ -3,50 +3,80 @@ import {
   useDeferredValue,
   useEffect,
   useRef,
-  type KeyboardEvent,
-  type ReactNode
+  useState,
+  type KeyboardEvent
 } from "react";
 
-import { DEFAULT_SETTINGS, SearchEngine, parseQuery } from "@pulse/core";
+import {
+  DEFAULT_SETTINGS,
+  SearchEngine,
+  getBuiltInWorkflows,
+  parseQuery
+} from "@pulse/core";
 import type {
   ActionItem,
+  FileIndexStatus,
   LauncherSettings,
   PluginPermission,
   ResultItem,
+  SearchScope,
   SnippetInput,
-  SnippetRecord
+  SnippetRecord,
+  WorkflowRecord
 } from "@pulse/shared-types";
 
 import { ActionPanel } from "./components/ActionPanel";
+import { ConfigHub } from "./components/ConfigHub";
 import { ResultList } from "./components/ResultList";
 import { SettingsPanel } from "./components/SettingsPanel";
+import { WorkflowStudioPanel } from "./components/WorkflowStudioPanel";
+import type { ConfigSection } from "./features/commands/config-command";
+import {
+  CONFIG_HUB_SECTIONS,
+  parseConfigCommand
+} from "./features/commands/config-command";
 import { PluginHost } from "./features/plugins/plugin-host";
 import {
   createProviders,
   getDefaultAction,
   getScopedInput
 } from "./features/search/providers";
+import {
+  findWorkflowById,
+  getWorkflowResultSummary,
+  runWorkflowInLauncher
+} from "./features/workflows/runner";
 import { createLogger } from "./lib/logger";
 import {
   bootstrapState,
+  deleteWorkflow as removeWorkflowRecord,
   deleteSnippet as removeSnippetRecord,
+  getFileIndexStatus,
   hideWindow,
   listClipboardItems,
   listSnippets,
+  saveWorkflow as persistWorkflow,
   performAction,
   rebuildFileIndex,
   recordSelection,
+  resizeWindow,
   saveSnippet as persistSnippet,
   updateSettings as persistSettings
 } from "./lib/backend";
+import { detectPlatformShell, getPlatformGlyph } from "./lib/platform-shell";
 import { useLauncherStore } from "./store/useLauncherStore";
 
 const logger = createLogger("launcher");
 
 export default function App() {
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const surfaceRef = useRef<HTMLElement | null>(null);
+  const contentRef = useRef<HTMLDivElement | null>(null);
   const pluginHostRef = useRef<PluginHost | null>(null);
   const searchEngineRef = useRef<SearchEngine | null>(null);
+  const [settingsSection, setSettingsSection] = useState<ConfigSection>("general");
+  const [settingsSurface, setSettingsSurface] = useState<"hub" | "detail">("hub");
+  const [platformShell] = useState(() => detectPlatformShell());
 
   if (!pluginHostRef.current) {
     pluginHostRef.current = new PluginHost(DEFAULT_SETTINGS, logger);
@@ -72,10 +102,10 @@ export default function App() {
     fileIndexStatus,
     clipboardItems,
     snippets,
-    discoveredPlugins,
+    workflows,
+    workflowRuns,
     pluginRuntime,
     pluginPermissionRequests,
-    statusMessage,
     errorMessage,
     hydrate,
     setLoading,
@@ -93,6 +123,9 @@ export default function App() {
     setDiscoveredPlugins,
     setPluginRuntime,
     setPluginPermissionRequests,
+    appendWorkflowRun,
+    upsertWorkflow,
+    removeWorkflow,
     applySelection,
     setStatusMessage,
     setErrorMessage
@@ -100,7 +133,56 @@ export default function App() {
 
   const deferredQuery = useDeferredValue(query);
   const currentSettings = settings ?? DEFAULT_SETTINGS;
+  const useChineseCopy =
+    currentSettings.language === "zh-CN" ||
+    (currentSettings.language === "system" &&
+      typeof navigator !== "undefined" &&
+      navigator.language.toLowerCase().startsWith("zh"));
   const selectedResult = results[selectedIndex];
+  const trimmedQuery = query.trim();
+  const parsedSearchQuery = parseQuery(query);
+  const configCommand = parseConfigCommand(query);
+  const isConfigHub = mode === "settings" && settingsSurface === "hub";
+  const isSettingsDetail = mode === "settings" && settingsSurface === "detail";
+  const showSearchResults =
+    mode === "search" && !configCommand && (trimmedQuery.length > 0 || loading);
+  const showErrorPanel = mode === "search" && !configCommand && !!errorMessage;
+  const canNavigateResults = showSearchResults && results.length > 0;
+  const launcherGlyph = getPlatformGlyph(platformShell);
+  const resultListEmptyState = getSearchEmptyState(parsedSearchQuery.scope, fileIndexStatus);
+  const hasContentBelow =
+    isConfigHub ||
+    isSettingsDetail ||
+    (mode === "actions" && !!selectedResult) ||
+    showSearchResults ||
+    showErrorPanel;
+
+  function openConfigHub(section: ConfigSection = "general") {
+    setSettingsSection(section);
+    setSettingsSurface("hub");
+    setMode("settings");
+  }
+
+  function openSettingsDetail(section: ConfigSection = settingsSection) {
+    setSettingsSection(section);
+    setSettingsSurface("detail");
+    setMode("settings");
+  }
+
+  function closeSettingsHub() {
+    if (parseConfigCommand(query)) {
+      setQuery("");
+    }
+    setSettingsSurface("hub");
+    setMode("search");
+    inputRef.current?.focus();
+  }
+
+  function closeSettingsDetail() {
+    setSettingsSurface("hub");
+    setMode("settings");
+    inputRef.current?.focus();
+  }
 
   useEffect(() => {
     const unsubscribe = pluginHostRef.current!.subscribe(
@@ -123,9 +205,22 @@ export default function App() {
           return;
         }
 
-        hydrate(payload);
-        setDiscoveredPlugins(payload.plugins);
-        pluginHostRef.current!.initialize(payload.plugins, payload.settings);
+        const seededWorkflows = await ensureWorkflowCatalog(payload.workflows);
+        if (cancelled) {
+          return;
+        }
+
+        const hydratedPayload = {
+          ...payload,
+          workflows: seededWorkflows
+        };
+
+        hydrate(hydratedPayload);
+        setDiscoveredPlugins(hydratedPayload.plugins);
+        pluginHostRef.current!.initialize(
+          hydratedPayload.plugins,
+          hydratedPayload.settings
+        );
         await searchEngineRef.current?.warmup();
         inputRef.current?.focus();
       } catch (error) {
@@ -147,21 +242,68 @@ export default function App() {
     };
   }, [hydrate, setDiscoveredPlugins, setErrorMessage]);
 
+  async function ensureWorkflowCatalog(
+    existingWorkflows: WorkflowRecord[]
+  ): Promise<WorkflowRecord[]> {
+    const builtIns = getBuiltInWorkflows();
+    const existingById = new Map(existingWorkflows.map((workflow) => [workflow.id, workflow]));
+    const missing = builtIns.filter((workflow) => !existingById.has(workflow.id));
+
+    if (missing.length === 0) {
+      return existingWorkflows;
+    }
+
+    const saved = await Promise.all(missing.map((workflow) => persistWorkflow(workflow)));
+    return [...existingWorkflows, ...saved].sort(
+      (left, right) =>
+        Number(right.builtIn) - Number(left.builtIn) || right.updatedAt - left.updatedAt
+    );
+  }
+
+  useEffect(() => {
+    if (configCommand) {
+      setSettingsSection(configCommand.section);
+      return;
+    }
+
+    if (mode !== "settings") {
+      setSettingsSurface("hub");
+    }
+  }, [configCommand, mode]);
+
   useEffect(() => {
     function handleGlobalKeyDown(event: globalThis.KeyboardEvent) {
       if ((event.metaKey || event.ctrlKey) && event.key === ",") {
         event.preventDefault();
-        setMode(mode === "settings" ? "search" : "settings");
         if (mode === "settings") {
+          if (parseConfigCommand(query)) {
+            setQuery("");
+          }
+          setSettingsSurface("hub");
+          setMode("search");
           inputRef.current?.focus();
+        } else {
+          setSettingsSection("general");
+          setSettingsSurface("hub");
+          setMode("settings");
         }
         return;
       }
 
       if (event.key === "Escape" && mode === "settings") {
         event.preventDefault();
-        setMode("search");
-        inputRef.current?.focus();
+        if (settingsSurface === "detail") {
+          setSettingsSurface("hub");
+          setMode("settings");
+          inputRef.current?.focus();
+        } else {
+          if (parseConfigCommand(query)) {
+            setQuery("");
+          }
+          setSettingsSurface("hub");
+          setMode("search");
+          inputRef.current?.focus();
+        }
       }
     }
 
@@ -169,7 +311,7 @@ export default function App() {
     return () => {
       window.removeEventListener("keydown", handleGlobalKeyDown);
     };
-  }, [mode, setMode]);
+  }, [mode, query, settingsSurface, setMode, setQuery]);
 
   useEffect(() => {
     if (!initialized || mode === "settings") {
@@ -194,7 +336,8 @@ export default function App() {
             settings: currentSettings,
             usageByItemId,
             clipboardItems,
-            snippets
+            snippets,
+            workflows
           }
         );
 
@@ -233,6 +376,7 @@ export default function App() {
     usageByItemId,
     clipboardItems,
     snippets,
+    workflows,
     setErrorMessage,
     setLoading,
     setResults
@@ -291,10 +435,133 @@ export default function App() {
     }
   }, [mode]);
 
+  useEffect(() => {
+    if (typeof window === "undefined" || !("__TAURI_INTERNALS__" in window)) {
+      return;
+    }
+
+    let active = true;
+    let cleanup: (() => void) | undefined;
+
+    void import("@tauri-apps/api/window")
+      .then(async ({ getCurrentWindow }) => {
+        if (!active) {
+          return;
+        }
+        const appWindow = getCurrentWindow();
+        cleanup = await appWindow.onFocusChanged(({ payload: focused }) => {
+          if (!focused && mode !== "settings") {
+            void hideWindow();
+          }
+        });
+      })
+      .catch((error) => {
+        logger.warn("Window focus listener failed.", {
+          error: error instanceof Error ? error.message : String(error)
+        });
+      });
+
+    return () => {
+      active = false;
+      if (cleanup) {
+        cleanup();
+      }
+    };
+  }, [mode]);
+
+  // Unified: measure content + resize window via Rust command (no async import issues)
+  const lastAppliedSize = useRef({ w: 0, h: 0 });
+  const resizeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !("__TAURI_INTERNALS__" in window)) {
+      return;
+    }
+
+    const main = surfaceRef.current;
+    if (!main) {
+      return;
+    }
+
+    const MAX_WINDOW_HEIGHT = isSettingsDetail ? 760 : 560;
+    const nextWidth = isSettingsDetail ? 1120 : mode === "settings" ? 980 : 900;
+
+    function measure(): number {
+      const barEl = main!.firstElementChild;
+      const barHeight = barEl ? barEl.getBoundingClientRect().height : 72;
+      const contentEl = contentRef.current;
+      if (!contentEl) {
+        return barHeight;
+      }
+      return barHeight + 4 + contentEl.scrollHeight;
+    }
+
+    function scheduleResize() {
+      if (resizeTimer.current) {
+        clearTimeout(resizeTimer.current);
+      }
+      resizeTimer.current = setTimeout(() => {
+        const naturalHeight = measure();
+        const windowHeight = Math.min(Math.ceil(naturalHeight), MAX_WINDOW_HEIGHT);
+
+        if (lastAppliedSize.current.w === nextWidth && lastAppliedSize.current.h === windowHeight) {
+          return;
+        }
+        lastAppliedSize.current = { w: nextWidth, h: windowHeight };
+
+        void resizeWindow(nextWidth, windowHeight);
+      }, 30);
+    }
+
+    // Initial resize
+    scheduleResize();
+
+    // Watch for dynamic content changes
+    let observer: ResizeObserver | undefined;
+    const contentEl = contentRef.current;
+    if (contentEl && typeof ResizeObserver !== "undefined") {
+      observer = new ResizeObserver(() => {
+        scheduleResize();
+      });
+      observer.observe(contentEl);
+    }
+
+    return () => {
+      if (resizeTimer.current) {
+        clearTimeout(resizeTimer.current);
+      }
+      observer?.disconnect();
+    };
+  }, [
+    isConfigHub,
+    isSettingsDetail,
+    mode,
+    platformShell,
+    results.length,
+    showErrorPanel,
+    showSearchResults,
+    hasContentBelow
+  ]);
+
   async function refreshClipboardHistory() {
     const items = await listClipboardItems();
     setClipboardItems(items);
     return items;
+  }
+
+  async function searchLauncherQuery(rawSearch: string) {
+    const parsed = parseQuery(rawSearch);
+    return searchEngineRef.current!.search(getScopedInput(rawSearch), {
+      query: parsed.raw,
+      normalizedQuery: parsed.normalized,
+      now: Date.now(),
+      scope: parsed.scope,
+      settings: currentSettings,
+      usageByItemId,
+      clipboardItems,
+      snippets,
+      workflows
+    });
   }
 
   async function refreshSnippetRecords() {
@@ -313,8 +580,69 @@ export default function App() {
 
     try {
       if (action.kind === "show-settings") {
-        setMode("settings");
-        setStatusMessage("Settings opened.");
+        openConfigHub("general");
+        return;
+      }
+
+      if (action.kind === "run-workflow") {
+        const workflowId =
+          typeof action.payload?.workflowId === "string"
+            ? action.payload.workflowId
+            : typeof result?.payload.workflowId === "string"
+              ? result.payload.workflowId
+              : undefined;
+        const rawWorkflowQuery =
+          typeof action.payload?.rawQuery === "string"
+            ? action.payload.rawQuery
+            : typeof result?.payload.rawQuery === "string"
+              ? result.payload.rawQuery
+              : query;
+
+        if (!workflowId) {
+          throw new Error("Workflow action is missing a workflow id.");
+        }
+
+        const workflow = findWorkflowById(workflows, workflowId);
+        if (!workflow) {
+          throw new Error("Workflow was not found.");
+        }
+
+        const run = await runWorkflowInLauncher({
+          workflow,
+          rawQuery: rawWorkflowQuery,
+          settings: currentSettings,
+          usageByItemId,
+          clipboardItems,
+          snippets,
+          workflows,
+          pluginHost: pluginHostRef.current!,
+          onFileIndexStatusChange: setFileIndexStatus,
+          searchLauncher: searchLauncherQuery,
+          emitToast: (message) => {
+            setStatusMessage(message);
+          }
+        });
+
+        appendWorkflowRun(workflow.id, run);
+
+        if (result) {
+          applySelection(result.id, result.type, rawWorkflowQuery);
+          await recordSelection(result.id, result.type, rawWorkflowQuery);
+        }
+
+        const summary = getWorkflowResultSummary(run);
+        if (run.ok) {
+          if (run.resultItems?.length) {
+            setResults(run.resultItems);
+          }
+          setStatusMessage(summary ?? `${workflow.name} completed.`);
+          await refreshClipboardHistory();
+          if (!options?.preserveMode) {
+            setMode("search");
+          }
+        } else {
+          throw new Error(summary ?? "Workflow execution failed.");
+        }
         return;
       }
 
@@ -341,10 +669,6 @@ export default function App() {
 
       if (!response.ok) {
         throw new Error(response.message ?? "Action failed.");
-      }
-
-      if (response.message) {
-        setStatusMessage(response.message);
       }
 
       if (needsClipboardRefresh(action.kind)) {
@@ -379,13 +703,26 @@ export default function App() {
 
   async function saveSettings(nextSettings: LauncherSettings) {
     try {
-      const previousPaths = JSON.stringify(currentSettings.indexPaths);
+      const previousIndexConfig = JSON.stringify({
+        paths: currentSettings.indexPaths,
+        exclusions: currentSettings.indexExclusions,
+        paused: currentSettings.indexingPaused
+      });
       const saved = await persistSettings(nextSettings);
+      const nextStatus = await getFileIndexStatus();
       setSettings(saved);
+      setFileIndexStatus(nextStatus);
       pluginHostRef.current!.updateSettings(saved);
       setStatusMessage(
-        previousPaths !== JSON.stringify(saved.indexPaths)
-          ? "Settings saved. Rebuild the file index to apply directory changes."
+        previousIndexConfig !==
+          JSON.stringify({
+            paths: saved.indexPaths,
+            exclusions: saved.indexExclusions,
+            paused: saved.indexingPaused
+          })
+          ? saved.indexingPaused
+            ? "Settings saved. Indexing is paused until you resume it."
+            : "Settings saved. Rebuild the file index to apply directory and exclusion changes."
           : "Settings saved."
       );
     } catch (error) {
@@ -403,7 +740,6 @@ export default function App() {
     try {
       const saved = await persistSnippet(snippet);
       await refreshSnippetRecords();
-      setStatusMessage(`Snippet ${saved.trigger} saved.`);
       return saved;
     } catch (error) {
       logger.warn("Snippet save failed.", {
@@ -418,7 +754,6 @@ export default function App() {
     try {
       await removeSnippetRecord(id);
       await refreshSnippetRecords();
-      setStatusMessage("Snippet deleted.");
     } catch (error) {
       logger.warn("Snippet delete failed.", {
         error: error instanceof Error ? error.message : String(error)
@@ -428,6 +763,63 @@ export default function App() {
       );
       throw error;
     }
+  }
+
+  async function saveWorkflow(workflow: WorkflowRecord): Promise<WorkflowRecord> {
+    try {
+      const saved = await persistWorkflow(workflow);
+      upsertWorkflow(saved);
+      setStatusMessage(saved.builtIn ? "Built-in workflow refreshed." : "Workflow saved.");
+      return saved;
+    } catch (error) {
+      logger.warn("Workflow save failed.", {
+        error: error instanceof Error ? error.message : String(error),
+        workflowId: workflow.id
+      });
+      setErrorMessage(
+        error instanceof Error ? error.message : "Failed to save workflow."
+      );
+      throw error;
+    }
+  }
+
+  async function deleteWorkflow(id: string) {
+    try {
+      await removeWorkflowRecord(id);
+      removeWorkflow(id);
+      setStatusMessage("Workflow deleted.");
+    } catch (error) {
+      logger.warn("Workflow delete failed.", {
+        error: error instanceof Error ? error.message : String(error),
+        workflowId: id
+      });
+      setErrorMessage(
+        error instanceof Error ? error.message : "Failed to delete workflow."
+      );
+      throw error;
+    }
+  }
+
+  async function duplicateWorkflow(workflow: WorkflowRecord): Promise<WorkflowRecord> {
+    const now = Date.now();
+    const duplicated: WorkflowRecord = {
+      ...workflow,
+      id: `workflow-${now.toString(36)}`,
+      name: `${workflow.name} Copy`,
+      builtIn: false,
+      createdAt: now,
+      updatedAt: now,
+      trigger:
+        workflow.trigger.type === "slash-command"
+          ? {
+              ...workflow.trigger,
+              command: `${workflow.trigger.command}-copy`,
+              label: `${workflow.trigger.command}-copy`
+            }
+          : workflow.trigger
+    };
+
+    return saveWorkflow(duplicated);
   }
 
   async function clearClipboardHistory() {
@@ -500,12 +892,89 @@ export default function App() {
     pluginHostRef.current!.dismissPermissionRequest(pluginId, permission);
   }
 
+  async function runWorkflowFromStudio(
+    workflow: WorkflowRecord,
+    rawInput: string
+  ) {
+    setErrorMessage(undefined);
+    setStatusMessage(undefined);
+
+    try {
+      const run = await runWorkflowInLauncher({
+        workflow,
+        rawQuery: rawInput,
+        settings: currentSettings,
+        usageByItemId,
+        clipboardItems,
+        snippets,
+        workflows,
+        pluginHost: pluginHostRef.current!,
+        onFileIndexStatusChange: setFileIndexStatus,
+        searchLauncher: searchLauncherQuery,
+        emitToast: (message) => {
+          setStatusMessage(message);
+        }
+      });
+
+      appendWorkflowRun(workflow.id, run);
+      const summary = getWorkflowResultSummary(run);
+
+      if (run.ok) {
+        setStatusMessage(summary ?? `${workflow.name} completed.`);
+        await refreshClipboardHistory();
+      } else {
+        setErrorMessage(summary ?? "Workflow execution failed.");
+      }
+
+      return run;
+    } catch (error) {
+      logger.warn("Workflow studio run failed.", {
+        workflowId: workflow.id,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      setErrorMessage(
+        error instanceof Error ? error.message : "Workflow execution failed."
+      );
+      throw error;
+    }
+  }
+
   async function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (mode === "settings") {
+      if (settingsSurface === "hub") {
+        if (event.key === "ArrowDown") {
+          event.preventDefault();
+          moveHubSelection(1);
+          return;
+        }
+
+        if (event.key === "ArrowUp") {
+          event.preventDefault();
+          moveHubSelection(-1);
+          return;
+        }
+
+        if (event.key === "Enter") {
+          event.preventDefault();
+          openSettingsDetail(settingsSection);
+          return;
+        }
+      }
+
       if (event.key === "Escape") {
         event.preventDefault();
-        setMode("search");
+        if (settingsSurface === "detail") {
+          closeSettingsDetail();
+        } else {
+          closeSettingsHub();
+        }
       }
+      return;
+    }
+
+    if (configCommand && event.key === "Enter") {
+      event.preventDefault();
+      openConfigHub(configCommand.section);
       return;
     }
 
@@ -529,26 +998,26 @@ export default function App() {
       return;
     }
 
-    if (event.key === "ArrowDown") {
+    if (event.key === "ArrowDown" && canNavigateResults) {
       event.preventDefault();
       moveSelection(1);
       return;
     }
 
-    if (event.key === "ArrowUp") {
+    if (event.key === "ArrowUp" && canNavigateResults) {
       event.preventDefault();
       moveSelection(-1);
       return;
     }
 
-    if (event.key === "Enter") {
+    if (event.key === "Enter" && canNavigateResults) {
       event.preventDefault();
       await executePrimaryResult(selectedResult);
       return;
     }
 
     if (event.key === "Tab") {
-      const hasActions = (selectedResult?.actions.length ?? 0) > 0;
+      const hasActions = canNavigateResults && (selectedResult?.actions.length ?? 0) > 0;
       if (hasActions) {
         event.preventDefault();
         setActionIndex(0);
@@ -563,163 +1032,136 @@ export default function App() {
     }
   }
 
-  return (
-    <main className="min-h-screen px-4 py-10 text-slate-100">
-      <div className="mx-auto max-w-5xl">
-        <section className="rounded-[36px] border border-white/8 bg-ink-900/80 px-5 py-5 shadow-halo backdrop-blur-2xl md:px-6">
-          <div className="mb-5 flex items-center justify-between gap-4">
-            <div>
-              <div className="text-xs uppercase tracking-[0.28em] text-pulse-300/80">
-                Pulse Launcher
-              </div>
-              <div className="mt-1 font-display text-3xl text-white">
-                Keyboard-first local launcher
-              </div>
-            </div>
-            <div className="hidden rounded-full border border-white/8 bg-white/5 px-3 py-2 font-mono text-xs text-slate-300 md:block">
-              {currentSettings.hotkey}
-            </div>
-          </div>
+  function moveHubSelection(delta: number) {
+    const currentIndex = CONFIG_HUB_SECTIONS.indexOf(
+      settingsSection as (typeof CONFIG_HUB_SECTIONS)[number]
+    );
+    const safeIndex = currentIndex >= 0 ? currentIndex : 0;
+    const nextIndex =
+      (safeIndex + delta + CONFIG_HUB_SECTIONS.length) % CONFIG_HUB_SECTIONS.length;
+    setSettingsSection(CONFIG_HUB_SECTIONS[nextIndex]);
+  }
 
-          <div className="rounded-[30px] border border-white/8 bg-black/25 px-4 py-4">
-            <input
-              ref={inputRef}
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              onKeyDown={onKeyDown}
-              placeholder="Search apps, files, clipboard, snippets, plugins, or a web shortcut"
-              className="w-full border-0 bg-transparent font-display text-2xl text-white outline-none placeholder:text-slate-500"
-            />
-            <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-400">
-              <Hint>Tab actions</Hint>
-              <Hint>Enter default action</Hint>
-              <Hint>Ctrl+, settings</Hint>
-              <Hint>`gh tauri` plugin</Hint>
-              <Hint>&gt; pwd plugin</Hint>
-              <Hint>`;standup` snippets</Hint>
-            </div>
-          </div>
-
-          {mode === "settings" ? (
-            <div className="mt-5">
-              <SettingsPanel
-                settings={currentSettings}
-                snippets={snippets}
-                fileIndexStatus={fileIndexStatus}
-                clipboardCount={clipboardItems.length}
-                plugins={pluginRuntime}
-                permissionRequests={pluginPermissionRequests}
-                onSaveSettings={saveSettings}
-                onRebuildIndex={async () => {
-                  await executeAction(
-                    {
-                      id: "settings:rebuild-file-index",
-                      title: "Rebuild file index",
-                      kind: "rebuild-file-index"
-                    },
-                    undefined,
-                    { preserveMode: true }
-                  );
-                }}
-                onSaveSnippet={saveSnippet}
-                onDeleteSnippet={deleteSnippet}
-                onClearClipboard={clearClipboardHistory}
-                onGrantPluginPermission={grantPluginPermission}
-                onRevokePluginPermission={revokePluginPermission}
-                onDismissPluginPermissionRequest={dismissPluginPermissionRequest}
-                onTogglePluginEnabled={togglePluginEnabled}
-                onClose={() => setMode("search")}
-              />
-            </div>
-          ) : (
-            <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-              <div>
-                <ResultList
-                  results={results}
-                  selectedIndex={selectedIndex}
-                  loading={loading}
-                  onSelect={setSelectedIndex}
-                  onExecute={(index) => {
-                    void executePrimaryResult(results[index]);
-                  }}
-                />
-              </div>
-
-              <div className="space-y-4">
-                {mode === "actions" && selectedResult ? (
-                  <ActionPanel
-                    result={selectedResult}
-                    selectedIndex={actionIndex}
-                    onSelect={setActionIndex}
-                    onExecute={(index) => {
-                      const action = selectedResult.actions[index];
-                      if (action) {
-                        void executeAction(action, selectedResult);
-                      }
-                    }}
-                    onClose={() => setMode("search")}
-                  />
-                ) : null}
-
-                <StatusCard
-                  fileIndexStatus={fileIndexStatus?.state}
-                  clipboardCount={clipboardItems.length}
-                  snippetCount={snippets.length}
-                  pluginCount={discoveredPlugins.length}
-                  permissionRequestCount={pluginPermissionRequests.length}
-                  statusMessage={statusMessage}
-                  errorMessage={errorMessage}
-                />
-              </div>
-            </div>
-          )}
-        </section>
-      </div>
-    </main>
-  );
-}
-
-function Hint({ children }: { children: ReactNode }) {
-  return (
-    <div className="rounded-full border border-white/8 bg-white/4 px-3 py-1.5">
-      {children}
+  const contentPanel = isConfigHub ? (
+    <ConfigHub
+      selectedSection={settingsSection}
+      stats={{
+        indexedFiles: fileIndexStatus?.indexedCount ?? 0,
+        clipboardItems: clipboardItems.length,
+        snippets: snippets.length,
+        plugins: pluginRuntime.length,
+        pendingPermissions: pluginPermissionRequests.length
+      }}
+      onSelect={setSettingsSection}
+      onOpen={openSettingsDetail}
+      onClose={closeSettingsHub}
+    />
+  ) : isSettingsDetail ? (
+    settingsSection === "workflow" ? (
+      <WorkflowStudioPanel
+        workflows={workflows}
+        workflowRuns={workflowRuns}
+        snippets={snippets.length}
+        plugins={pluginRuntime.length}
+        indexedFiles={fileIndexStatus?.indexedCount ?? 0}
+        onSaveWorkflow={saveWorkflow}
+        onDeleteWorkflow={deleteWorkflow}
+        onDuplicateWorkflow={duplicateWorkflow}
+        onRunWorkflow={runWorkflowFromStudio}
+        onBack={closeSettingsDetail}
+      />
+    ) : (
+    <SettingsPanel
+      settings={currentSettings}
+      snippets={snippets}
+      fileIndexStatus={fileIndexStatus}
+      clipboardCount={clipboardItems.length}
+      plugins={pluginRuntime}
+      permissionRequests={pluginPermissionRequests}
+      initialSection={settingsSection}
+      onSaveSettings={saveSettings}
+      onRebuildIndex={async () => {
+        await executeAction(
+          {
+            id: "settings:rebuild-file-index",
+            title: "Rebuild file index",
+            kind: "rebuild-file-index"
+          },
+          undefined,
+          { preserveMode: true }
+        );
+      }}
+      onSaveSnippet={saveSnippet}
+      onDeleteSnippet={deleteSnippet}
+      onClearClipboard={clearClipboardHistory}
+      onGrantPluginPermission={grantPluginPermission}
+      onRevokePluginPermission={revokePluginPermission}
+      onDismissPluginPermissionRequest={dismissPluginPermissionRequest}
+      onTogglePluginEnabled={togglePluginEnabled}
+      onClose={closeSettingsDetail}
+    />
+    )
+  ) : mode === "actions" && selectedResult ? (
+    <ActionPanel
+      result={selectedResult}
+      selectedIndex={actionIndex}
+      onSelect={setActionIndex}
+      onExecute={(index) => {
+        const action = selectedResult.actions[index];
+        if (action) {
+          void executeAction(action, selectedResult);
+        }
+      }}
+      onClose={() => setMode("search")}
+    />
+  ) : showSearchResults ? (
+    <ResultList
+      results={results}
+      selectedIndex={selectedIndex}
+      loading={loading}
+      emptyTitle={resultListEmptyState.title}
+      emptyDetail={resultListEmptyState.detail}
+      loadingLabel={resultListEmptyState.loadingLabel}
+      onSelect={setSelectedIndex}
+      onExecute={(index) => {
+        void executePrimaryResult(results[index]);
+      }}
+    />
+  ) : showErrorPanel ? (
+    <div className="shell-panel rounded-[24px] border border-rose-300/20 px-4 py-3 text-sm text-rose-200">
+      {errorMessage}
     </div>
-  );
-}
+  ) : null;
 
-function StatusCard({
-  fileIndexStatus,
-  clipboardCount,
-  snippetCount,
-  pluginCount,
-  permissionRequestCount,
-  statusMessage,
-  errorMessage
-}: {
-  fileIndexStatus?: string;
-  clipboardCount: number;
-  snippetCount: number;
-  pluginCount: number;
-  permissionRequestCount: number;
-  statusMessage?: string;
-  errorMessage?: string;
-}) {
   return (
-    <section className="rounded-[28px] border border-white/8 bg-white/4 p-4 text-sm text-slate-300">
-      <div className="text-xs uppercase tracking-[0.22em] text-pulse-300/80">Status</div>
-      <div className="mt-3 space-y-2">
-        <div>File index: {fileIndexStatus ?? "bootstrapping"}</div>
-        <div>Clipboard items: {clipboardCount}</div>
-        <div>Snippets: {snippetCount}</div>
-        <div>Plugins: {pluginCount}</div>
-        <div>Pending permission prompts: {permissionRequestCount}</div>
-        <div>{statusMessage ?? "Ready. Use Tab for actions or Ctrl+, for settings."}</div>
-        <div className="text-slate-400">
-          Plugins run in isolated workers with host-side permission gates and timeouts.
+    <main
+      ref={surfaceRef}
+      className={`platform-shell platform-${platformShell} flex max-h-screen flex-col bg-transparent p-0 text-[color:var(--shell-text-primary)]`}
+    >
+      <div className="shell-bar shrink-0 rounded-[30px]">
+        <div className="flex items-center gap-3 px-5 py-4">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-muted)] text-sm text-[color:var(--shell-text-secondary)]">
+            {launcherGlyph}
+          </div>
+          <input
+            ref={inputRef}
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            onKeyDown={onKeyDown}
+            placeholder={
+              useChineseCopy ? "搜索内容或输入 /config" : "Search or type /config"
+            }
+            className="w-full border-0 bg-transparent text-[1.6rem] font-medium tracking-[-0.03em] text-[color:var(--shell-text-primary)] outline-none placeholder:text-[color:var(--shell-text-muted)]"
+          />
         </div>
-        {errorMessage ? <div className="text-rose-300">{errorMessage}</div> : null}
       </div>
-    </section>
+
+      {hasContentBelow && (
+        <div ref={contentRef} className="scrollbar-hidden mt-1 min-h-0 flex-1 overflow-y-auto">
+          {contentPanel}
+        </div>
+      )}
+    </main>
   );
 }
 
@@ -734,4 +1176,72 @@ function needsClipboardRefresh(kind: ActionItem["kind"]): boolean {
     kind === "clear-clipboard-history" ||
     kind === "expand-snippet"
   );
+}
+
+function getSearchEmptyState(
+  scope: SearchScope,
+  fileIndexStatus: FileIndexStatus | null
+): {
+  title: string;
+  detail?: string;
+  loadingLabel?: string;
+} {
+  if (scope !== "files") {
+    return {
+      title: "No matching results.",
+      detail: "Try a different query, or use /config to review provider settings.",
+      loadingLabel: "Searching launcher sources..."
+    };
+  }
+
+  switch (fileIndexStatus?.state) {
+    case "indexing":
+      return {
+        title: "File index is rebuilding.",
+        detail:
+          fileIndexStatus.message ??
+          "Search is using lightweight filename and path data while indexing continues.",
+        loadingLabel: "Searching indexed files while rebuild runs..."
+      };
+    case "paused":
+      return {
+        title: "File indexing is paused.",
+        detail:
+          "Resume indexing in /config indexing, then rebuild to refresh file results.",
+        loadingLabel: "Searching the existing file index..."
+      };
+    case "error":
+      return {
+        title: "File index needs attention.",
+        detail:
+          fileIndexStatus.lastError ??
+          fileIndexStatus.message ??
+          "Rebuild the file index from /config indexing.",
+        loadingLabel: "Searching the last available file index..."
+      };
+    case "stale":
+      return {
+        title: "No indexed file matched this query.",
+        detail:
+          fileIndexStatus.message ??
+          "The index settings changed. Rebuild from /config indexing to refresh file results.",
+        loadingLabel: "Searching the existing file index..."
+      };
+    default:
+      if ((fileIndexStatus?.indexedCount ?? 0) === 0) {
+        return {
+          title: "No indexed files yet.",
+          detail:
+            "Add directories in /config indexing and rebuild to create the lightweight file index.",
+          loadingLabel: "Preparing file search..."
+        };
+      }
+
+      return {
+        title: "No indexed file matched this query.",
+        detail:
+          "Try a filename, folder name, or path fragment. The file index stays lightweight and local.",
+        loadingLabel: "Searching indexed files..."
+      };
+  }
 }

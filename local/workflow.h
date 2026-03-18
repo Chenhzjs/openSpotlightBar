@@ -19,6 +19,7 @@ public:
     bool reload();
     bool run(const QString &keyword, const QStringList &arguments, QStringList &output, QStringList &errors) const;
     QString configLocation() const;
+    bool saveAll(const QList<WorkflowDefinition> &items);
 
 private:
     WorkflowManager();

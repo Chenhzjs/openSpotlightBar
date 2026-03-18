@@ -21,6 +21,9 @@ const SCOPE_PREFIXES: Record<string, SearchScope> = {
   "plugin ": "plugins",
   "plugins ": "plugins",
   "ext ": "plugins",
+  "wf ": "workflows",
+  "workflow ": "workflows",
+  "workflows ": "workflows",
   "sys ": "system"
 };
 

@@ -1,4 +1,4 @@
-import { DEFAULT_SETTINGS } from "@pulse/core";
+import { DEFAULT_SETTINGS, getBuiltInWorkflows } from "@pulse/core";
 import type {
   ActionItem,
   ActionResponse,
@@ -11,7 +11,10 @@ import type {
   LauncherSettings,
   ResultItem,
   SnippetInput,
-  SnippetRecord
+  SnippetRecord,
+  WorkflowHttpRequest,
+  WorkflowHttpResponse,
+  WorkflowRecord
 } from "@pulse/shared-types";
 
 interface PluginShellResult {
@@ -23,6 +26,8 @@ interface PluginShellResult {
 let mockSettings: LauncherSettings = {
   ...DEFAULT_SETTINGS,
   indexPaths: ["~/Applications", "~/Documents", "~/Downloads"],
+  indexExclusions: ["~/Downloads/Archives"],
+  indexingPaused: false,
   plugins: {
     ...DEFAULT_SETTINGS.plugins,
     enableHost: true
@@ -32,8 +37,14 @@ let mockSettings: LauncherSettings = {
 let mockIndexStatus: FileIndexStatus = {
   state: "ready",
   indexedCount: 342,
+  indexedPaths: ["~/Applications", "~/Documents", "~/Downloads"],
+  excludedPaths: ["~/Downloads/Archives"],
   lastIndexedAt: Date.now() - 180000,
-  message: "Mock file index loaded for browser preview."
+  message: "Mock file index loaded for browser preview.",
+  lastError: null,
+  paused: false,
+  truncated: false,
+  maxIndexedFiles: 15_000
 };
 
 let mockClipboardItems: ClipboardItem[] = [
@@ -72,6 +83,10 @@ let mockSnippets: SnippetRecord[] = [
     updatedAt: Date.now() - 3_600_000
   }
 ];
+
+let mockWorkflows: WorkflowRecord[] = getBuiltInWorkflows().map((workflow) =>
+  cloneWorkflow(workflow)
+);
 
 const mockPlugins: DiscoveredPlugin[] = [
   {
@@ -241,7 +256,8 @@ export async function bootstrapState(): Promise<BootstrapPayload> {
       fileIndexStatus: mockIndexStatus,
       clipboardItems: [...mockClipboardItems],
       snippets: [...mockSnippets],
-      plugins: [...mockPlugins]
+      plugins: [...mockPlugins],
+      workflows: mockWorkflows.map((workflow) => cloneWorkflow(workflow))
     };
   }
 
@@ -343,11 +359,61 @@ export async function deleteSnippet(id: string): Promise<void> {
   await invokeCommand("delete_snippet", { id });
 }
 
+export async function listWorkflows(): Promise<WorkflowRecord[]> {
+  if (!isTauriEnvironment()) {
+    return mockWorkflows.map((workflow) => cloneWorkflow(workflow));
+  }
+
+  return invokeCommand<WorkflowRecord[]>("list_workflows");
+}
+
+export async function saveWorkflow(workflow: WorkflowRecord): Promise<WorkflowRecord> {
+  if (!isTauriEnvironment()) {
+    const now = Date.now();
+    const existing = mockWorkflows.find((entry) => entry.id === workflow.id);
+    const saved: WorkflowRecord = {
+      ...cloneWorkflow(workflow),
+      createdAt: existing?.createdAt ?? workflow.createdAt ?? now,
+      updatedAt: now
+    };
+    mockWorkflows = [
+      saved,
+      ...mockWorkflows.filter((entry) => entry.id !== saved.id)
+    ].sort((left, right) => Number(right.builtIn) - Number(left.builtIn) || right.updatedAt - left.updatedAt);
+    return cloneWorkflow(saved);
+  }
+
+  return invokeCommand<WorkflowRecord>("save_workflow", { workflow });
+}
+
+export async function deleteWorkflow(id: string): Promise<void> {
+  if (!isTauriEnvironment()) {
+    mockWorkflows = mockWorkflows.filter((entry) => entry.id !== id);
+    return;
+  }
+
+  await invokeCommand("delete_workflow", { id });
+}
+
 export async function updateSettings(
   settings: LauncherSettings
 ): Promise<LauncherSettings> {
   if (!isTauriEnvironment()) {
     mockSettings = cloneSettings(settings);
+    mockIndexStatus = {
+      ...mockIndexStatus,
+      indexedPaths: [...mockSettings.indexPaths],
+      excludedPaths: [...mockSettings.indexExclusions],
+      paused: mockSettings.indexingPaused,
+      state: mockSettings.indexingPaused
+        ? "paused"
+        : mockIndexStatus.lastIndexedAt
+          ? "stale"
+          : "idle",
+      message: mockSettings.indexingPaused
+        ? "Mock indexing paused. Existing file results remain searchable."
+        : "Mock index settings changed. Rebuild to apply directory and exclusion updates."
+    };
     return cloneSettings(mockSettings);
   }
 
@@ -369,15 +435,30 @@ export async function recordSelection(
 export async function rebuildFileIndex(): Promise<FileIndexStatus> {
   if (!isTauriEnvironment()) {
     mockIndexStatus = {
-      state: "ready",
+      ...mockIndexStatus,
+      state: mockSettings.indexingPaused ? "paused" : "ready",
       indexedCount: mockIndexStatus.indexedCount + 24,
+      indexedPaths: [...mockSettings.indexPaths],
+      excludedPaths: [...mockSettings.indexExclusions],
       lastIndexedAt: Date.now(),
-      message: "Mock file index rebuilt."
+      message: mockSettings.indexingPaused
+        ? "Mock indexing is paused. Resume to rebuild."
+        : "Mock file index rebuilt.",
+      lastError: null,
+      paused: mockSettings.indexingPaused
     };
     return mockIndexStatus;
   }
 
   return invokeCommand<FileIndexStatus>("rebuild_file_index");
+}
+
+export async function getFileIndexStatus(): Promise<FileIndexStatus> {
+  if (!isTauriEnvironment()) {
+    return { ...mockIndexStatus };
+  }
+
+  return invokeCommand<FileIndexStatus>("get_file_index_status");
 }
 
 export async function pluginExecShell(
@@ -395,6 +476,78 @@ export async function pluginExecShell(
   return invokeCommand<PluginShellResult>("plugin_exec_shell", {
     pluginId,
     command
+  });
+}
+
+export async function workflowExecShell(
+  command: string
+): Promise<PluginShellResult> {
+  if (!isTauriEnvironment()) {
+    return {
+      exitCode: 0,
+      stdout: `Mock workflow execution: ${command}`,
+      stderr: ""
+    };
+  }
+
+  return invokeCommand<PluginShellResult>("workflow_exec_shell", {
+    command
+  });
+}
+
+export async function workflowHttpRequest(
+  request: WorkflowHttpRequest
+): Promise<WorkflowHttpResponse> {
+  if (!isTauriEnvironment()) {
+    const controller = new AbortController();
+    const timeoutMs = request.timeoutMs ?? 5000;
+    const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const url = new URL(request.url);
+      for (const [key, value] of Object.entries(request.queryParams ?? {})) {
+        url.searchParams.set(key, value);
+      }
+      const headers = new Headers(request.headers);
+      if (request.jsonBody !== undefined && !headers.has("Content-Type")) {
+        headers.set("Content-Type", "application/json");
+      }
+
+      const response = await fetch(url, {
+        method: request.method,
+        headers,
+        body: request.jsonBody === undefined ? undefined : JSON.stringify(request.jsonBody),
+        signal: controller.signal
+      });
+      const text = await response.text();
+      const contentType = response.headers.get("content-type");
+      let json: unknown = undefined;
+      if (contentType?.includes("json") || text.trim().startsWith("{") || text.trim().startsWith("[")) {
+        try {
+          json = JSON.parse(text);
+        } catch {
+          json = undefined;
+        }
+      }
+
+      return {
+        url: response.url || url.toString(),
+        status: response.status,
+        ok: response.ok,
+        headers: Object.fromEntries(response.headers.entries()),
+        contentType,
+        text,
+        json
+      };
+    } catch (error) {
+      throw new Error(error instanceof Error ? error.message : String(error));
+    } finally {
+      window.clearTimeout(timeoutId);
+    }
+  }
+
+  return invokeCommand<WorkflowHttpResponse>("workflow_http_request", {
+    request
   });
 }
 
@@ -436,6 +589,14 @@ export async function hideWindow(): Promise<void> {
   }
 
   await invokeCommand("hide_window");
+}
+
+export async function resizeWindow(width: number, height: number): Promise<void> {
+  if (!isTauriEnvironment()) {
+    return;
+  }
+
+  await invokeCommand("resize_window", { width, height });
 }
 
 async function handleBrowserAction(
@@ -623,6 +784,8 @@ function cloneSettings(settings: LauncherSettings): LauncherSettings {
   return {
     ...settings,
     indexPaths: [...settings.indexPaths],
+    indexExclusions: [...settings.indexExclusions],
+    indexingPaused: settings.indexingPaused,
     search: {
       ...settings.search,
       sourceWeights: { ...settings.search.sourceWeights }
@@ -651,4 +814,8 @@ function cloneSettings(settings: LauncherSettings): LauncherSettings {
       shortcuts: { ...settings.webSearch.shortcuts }
     }
   };
+}
+
+function cloneWorkflow(workflow: WorkflowRecord): WorkflowRecord {
+  return JSON.parse(JSON.stringify(workflow)) as WorkflowRecord;
 }

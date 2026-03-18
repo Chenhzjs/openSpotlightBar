@@ -1,3 +1,4 @@
+pub mod bridge;
 mod commands;
 mod db;
 mod error;
@@ -9,10 +10,12 @@ mod state;
 use std::sync::Arc;
 
 use commands::{
-    bootstrap_state, delete_snippet, get_file_index_status, hide_window, list_clipboard_items,
-    list_snippets, perform_action, plugin_exec_shell, plugin_read_clipboard_text,
-    plugin_write_clipboard_text, rebuild_file_index, record_selection, save_snippet, search_apps,
-    search_files, update_settings,
+    bootstrap_state, delete_snippet, delete_workflow, get_file_index_status, hide_window,
+    resize_window,
+    list_clipboard_items, list_snippets, list_workflows, perform_action, plugin_exec_shell,
+    plugin_read_clipboard_text, plugin_write_clipboard_text, rebuild_file_index, record_selection,
+    save_snippet, save_workflow, search_apps, search_files, update_settings, workflow_exec_shell,
+    workflow_http_request,
 };
 use db::Database;
 use error::{AppError, AppResult};
@@ -39,6 +42,10 @@ pub fn run() {
             let db = Arc::new(Database::new(&app_dir)?);
             let settings = db.get_settings()?;
             let state = AppState::new(db.clone(), settings.hotkey.clone());
+            let file_index_status = services::file_index::load_status(&db, &settings)?;
+            if let Ok(mut guard) = state.file_index_status.lock() {
+                *guard = file_index_status;
+            }
             app.manage(state.clone());
 
             refresh_app_cache(app.handle());
@@ -50,17 +57,23 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             bootstrap_state,
+            resize_window,
             search_apps,
             search_files,
             list_clipboard_items,
             list_snippets,
             save_snippet,
             delete_snippet,
+            list_workflows,
+            save_workflow,
+            delete_workflow,
             update_settings,
             record_selection,
             rebuild_file_index,
             get_file_index_status,
             plugin_exec_shell,
+            workflow_exec_shell,
+            workflow_http_request,
             plugin_read_clipboard_text,
             plugin_write_clipboard_text,
             perform_action,
@@ -116,6 +129,7 @@ pub fn toggle_main_window(app: &AppHandle) -> AppResult<()> {
     if window.is_visible()? {
         window.hide()?;
     } else {
+        window.center()?;
         window.show()?;
         window.set_focus()?;
     }

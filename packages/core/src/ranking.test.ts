@@ -43,4 +43,43 @@ describe("rankResult", () => {
     expect(boosted.scoreBreakdown.usageBonus).toBeGreaterThan(0);
     expect(boosted.scoreBreakdown.recencyBonus).toBeGreaterThan(0);
   });
+
+  it("boosts recent file modifications for file results", () => {
+    const now = Date.now();
+    const recentFile = rankResult(
+      createResult({
+        id: "file:recent",
+        title: "Quarterly Plan.md",
+        subtitle: "/Users/demo/Documents/Quarterly Plan.md",
+        type: "file",
+        source: "files",
+        score: 0.82,
+        payload: { mtimeMs: now - 60 * 60 * 1000 }
+      }),
+      "quarterly",
+      undefined,
+      1,
+      now
+    );
+    const oldFile = rankResult(
+      createResult({
+        id: "file:old",
+        title: "Quarterly Plan.md",
+        subtitle: "/Users/demo/Archive/Quarterly Plan.md",
+        type: "file",
+        source: "files",
+        score: 0.82,
+        payload: { mtimeMs: now - 90 * 24 * 60 * 60 * 1000 }
+      }),
+      "quarterly",
+      undefined,
+      1,
+      now
+    );
+
+    expect(recentFile.score).toBeGreaterThan(oldFile.score);
+    expect(recentFile.scoreBreakdown.recencyBonus).toBeGreaterThan(
+      oldFile.scoreBreakdown.recencyBonus
+    );
+  });
 });

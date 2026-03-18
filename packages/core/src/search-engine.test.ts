@@ -32,6 +32,7 @@ function createContext(overrides: Partial<SearchContext> = {}): SearchContext {
     usageByItemId: {},
     clipboardItems: [],
     snippets: [],
+    workflows: [],
     ...overrides
   };
 }

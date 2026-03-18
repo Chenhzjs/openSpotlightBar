@@ -3,3 +3,11 @@ build/
 test/
 buf/
 .cache/
+node_modules/
+dist/
+coverage/
+apps/desktop/src-tauri/target/
+apps/desktop/src-tauri/gen/
+apps/desktop/.vite/
+*.tsbuildinfo
+tmp/
