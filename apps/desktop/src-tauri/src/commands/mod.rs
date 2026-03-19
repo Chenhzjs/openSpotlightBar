@@ -15,9 +15,8 @@ use crate::{
     error::{AppError, AppResult},
     models::{
         ActionItem, ActionResponse, AppRecord, BootstrapPayload, ClipboardItem, FileIndexStatus,
-        FileRecord, LauncherSettings, MarketplaceEntry, ResultItem,
-        ShellCommandResult, SnippetInput, SnippetRecord, WorkflowHttpRequest,
-        WorkflowHttpResponse, WorkflowRecord,
+        FileRecord, LauncherSettings, MarketplaceEntry, ResultItem, ShellCommandResult,
+        SnippetInput, SnippetRecord, WorkflowHttpRequest, WorkflowHttpResponse, WorkflowRecord,
     },
     services::{file_index, plugins},
     state::AppState,
@@ -59,7 +58,9 @@ fn center_window_for_size(
     let monitor = window
         .current_monitor()
         .map_err(|error| error.to_string())?
-        .or(window.primary_monitor().map_err(|error| error.to_string())?);
+        .or(window
+            .primary_monitor()
+            .map_err(|error| error.to_string())?);
 
     let Some(monitor) = monitor else {
         return window.center().map_err(|error| error.to_string());
@@ -187,10 +188,7 @@ fn live_search_impl(query: &str) -> Result<Vec<FileRecord>, String> {
         } else {
             "file"
         };
-        let extension = path
-            .extension()
-            .and_then(|e| e.to_str())
-            .map(String::from);
+        let extension = path.extension().and_then(|e| e.to_str()).map(String::from);
         let mtime_ms = metadata
             .and_then(|m| m.modified().ok())
             .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
@@ -211,9 +209,7 @@ fn live_search_impl(query: &str) -> Result<Vec<FileRecord>, String> {
 fn platform_file_search(query: &str) -> Result<String, std::io::Error> {
     #[cfg(target_os = "macos")]
     {
-        let output = StdCommand::new("mdfind")
-            .args(["-name", query])
-            .output()?;
+        let output = StdCommand::new("mdfind").args(["-name", query]).output()?;
         return Ok(String::from_utf8_lossy(&output.stdout).to_string());
     }
     #[cfg(target_os = "linux")]
@@ -328,7 +324,8 @@ pub async fn update_settings(
             .db
             .count_indexed_files()
             .map_err(|error| error.to_string())?;
-        let next_status = file_index::reconcile_status(&settings, indexed_count, Some(previous_status));
+        let next_status =
+            file_index::reconcile_status(&settings, indexed_count, Some(previous_status));
         state
             .db
             .save_file_index_status(&next_status)
@@ -409,11 +406,7 @@ fn validate_workflow_url(url: &reqwest::Url) -> Result<(), String> {
         .host_str()
         .ok_or_else(|| "URL has no host".to_string())?;
 
-    let blocked_hosts = [
-        "localhost",
-        "metadata.google.internal",
-        "169.254.169.254",
-    ];
+    let blocked_hosts = ["localhost", "metadata.google.internal", "169.254.169.254"];
     if blocked_hosts.iter().any(|&h| host.eq_ignore_ascii_case(h)) {
         return Err(format!("Blocked internal host: {host}"));
     }
@@ -510,10 +503,7 @@ pub async fn workflow_http_request(
                 .map(|header_value| (name.to_string(), header_value.to_string()))
         })
         .collect::<std::collections::HashMap<_, _>>();
-    let body_bytes = response
-        .bytes()
-        .await
-        .map_err(|error| error.to_string())?;
+    let body_bytes = response.bytes().await.map_err(|error| error.to_string())?;
     if body_bytes.len() > MAX_RESPONSE_BODY_BYTES {
         return Err(format!(
             "Response body exceeds {}MB limit",
@@ -667,13 +657,20 @@ pub async fn fetch_plugin_registry(app: AppHandle) -> Result<Vec<MarketplaceEntr
             entries.push(MarketplaceEntry {
                 id,
                 name: manifest["name"].as_str().unwrap_or_default().to_string(),
-                description: manifest["description"].as_str().unwrap_or_default().to_string(),
+                description: manifest["description"]
+                    .as_str()
+                    .unwrap_or_default()
+                    .to_string(),
                 version: manifest["version"].as_str().unwrap_or("0.1.0").to_string(),
                 author: "OSB".to_string(),
                 stars: 0,
                 tags: manifest["permissions"]
                     .as_array()
-                    .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+                    .map(|arr| {
+                        arr.iter()
+                            .filter_map(|v| v.as_str().map(String::from))
+                            .collect()
+                    })
                     .unwrap_or_default(),
                 updated_at: String::new(),
             });
@@ -685,10 +682,7 @@ pub async fn fetch_plugin_registry(app: AppHandle) -> Result<Vec<MarketplaceEntr
 }
 
 #[tauri::command]
-pub async fn install_marketplace_plugin(
-    app: AppHandle,
-    plugin_id: String,
-) -> Result<(), String> {
+pub async fn install_marketplace_plugin(app: AppHandle, plugin_id: String) -> Result<(), String> {
     let app_dir = app
         .path()
         .app_data_dir()
@@ -703,9 +697,8 @@ pub async fn install_marketplace_plugin(
         .ok_or_else(|| format!("Bundled plugin source not found for {plugin_id}"))?;
 
     if let Some(parent) = target_path.parent() {
-        std::fs::create_dir_all(parent).map_err(|error| {
-            format!("Failed to create plugins directory: {error}")
-        })?;
+        std::fs::create_dir_all(parent)
+            .map_err(|error| format!("Failed to create plugins directory: {error}"))?;
     }
 
     copy_dir_all(&source_path, &target_path).map_err(|error| {
@@ -723,10 +716,7 @@ pub async fn install_marketplace_plugin(
 }
 
 #[tauri::command]
-pub async fn uninstall_marketplace_plugin(
-    app: AppHandle,
-    plugin_id: String,
-) -> Result<(), String> {
+pub async fn uninstall_marketplace_plugin(app: AppHandle, plugin_id: String) -> Result<(), String> {
     let app_dir = app
         .path()
         .app_data_dir()
@@ -737,9 +727,8 @@ pub async fn uninstall_marketplace_plugin(
         return Err(format!("Plugin {plugin_id} is not installed."));
     }
 
-    std::fs::remove_dir_all(&target_path).map_err(|error| {
-        format!("Failed to remove plugin directory: {error}")
-    })?;
+    std::fs::remove_dir_all(&target_path)
+        .map_err(|error| format!("Failed to remove plugin directory: {error}"))?;
 
     Ok(())
 }
@@ -795,9 +784,7 @@ pub(crate) fn execute_action(
         "paste-text" => {
             let text = required_payload(action, result, "text")?;
             set_clipboard_text(&text)?;
-            Ok(success(Some(
-                "Copied to clipboard.",
-            )))
+            Ok(success(Some("Copied to clipboard.")))
         }
         "pin-clipboard-item" => {
             let item_id = required_payload(action, result, "itemId")?;
@@ -968,10 +955,12 @@ fn open_in_terminal(path: &str) -> AppResult<()> {
     {
         // Prefer iTerm2 if installed, fallback to Terminal.app
         let iterm_path = Path::new("/Applications/iTerm.app");
-        let app = if iterm_path.exists() { "iTerm" } else { "Terminal" };
-        StdCommand::new("open")
-            .args(["-a", app, path])
-            .spawn()?;
+        let app = if iterm_path.exists() {
+            "iTerm"
+        } else {
+            "Terminal"
+        };
+        StdCommand::new("open").args(["-a", app, path]).spawn()?;
         return Ok(());
     }
     #[cfg(target_os = "windows")]
@@ -1049,7 +1038,9 @@ fn ensure_plugin_permission(state: &AppState, plugin_id: &str, permission: &str)
 fn validate_shell_command(command: &str) -> AppResult<()> {
     let trimmed = command.trim();
     if trimmed.is_empty() {
-        return Err(AppError::Message("Shell command must not be empty".to_string()));
+        return Err(AppError::Message(
+            "Shell command must not be empty".to_string(),
+        ));
     }
     if trimmed.len() > 2048 {
         return Err(AppError::Message(

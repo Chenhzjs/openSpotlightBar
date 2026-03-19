@@ -92,7 +92,11 @@ pub async fn rebuild_now(app_handle: AppHandle) -> AppResult<FileIndexStatus> {
     let indexed_count = state.db.count_indexed_files()?;
 
     if settings.indexing_paused {
-        let status = reconcile_status(&settings, indexed_count, Some(state.db.get_file_index_status()?));
+        let status = reconcile_status(
+            &settings,
+            indexed_count,
+            Some(state.db.get_file_index_status()?),
+        );
         set_status(&state, &status)?;
         return Ok(status);
     }
@@ -118,7 +122,10 @@ pub async fn rebuild_now(app_handle: AppHandle) -> AppResult<FileIndexStatus> {
     let started_at = Instant::now();
     let settings_for_scan = settings.clone();
     let collected = match tauri::async_runtime::spawn_blocking(move || {
-        collect_files(&settings_for_scan.index_paths, &settings_for_scan.index_exclusions)
+        collect_files(
+            &settings_for_scan.index_paths,
+            &settings_for_scan.index_exclusions,
+        )
     })
     .await
     .map_err(|error| AppError::Message(error.to_string()))?
@@ -131,7 +138,9 @@ pub async fn rebuild_now(app_handle: AppHandle) -> AppResult<FileIndexStatus> {
                 indexed_paths: effective_index_paths(&settings.index_paths),
                 excluded_paths: effective_excluded_paths(&settings.index_exclusions),
                 last_indexed_at: indexing_status.last_indexed_at,
-                message: Some("File indexing failed. Review the error and rebuild again.".to_string()),
+                message: Some(
+                    "File indexing failed. Review the error and rebuild again.".to_string(),
+                ),
                 last_error: Some(error.to_string()),
                 paused: false,
                 truncated: false,
@@ -307,7 +316,10 @@ fn resolve_paths(paths: &[String], require_existing: bool) -> Vec<PathBuf> {
     let mut resolved = if paths.is_empty() && require_existing {
         default_roots()
     } else {
-        paths.iter().map(|value| expand_tilde(value)).collect::<Vec<_>>()
+        paths
+            .iter()
+            .map(|value| expand_tilde(value))
+            .collect::<Vec<_>>()
     };
 
     resolved.retain(|path| !require_existing || path.exists());
@@ -340,9 +352,17 @@ fn should_visit(entry: &DirEntry, excluded_paths: &[PathBuf]) -> bool {
     }
     if matches!(
         file_name.as_ref(),
-        "node_modules" | "target" | "Library" | "Caches"
-        | "vendor" | "dist" | "build" | "__pycache__"
-        | "Pods" | "DerivedData" | "xcuserdata"
+        "node_modules"
+            | "target"
+            | "Library"
+            | "Caches"
+            | "vendor"
+            | "dist"
+            | "build"
+            | "__pycache__"
+            | "Pods"
+            | "DerivedData"
+            | "xcuserdata"
     ) {
         return false;
     }
@@ -351,7 +371,9 @@ fn should_visit(entry: &DirEntry, excluded_paths: &[PathBuf]) -> bool {
 }
 
 fn is_excluded_path(path: &Path, excluded_paths: &[PathBuf]) -> bool {
-    excluded_paths.iter().any(|excluded| path.starts_with(excluded))
+    excluded_paths
+        .iter()
+        .any(|excluded| path.starts_with(excluded))
 }
 
 fn now_ms() -> i64 {

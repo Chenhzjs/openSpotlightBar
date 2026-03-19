@@ -541,15 +541,16 @@ impl Database {
                length(name) ASC
              LIMIT ?4",
         )?;
-        let rows = statement.query_map(params![normalized, prefix, pattern, limit as i64], |row| {
-            Ok(FileRecord {
-                path: row.get(0)?,
-                name: row.get(1)?,
-                kind: row.get(2)?,
-                extension: row.get(3)?,
-                mtime_ms: row.get(4)?,
-            })
-        })?;
+        let rows =
+            statement.query_map(params![normalized, prefix, pattern, limit as i64], |row| {
+                Ok(FileRecord {
+                    path: row.get(0)?,
+                    name: row.get(1)?,
+                    kind: row.get(2)?,
+                    extension: row.get(3)?,
+                    mtime_ms: row.get(4)?,
+                })
+            })?;
         Ok(rows.filter_map(Result::ok).collect())
     }
 
