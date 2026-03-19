@@ -47,12 +47,6 @@ pub fn run() {
             }
             app.manage(state.clone());
 
-            // Auto-open devtools in debug builds
-            #[cfg(debug_assertions)]
-            if let Some(window) = app.get_webview_window("main") {
-                window.open_devtools();
-            }
-
             refresh_app_cache(app.handle());
             register_hotkey(app.handle(), &settings.hotkey)?;
             services::clipboard_monitor::spawn(app.handle().clone());
