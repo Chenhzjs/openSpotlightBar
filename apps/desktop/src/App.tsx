@@ -629,6 +629,7 @@ export default function App() {
     mode,
     platformShell,
     results.length,
+    settingsSection,
     showErrorPanel,
     showSearchResults,
     hasContentBelow

@@ -29,8 +29,7 @@ export function ConfigHub({
   stats,
   useChineseCopy,
   onSelect,
-  onOpen,
-  onClose: _onClose
+  onOpen
 }: ConfigHubProps) {
   const meta = getConfigSectionMeta(selectedSection, useChineseCopy);
   const showOverviewMetrics = selectedSection === "overview";

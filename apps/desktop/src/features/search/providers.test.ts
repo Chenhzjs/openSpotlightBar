@@ -88,8 +88,11 @@ describe("search provider helpers", () => {
       workflows: getBuiltInWorkflows()
     });
 
-    expect(results[0]?.title).toBe("Jira Ticket Keyword");
-    expect(results[0]?.payload.triggerType).toBe("keyword");
-    expect(results[0]?.actions[0]?.kind).toBe("run-workflow");
+    expect(results[0]?.title).toBe("Jira Ticket");
+    expect(results[0]?.payload.triggerType).toBe("slash-command");
+
+    const keywordResult = results.find((r) => r.title === "Jira Ticket Keyword");
+    expect(keywordResult?.payload.triggerType).toBe("keyword");
+    expect(keywordResult?.actions[0]?.kind).toBe("run-workflow");
   });
 });

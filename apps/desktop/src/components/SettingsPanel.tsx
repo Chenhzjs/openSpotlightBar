@@ -282,8 +282,7 @@ export function SettingsPanel({
   onGrantPluginPermission,
   onRevokePluginPermission,
   onDismissPluginPermissionRequest,
-  onTogglePluginEnabled,
-  onClose: _onClose
+  onTogglePluginEnabled
 }: SettingsPanelProps) {
   const sections = getSettingsSections(useChineseCopy);
   const copy = useChineseCopy
