@@ -33,6 +33,12 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "icon": [
+      "icons/icon.png",
+      "icons/128x128.png",
+      "icons/256x256.png",
+      "icons/icon-512.png"
+    ],
     "category": "Productivity",
     "shortDescription": "Keyboard-first cross-platform desktop launcher",
     "longDescription": "Open Spotlight Bar is a cross-platform desktop launcher focused on fast local search, keyboard-first actions, and a clean extensible architecture."

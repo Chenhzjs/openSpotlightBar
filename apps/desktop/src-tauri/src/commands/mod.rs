@@ -620,13 +620,13 @@ pub async fn open_devtools(app: AppHandle) -> Result<(), String> {
             .get_webview_window("main")
             .ok_or_else(|| "Main window was not found".to_string())?;
         window.open_devtools();
+        Ok(())
     }
     #[cfg(not(debug_assertions))]
     {
         let _ = app;
-        return Err("DevTools is only available in debug builds".to_string());
+        Err("DevTools is only available in debug builds".to_string())
     }
-    Ok(())
 }
 
 #[tauri::command]
