@@ -146,55 +146,55 @@ function getSettingsSections(useChineseCopy: boolean): Array<{
         {
           id: "overview",
           label: "总览",
-          command: "/config overview",
+          command: "config overview",
           description: "查看整个启动器的全局计数和健康状态。"
         },
         {
           id: "general",
           label: "常规",
-          command: "/config general",
+          command: "config general",
           description: "启动器默认行为与快捷键基础配置。"
         },
         {
           id: "search",
           label: "搜索",
-          command: "/config search",
+          command: "config search",
           description: "Provider 权重、结果数量和作用域提示。"
         },
         {
           id: "clipboard",
           label: "剪贴板",
-          command: "/config clipboard",
+          command: "config clipboard",
           description: "本地剪贴板保留策略与隐私设置。"
         },
         {
           id: "indexing",
           label: "索引",
-          command: "/config indexing",
+          command: "config indexing",
           description: "轻量文件搜索所使用的目录根路径。"
         },
         {
           id: "snippets",
           label: "片段",
-          command: "/config snippets",
+          command: "config snippets",
           description: "片段的增删改查与展开设置。"
         },
         {
           id: "plugins",
           label: "插件",
-          command: "/config plugins",
+          command: "config plugins",
           description: "插件宿主状态、权限和超时配置。"
         },
         {
           id: "marketplace",
           label: "插件市场",
-          command: "/config marketplace",
+          command: "config marketplace",
           description: "浏览、安装和管理社区插件。"
         },
         {
           id: "appearance",
           label: "外观",
-          command: "/config appearance",
+          command: "config appearance",
           description: "主题和密度等外观设置。"
         }
       ]
@@ -202,55 +202,55 @@ function getSettingsSections(useChineseCopy: boolean): Array<{
         {
           id: "overview",
           label: "Overview",
-          command: "/config overview",
+          command: "config overview",
           description: "Cross-launcher counts and health snapshot."
         },
         {
           id: "general",
           label: "General",
-          command: "/config general",
+          command: "config general",
           description: "Launcher defaults and hotkey scaffolding."
         },
         {
           id: "search",
           label: "Search",
-          command: "/config search",
+          command: "config search",
           description: "Provider weights, result limits, and scope hints."
         },
         {
           id: "clipboard",
           label: "Clipboard",
-          command: "/config clipboard",
+          command: "config clipboard",
           description: "Local clipboard retention and privacy scaffolding."
         },
         {
           id: "indexing",
           label: "Indexing",
-          command: "/config indexing",
+          command: "config indexing",
           description: "Directory roots for lightweight file search."
         },
         {
           id: "snippets",
           label: "Snippets",
-          command: "/config snippets",
+          command: "config snippets",
           description: "Snippet CRUD and expansion settings."
         },
         {
           id: "plugins",
           label: "Plugins",
-          command: "/config plugins",
+          command: "config plugins",
           description: "Plugin host state, permissions, and timeouts."
         },
         {
           id: "marketplace",
           label: "Marketplace",
-          command: "/config marketplace",
+          command: "config marketplace",
           description: "Browse, install, and manage community plugins."
         },
         {
           id: "appearance",
           label: "Appearance",
-          command: "/config appearance",
+          command: "config appearance",
           description: "Theme and density placeholders."
         }
       ];

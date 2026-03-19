@@ -12,12 +12,17 @@ describe("parseConfigCommand", () => {
       section: "overview",
       rawSection: undefined
     });
+    expect(parseConfigCommand("config")).toEqual({
+      section: "overview",
+      rawSection: undefined
+    });
   });
 
   it("maps known section aliases", () => {
     expect(parseConfigCommand("/config plugins")?.section).toBe("plugins");
     expect(parseConfigCommand("/config workflow")?.section).toBe("workflow");
     expect(parseConfigCommand("/config theme")?.section).toBe("appearance");
+    expect(parseConfigCommand("config plugins")?.section).toBe("plugins");
   });
 
   it("falls back to overview for unknown sections", () => {

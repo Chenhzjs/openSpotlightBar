@@ -41,7 +41,7 @@ export const CONFIG_SECTION_META: Record<ConfigSection, ConfigSectionMeta> = {
   overview: {
     label: "Overview",
     labelZh: "总览",
-    command: "/config overview",
+    command: "config overview",
     summary: "Launcher-wide snapshot for file index, clipboard, snippets, plugins, workflow, and permission health.",
     summaryZh: "集中查看文件索引、剪贴板、片段、插件、工作流和权限请求的全局状态。",
     intro:
@@ -52,7 +52,7 @@ export const CONFIG_SECTION_META: Record<ConfigSection, ConfigSectionMeta> = {
   general: {
     label: "General",
     labelZh: "常规",
-    command: "/config general",
+    command: "config general",
     summary: "Launcher defaults, language, shell behavior, and how the bar appears or dismisses.",
     summaryZh: "启动器默认行为、语言、外壳交互，以及 bar 的展示与收起方式。",
     intro:
@@ -63,7 +63,7 @@ export const CONFIG_SECTION_META: Record<ConfigSection, ConfigSectionMeta> = {
   search: {
     label: "Search",
     labelZh: "搜索",
-    command: "/config search",
+    command: "config search",
     summary: "Ranking, file indexing, and provider balance across local-first sources.",
     summaryZh: "调节排序、文件索引和各类本地优先数据源之间的权重平衡。",
     intro:
@@ -74,7 +74,7 @@ export const CONFIG_SECTION_META: Record<ConfigSection, ConfigSectionMeta> = {
   clipboard: {
     label: "Clipboard",
     labelZh: "剪贴板",
-    command: "/config clipboard",
+    command: "config clipboard",
     summary: "Clipboard retention, privacy exclusions, and repeat-copy behavior.",
     summaryZh: "管理剪贴板保留策略、隐私排除项和重复复制相关行为。",
     intro:
@@ -85,7 +85,7 @@ export const CONFIG_SECTION_META: Record<ConfigSection, ConfigSectionMeta> = {
   snippets: {
     label: "Snippets",
     labelZh: "片段",
-    command: "/config snippets",
+    command: "config snippets",
     summary: "Snippet records, variables, and future expansion hooks.",
     summaryZh: "管理片段记录、变量能力以及未来的展开钩子。",
     intro:
@@ -96,7 +96,7 @@ export const CONFIG_SECTION_META: Record<ConfigSection, ConfigSectionMeta> = {
   plugins: {
     label: "Plugins",
     labelZh: "插件",
-    command: "/config plugins",
+    command: "config plugins",
     summary: "Plugin runtime state, permissions, and timeout behavior.",
     summaryZh: "查看插件运行状态、权限授予情况以及超时策略。",
     intro:
@@ -107,7 +107,7 @@ export const CONFIG_SECTION_META: Record<ConfigSection, ConfigSectionMeta> = {
   marketplace: {
     label: "Marketplace",
     labelZh: "插件市场",
-    command: "/config marketplace",
+    command: "config marketplace",
     summary: "Browse, install, and manage community plugins from the online registry.",
     summaryZh: "浏览、安装和管理来自在线注册表的社区插件。",
     intro:
@@ -118,7 +118,7 @@ export const CONFIG_SECTION_META: Record<ConfigSection, ConfigSectionMeta> = {
   appearance: {
     label: "Appearance",
     labelZh: "外观",
-    command: "/config appearance",
+    command: "config appearance",
     summary: "Platform-adapted shell look, density, and visual hierarchy.",
     summaryZh: "调整外壳在不同平台上的外观、密度和视觉层级。",
     intro:
@@ -129,7 +129,7 @@ export const CONFIG_SECTION_META: Record<ConfigSection, ConfigSectionMeta> = {
   workflow: {
     label: "Workflow",
     labelZh: "工作流",
-    command: "/config workflow",
+    command: "config workflow",
     summary: "Workflow composition foundation and future automation surface.",
     summaryZh: "管理工作流编排基础能力，以及后续自动化入口。",
     intro:
@@ -140,7 +140,7 @@ export const CONFIG_SECTION_META: Record<ConfigSection, ConfigSectionMeta> = {
   indexing: {
     label: "Indexing",
     labelZh: "索引",
-    command: "/config indexing",
+    command: "config indexing",
     summary: "Direct route into file indexing controls.",
     summaryZh: "直接进入文件索引控制。",
     intro:
@@ -190,7 +190,7 @@ export function parseConfigCommand(input: string): ConfigCommand | null {
 
   const parts = trimmed.split(/\s+/);
   const command = parts[0];
-  if (command !== "/config" && command !== "/settings") {
+  if (command !== "/config" && command !== "config" && command !== "/settings") {
     return null;
   }
 

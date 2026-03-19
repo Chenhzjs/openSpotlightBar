@@ -1338,7 +1338,7 @@ function getSearchEmptyState(
   if (scope !== "files") {
     return {
       title: "No matching results.",
-      detail: "Try a different query, or use /config to review provider settings.",
+      detail: "Try a different query, or use config to review provider settings.",
       loadingLabel: "Searching launcher sources..."
     };
   }
@@ -1356,7 +1356,7 @@ function getSearchEmptyState(
       return {
         title: "File indexing is paused.",
         detail:
-          "Resume indexing in /config indexing, then rebuild to refresh file results.",
+          "Resume indexing in config indexing, then rebuild to refresh file results.",
         loadingLabel: "Searching the existing file index..."
       };
     case "error":
@@ -1365,7 +1365,7 @@ function getSearchEmptyState(
         detail:
           fileIndexStatus.lastError ??
           fileIndexStatus.message ??
-          "Rebuild the file index from /config indexing.",
+          "Rebuild the file index from config indexing.",
         loadingLabel: "Searching the last available file index..."
       };
     case "stale":
@@ -1373,7 +1373,7 @@ function getSearchEmptyState(
         title: "No indexed file matched this query.",
         detail:
           fileIndexStatus.message ??
-          "The index settings changed. Rebuild from /config indexing to refresh file results.",
+          "The index settings changed. Rebuild from config indexing to refresh file results.",
         loadingLabel: "Searching the existing file index..."
       };
     default:
@@ -1381,7 +1381,7 @@ function getSearchEmptyState(
         return {
           title: "No indexed files yet.",
           detail:
-            "Add directories in /config indexing and rebuild to create the lightweight file index.",
+            "Add directories in config indexing and rebuild to create the lightweight file index.",
           loadingLabel: "Preparing file search..."
         };
       }
