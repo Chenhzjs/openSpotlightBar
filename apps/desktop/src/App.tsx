@@ -2,6 +2,7 @@ import {
   startTransition,
   useDeferredValue,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type KeyboardEvent
@@ -55,6 +56,7 @@ import {
   hideWindow,
   listClipboardItems,
   listSnippets,
+  openDevtools,
   saveWorkflow as persistWorkflow,
   performAction,
   rebuildFileIndex,
@@ -68,13 +70,24 @@ import { useLauncherStore } from "./store/useLauncherStore";
 
 const logger = createLogger("launcher");
 
+function shouldUseChineseCopy(language: LauncherSettings["language"]): boolean {
+  return (
+    language === "zh-CN" ||
+    (language === "system" &&
+      typeof navigator !== "undefined" &&
+      navigator.language.toLowerCase().startsWith("zh"))
+  );
+}
+
 export default function App() {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const surfaceRef = useRef<HTMLElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
   const pluginHostRef = useRef<PluginHost | null>(null);
+  /** When true, the search effect should skip one cycle to avoid overwriting workflow resultItems. */
+  const pinnedResultsRef = useRef(false);
   const searchEngineRef = useRef<SearchEngine | null>(null);
-  const [settingsSection, setSettingsSection] = useState<ConfigSection>("general");
+  const [settingsSection, setSettingsSection] = useState<ConfigSection>("overview");
   const [settingsSurface, setSettingsSurface] = useState<"hub" | "detail">("hub");
   const [platformShell] = useState(() => detectPlatformShell());
 
@@ -133,15 +146,12 @@ export default function App() {
 
   const deferredQuery = useDeferredValue(query);
   const currentSettings = settings ?? DEFAULT_SETTINGS;
-  const useChineseCopy =
-    currentSettings.language === "zh-CN" ||
-    (currentSettings.language === "system" &&
-      typeof navigator !== "undefined" &&
-      navigator.language.toLowerCase().startsWith("zh"));
+  const useChineseCopy = shouldUseChineseCopy(currentSettings.language);
   const selectedResult = results[selectedIndex];
   const trimmedQuery = query.trim();
   const parsedSearchQuery = parseQuery(query);
-  const configCommand = parseConfigCommand(query);
+  const configCommand = useMemo(() => parseConfigCommand(query), [query]);
+  const showConfigCommandPreview = mode === "search" && !!configCommand;
   const isConfigHub = mode === "settings" && settingsSurface === "hub";
   const isSettingsDetail = mode === "settings" && settingsSurface === "detail";
   const showSearchResults =
@@ -151,13 +161,15 @@ export default function App() {
   const launcherGlyph = getPlatformGlyph(platformShell);
   const resultListEmptyState = getSearchEmptyState(parsedSearchQuery.scope, fileIndexStatus);
   const hasContentBelow =
+    showConfigCommandPreview ||
     isConfigHub ||
     isSettingsDetail ||
     (mode === "actions" && !!selectedResult) ||
     showSearchResults ||
     showErrorPanel;
+  const isWorkflowStudio = isSettingsDetail && settingsSection === "workflow";
 
-  function openConfigHub(section: ConfigSection = "general") {
+  function openConfigHub(section: ConfigSection = "overview") {
     setSettingsSection(section);
     setSettingsSurface("hub");
     setMode("settings");
@@ -181,6 +193,11 @@ export default function App() {
   function closeSettingsDetail() {
     setSettingsSurface("hub");
     setMode("settings");
+    inputRef.current?.focus();
+  }
+
+  function dismissConfigCommandPreview() {
+    setQuery("");
     inputRef.current?.focus();
   }
 
@@ -261,7 +278,7 @@ export default function App() {
   }
 
   useEffect(() => {
-    if (configCommand) {
+    if (configCommand && mode === "search") {
       setSettingsSection(configCommand.section);
       return;
     }
@@ -273,6 +290,13 @@ export default function App() {
 
   useEffect(() => {
     function handleGlobalKeyDown(event: globalThis.KeyboardEvent) {
+      // Cmd/Ctrl+Shift+D → open DevTools
+      if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === "d") {
+        event.preventDefault();
+        void openDevtools();
+        return;
+      }
+
       if ((event.metaKey || event.ctrlKey) && event.key === ",") {
         event.preventDefault();
         if (mode === "settings") {
@@ -283,7 +307,7 @@ export default function App() {
           setMode("search");
           inputRef.current?.focus();
         } else {
-          setSettingsSection("general");
+          setSettingsSection("overview");
           setSettingsSurface("hub");
           setMode("settings");
         }
@@ -318,6 +342,12 @@ export default function App() {
       return;
     }
 
+    // Skip search when workflow pinned its resultItems.
+    // The flag stays true until the user changes the query (see onChange below).
+    if (pinnedResultsRef.current) {
+      return;
+    }
+
     let active = true;
 
     async function runSearch() {
@@ -345,8 +375,22 @@ export default function App() {
           return;
         }
 
+        // DEBUG: remove after confirming search pipeline works
+        if (deferredQuery.trim().startsWith("/")) {
+          logger.info("[DEBUG] Slash search results", {
+            query: deferredQuery,
+            resultCount: nextResults.length,
+            results: nextResults.slice(0, 3).map((r) => ({ id: r.id, title: r.title, type: r.type }))
+          });
+        }
+
         startTransition(() => {
-          setResults(nextResults);
+          // Guard against overwriting workflow-pinned results.
+          // startTransition defers this update, so it can land after
+          // a workflow has already set its own resultItems.
+          if (!pinnedResultsRef.current) {
+            setResults(nextResults);
+          }
         });
       } catch (error) {
         logger.warn("Search pipeline failed.", {
@@ -483,8 +527,19 @@ export default function App() {
       return;
     }
 
-    const MAX_WINDOW_HEIGHT = isSettingsDetail ? 760 : 560;
-    const nextWidth = isSettingsDetail ? 1120 : mode === "settings" ? 980 : 900;
+    const isWorkflowStudio = isSettingsDetail && settingsSection === "workflow";
+    const MAX_WINDOW_HEIGHT = isWorkflowStudio ? 900 : isSettingsDetail ? 760 : 560;    const nextWidth =
+      isWorkflowStudio ? 1200 : isSettingsDetail ? 1120 : showConfigCommandPreview || mode === "settings" ? 980 : 900;
+
+    // Workflow Studio uses h-full layout — skip dynamic measurement, pin to max size
+    if (isWorkflowStudio) {
+      if (lastAppliedSize.current.w === nextWidth && lastAppliedSize.current.h === MAX_WINDOW_HEIGHT) {
+        return;
+      }
+      lastAppliedSize.current = { w: nextWidth, h: MAX_WINDOW_HEIGHT };
+      void resizeWindow(nextWidth, MAX_WINDOW_HEIGHT);
+      return;
+    }
 
     function measure(): number {
       const barEl = main!.firstElementChild;
@@ -493,7 +548,10 @@ export default function App() {
       if (!contentEl) {
         return barHeight;
       }
-      return barHeight + 4 + contentEl.scrollHeight;
+      // Measure the panel child's scrollHeight for its natural content size.
+      const panelEl = contentEl.firstElementChild as HTMLElement | null;
+      const contentHeight = panelEl ? panelEl.scrollHeight : contentEl.scrollHeight;
+      return barHeight + 4 + contentHeight;
     }
 
     function scheduleResize() {
@@ -504,7 +562,13 @@ export default function App() {
         const naturalHeight = measure();
         const windowHeight = Math.min(Math.ceil(naturalHeight), MAX_WINDOW_HEIGHT);
 
-        if (lastAppliedSize.current.w === nextWidth && lastAppliedSize.current.h === windowHeight) {
+        const prev = lastAppliedSize.current;
+        if (prev.w === nextWidth && prev.h === windowHeight) {
+          return;
+        }
+        // Only shrink if the difference is significant (>30px) to prevent feedback loops.
+        // Always allow growing.
+        if (prev.w === nextWidth && windowHeight < prev.h && prev.h - windowHeight < 30) {
           return;
         }
         lastAppliedSize.current = { w: nextWidth, h: windowHeight };
@@ -524,6 +588,10 @@ export default function App() {
         scheduleResize();
       });
       observer.observe(contentEl);
+      const panelEl = contentEl.firstElementChild;
+      if (panelEl) {
+        observer.observe(panelEl);
+      }
     }
 
     return () => {
@@ -533,6 +601,7 @@ export default function App() {
       observer?.disconnect();
     };
   }, [
+    showConfigCommandPreview,
     isConfigHub,
     isSettingsDetail,
     mode,
@@ -580,11 +649,16 @@ export default function App() {
 
     try {
       if (action.kind === "show-settings") {
-        openConfigHub("general");
+        openConfigHub("overview");
         return;
       }
 
       if (action.kind === "run-workflow") {
+        // DEBUG: remove after confirming workflow execution works
+        logger.info("[DEBUG] run-workflow action triggered", {
+          actionPayload: action.payload,
+          resultPayload: result?.payload
+        });
         const workflowId =
           typeof action.payload?.workflowId === "string"
             ? action.payload.workflowId
@@ -632,9 +706,24 @@ export default function App() {
 
         const summary = getWorkflowResultSummary(run);
         if (run.ok) {
-          if (run.resultItems?.length) {
-            setResults(run.resultItems);
+          const hasResultItems = !!run.resultItems?.length;
+          if (hasResultItems) {
+            // Pin results so the search effect doesn't overwrite them
+            // when usageByItemId or clipboardItems change.
+            pinnedResultsRef.current = true;
+            logger.info("[DEBUG] Pinning workflow resultItems", {
+              count: run.resultItems!.length,
+              titles: run.resultItems!.slice(0, 3).map((r) => r.title)
+            });
+            setResults(run.resultItems!);
           }
+          logger.info("[DEBUG] After workflow run", {
+            hasResultItems,
+            mode,
+            showSearchResults,
+            hasContentBelow,
+            resultsLength: run.resultItems?.length ?? 0
+          });
           setStatusMessage(summary ?? `${workflow.name} completed.`);
           await refreshClipboardHistory();
           if (!options?.preserveMode) {
@@ -710,6 +799,7 @@ export default function App() {
       });
       const saved = await persistSettings(nextSettings);
       const nextStatus = await getFileIndexStatus();
+      const savedUsesChineseCopy = shouldUseChineseCopy(saved.language);
       setSettings(saved);
       setFileIndexStatus(nextStatus);
       pluginHostRef.current!.updateSettings(saved);
@@ -721,16 +811,26 @@ export default function App() {
             paused: saved.indexingPaused
           })
           ? saved.indexingPaused
-            ? "Settings saved. Indexing is paused until you resume it."
-            : "Settings saved. Rebuild the file index to apply directory and exclusion changes."
-          : "Settings saved."
+            ? savedUsesChineseCopy
+              ? "设置已保存。索引当前处于暂停状态，恢复后才会继续。"
+              : "Settings saved. Indexing is paused until you resume it."
+            : savedUsesChineseCopy
+              ? "设置已保存。请重建文件索引以应用目录和排除项变更。"
+              : "Settings saved. Rebuild the file index to apply directory and exclusion changes."
+          : savedUsesChineseCopy
+            ? "设置已保存。"
+            : "Settings saved."
       );
     } catch (error) {
       logger.warn("Settings save failed.", {
         error: error instanceof Error ? error.message : String(error)
       });
       setErrorMessage(
-        error instanceof Error ? error.message : "Failed to save settings."
+        error instanceof Error
+          ? error.message
+          : useChineseCopy
+            ? "保存设置失败。"
+            : "Failed to save settings."
       );
       throw error;
     }
@@ -940,6 +1040,26 @@ export default function App() {
   }
 
   async function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (showConfigCommandPreview) {
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        moveHubSelection(1);
+        return;
+      }
+
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        moveHubSelection(-1);
+        return;
+      }
+
+      if (event.key === "Enter") {
+        event.preventDefault();
+        openSettingsDetail(settingsSection);
+        return;
+      }
+    }
+
     if (mode === "settings") {
       if (settingsSurface === "hub") {
         if (event.key === "ArrowDown") {
@@ -969,12 +1089,6 @@ export default function App() {
           closeSettingsHub();
         }
       }
-      return;
-    }
-
-    if (configCommand && event.key === "Enter") {
-      event.preventDefault();
-      openConfigHub(configCommand.section);
       return;
     }
 
@@ -1042,7 +1156,7 @@ export default function App() {
     setSettingsSection(CONFIG_HUB_SECTIONS[nextIndex]);
   }
 
-  const contentPanel = isConfigHub ? (
+  const contentPanel = showConfigCommandPreview ? (
     <ConfigHub
       selectedSection={settingsSection}
       stats={{
@@ -1052,6 +1166,22 @@ export default function App() {
         plugins: pluginRuntime.length,
         pendingPermissions: pluginPermissionRequests.length
       }}
+      useChineseCopy={useChineseCopy}
+      onSelect={setSettingsSection}
+      onOpen={openSettingsDetail}
+      onClose={dismissConfigCommandPreview}
+    />
+  ) : isConfigHub ? (
+    <ConfigHub
+      selectedSection={settingsSection}
+      stats={{
+        indexedFiles: fileIndexStatus?.indexedCount ?? 0,
+        clipboardItems: clipboardItems.length,
+        snippets: snippets.length,
+        plugins: pluginRuntime.length,
+        pendingPermissions: pluginPermissionRequests.length
+      }}
+      useChineseCopy={useChineseCopy}
       onSelect={setSettingsSection}
       onOpen={openSettingsDetail}
       onClose={closeSettingsHub}
@@ -1061,9 +1191,7 @@ export default function App() {
       <WorkflowStudioPanel
         workflows={workflows}
         workflowRuns={workflowRuns}
-        snippets={snippets.length}
-        plugins={pluginRuntime.length}
-        indexedFiles={fileIndexStatus?.indexedCount ?? 0}
+        useChineseCopy={useChineseCopy}
         onSaveWorkflow={saveWorkflow}
         onDeleteWorkflow={deleteWorkflow}
         onDuplicateWorkflow={duplicateWorkflow}
@@ -1078,6 +1206,7 @@ export default function App() {
       clipboardCount={clipboardItems.length}
       plugins={pluginRuntime}
       permissionRequests={pluginPermissionRequests}
+      useChineseCopy={useChineseCopy}
       initialSection={settingsSection}
       onSaveSettings={saveSettings}
       onRebuildIndex={async () => {
@@ -1136,9 +1265,9 @@ export default function App() {
   return (
     <main
       ref={surfaceRef}
-      className={`platform-shell platform-${platformShell} flex max-h-screen flex-col bg-transparent p-0 text-[color:var(--shell-text-primary)]`}
+      className={`platform-shell platform-${platformShell} flex ${isWorkflowStudio ? "h-screen" : "max-h-screen"} flex-col bg-transparent p-0 text-[color:var(--shell-text-primary)]`}
     >
-      <div className="shell-bar shrink-0 rounded-[30px]">
+      <div className={`shell-bar shrink-0 rounded-[30px]${isWorkflowStudio ? " hidden" : ""}`}>
         <div className="flex items-center gap-3 px-5 py-4">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-muted)] text-sm text-[color:var(--shell-text-secondary)]">
             {launcherGlyph}
@@ -1146,7 +1275,10 @@ export default function App() {
           <input
             ref={inputRef}
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => {
+              pinnedResultsRef.current = false;
+              setQuery(event.target.value);
+            }}
             onKeyDown={onKeyDown}
             placeholder={
               useChineseCopy ? "搜索内容或输入 /config" : "Search or type /config"
@@ -1157,7 +1289,14 @@ export default function App() {
       </div>
 
       {hasContentBelow && (
-        <div ref={contentRef} className="scrollbar-hidden mt-1 min-h-0 flex-1 overflow-y-auto">
+        <div
+          ref={contentRef}
+          className={
+            isWorkflowStudio
+              ? "mt-1 min-h-0 flex-1 overflow-hidden"
+              : "scrollbar-hidden mt-1 min-h-0 flex-1 overflow-y-auto"
+          }
+        >
           {contentPanel}
         </div>
       )}

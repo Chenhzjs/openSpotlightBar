@@ -307,3 +307,67 @@ const LEGACY_ALIASES = new Set([
   "text",
   "url"
 ]);
+
+/* ── Implicit node dependency extraction ── */
+
+export interface ImplicitNodeDependency {
+  fromNodeId: string;
+  fromPort: string;
+  toNodeId: string;
+  expression: string;
+}
+
+/**
+ * Scans all string config values in a workflow's nodes for `{{nodes.X.Y}}`
+ * template references and returns implicit data dependencies that are NOT
+ * already covered by explicit edges.
+ */
+export function extractImplicitNodeDependencies(
+  workflow: { nodes: WorkflowNode[]; edges: { fromNodeId: string; fromPort: string; toNodeId: string }[] }
+): ImplicitNodeDependency[] {
+  const nodeIds = new Set(workflow.nodes.map((n) => n.id));
+  const explicitEdgeKeys = new Set(
+    workflow.edges.map((e) => `${e.fromNodeId}:${e.fromPort}:${e.toNodeId}`)
+  );
+
+  const results: ImplicitNodeDependency[] = [];
+  const seen = new Set<string>();
+
+  for (const node of workflow.nodes) {
+    if (!node.config) continue;
+    const strings = collectConfigStrings(node.config);
+    for (const str of strings) {
+      const refs = extractWorkflowTemplateReferences(str);
+      for (const ref of refs) {
+        if (ref.path[0] !== "nodes" || !ref.path[1] || !ref.path[2]) continue;
+        const fromNodeId = ref.path[1];
+        const fromPort = ref.path[2];
+        if (!nodeIds.has(fromNodeId)) continue;
+        if (fromNodeId === node.id) continue;
+        const edgeKey = `${fromNodeId}:${fromPort}:${node.id}`;
+        if (explicitEdgeKeys.has(edgeKey)) continue;
+        const dedupKey = `${fromNodeId}:${fromPort}:${node.id}:${ref.expression}`;
+        if (seen.has(dedupKey)) continue;
+        seen.add(dedupKey);
+        results.push({ fromNodeId, fromPort, toNodeId: node.id, expression: ref.expression });
+      }
+    }
+  }
+
+  return results;
+}
+
+function collectConfigStrings(config: Record<string, unknown>): string[] {
+  const strings: string[] = [];
+  function walk(value: unknown) {
+    if (typeof value === "string") {
+      strings.push(value);
+    } else if (Array.isArray(value)) {
+      for (const item of value) walk(item);
+    } else if (value && typeof value === "object") {
+      for (const v of Object.values(value)) walk(v);
+    }
+  }
+  walk(config);
+  return strings;
+}

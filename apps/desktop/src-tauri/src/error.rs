@@ -12,6 +12,8 @@ pub enum AppError {
     Serde(#[from] serde_json::Error),
     #[error(transparent)]
     Tauri(#[from] tauri::Error),
+    #[error("Internal lock poisoned: {0}")]
+    MutexPoisoned(String),
 }
 
 pub type AppResult<T> = Result<T, AppError>;

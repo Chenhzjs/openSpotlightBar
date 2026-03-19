@@ -214,3 +214,45 @@ body {
     background-color: var(--shell-fill-soft);
   }
 }
+
+/* ── React Flow theme overrides ── */
+
+.react-flow__node {
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.react-flow__background pattern circle {
+  fill: var(--shell-text-muted);
+}
+
+.workflow-canvas-controls {
+  border: 1px solid var(--shell-border) !important;
+  border-radius: 12px !important;
+  overflow: hidden;
+  box-shadow: none !important;
+}
+
+.workflow-canvas-controls button {
+  background-color: var(--shell-fill-soft) !important;
+  border-color: var(--shell-border) !important;
+  color: var(--shell-text-secondary) !important;
+  fill: var(--shell-text-secondary) !important;
+}
+
+.workflow-canvas-controls button:hover {
+  background-color: var(--shell-fill-muted) !important;
+}
+
+.workflow-canvas-controls button svg {
+  fill: var(--shell-text-secondary) !important;
+}
+
+.workflow-canvas-minimap {
+  background-color: var(--shell-fill-muted) !important;
+  border: 1px solid var(--shell-border) !important;
+  border-radius: 12px !important;
+}

@@ -4,8 +4,8 @@
   "version": "0.1.0",
   "identifier": "com.pulse.launcher",
   "build": {
-    "beforeDevCommand": "pnpm dev",
-    "beforeBuildCommand": "pnpm build",
+    "beforeDevCommand": "vite",
+    "beforeBuildCommand": "tsc --noEmit && vite build",
     "devUrl": "http://localhost:1420",
     "frontendDist": "../dist"
   },

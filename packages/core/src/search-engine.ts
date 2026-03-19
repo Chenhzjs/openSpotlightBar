@@ -81,7 +81,14 @@ export class SearchEngine {
     });
 
     return dedupeResults(merged)
-      .sort((left, right) => right.score - left.score)
+      .sort((left, right) => {
+        const priorityDiff = getQueryPriority(right, query) - getQueryPriority(left, query);
+        if (priorityDiff !== 0) {
+          return priorityDiff;
+        }
+
+        return right.score - left.score;
+      })
       .slice(0, context.settings.search.maxResults);
   }
 }
@@ -108,6 +115,20 @@ function dedupeResults(results: ResultItem[]): ResultItem[] {
   }
 
   return [...byId.values()];
+}
+
+function getQueryPriority(result: ResultItem, query: string): number {
+  const normalizedQuery = query.trim().toLowerCase();
+
+  if (
+    normalizedQuery.startsWith("/") &&
+    result.source === "workflows" &&
+    result.payload?.triggerType === "slash-command"
+  ) {
+    return 1;
+  }
+
+  return 0;
 }
 
 async function withTimeout<T>(

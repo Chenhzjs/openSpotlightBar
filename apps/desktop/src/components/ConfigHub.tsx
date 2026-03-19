@@ -1,8 +1,9 @@
 import clsx from "clsx";
+import { useEffect, useRef } from "react";
 
 import {
   CONFIG_HUB_SECTIONS,
-  CONFIG_SECTION_META,
+  getConfigSectionMeta,
   type ConfigSection
 } from "../features/commands/config-command";
 
@@ -17,6 +18,7 @@ interface ConfigHubStats {
 interface ConfigHubProps {
   selectedSection: ConfigSection;
   stats: ConfigHubStats;
+  useChineseCopy: boolean;
   onSelect(section: ConfigSection): void;
   onOpen(section: ConfigSection): void;
   onClose(): void;
@@ -25,24 +27,88 @@ interface ConfigHubProps {
 export function ConfigHub({
   selectedSection,
   stats,
+  useChineseCopy,
   onSelect,
   onOpen,
   onClose
 }: ConfigHubProps) {
-  const meta = CONFIG_SECTION_META[selectedSection];
+  const meta = getConfigSectionMeta(selectedSection, useChineseCopy);
+  const showOverviewMetrics = selectedSection === "overview";
+  const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+
+  useEffect(() => {
+    const el = itemRefs.current[selectedSection];
+    if (el) {
+      el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+  }, [selectedSection]);
+  const copy = useChineseCopy
+    ? {
+        configuration: "配置",
+        sectionIntro: "分区介绍",
+        sharedCountsNote:
+          "共享状态卡片已移到 /config overview，这样每个分区可以专注自己的控制项。",
+        openPrefix: "打开",
+        back: "返回",
+        navigationHint: "上下切换，回车进入",
+        metrics: {
+          indexedFiles: "已索引文件",
+          clipboard: "剪贴板",
+          snippets: "片段",
+          plugins: "插件",
+          workflow: "工作流",
+          permPrompts: "权限请求"
+        },
+        workflowValue: "独立界面",
+        notes: {
+          indexedFiles: "轻量文件名和路径条目已可用于文件搜索。",
+          clipboard: "本地剪贴板条目可用于搜索和动作执行。",
+          snippets: "已保存片段可用于搜索和展开动作。",
+          plugins: "当前工作区中已发现的插件运行时或清单。",
+          workflow: "工作流保持独立界面，避免把启动器 bar 挤满。",
+          permPrompts: "等待处理的插件权限批准请求。"
+        }
+      }
+    : {
+        configuration: "Configuration",
+        sectionIntro: "Section Intro",
+        sharedCountsNote:
+          "Shared launcher counts now live under /config overview so each section can focus on its own controls.",
+        openPrefix: "Open",
+        back: "Back",
+        navigationHint: "Up/Down to move, Enter to open",
+        metrics: {
+          indexedFiles: "Indexed files",
+          clipboard: "Clipboard",
+          snippets: "Snippets",
+          plugins: "Plugins",
+          workflow: "Workflow",
+          permPrompts: "Perm prompts"
+        },
+        workflowValue: "Dedicated",
+        notes: {
+          indexedFiles: "Lightweight filename and path entries ready for file search.",
+          clipboard: "Local clipboard items available to search and actions.",
+          snippets: "Saved snippets ready for search and expansion actions.",
+          plugins: "Discovered plugin runtimes or manifests in the current workspace.",
+          workflow: "Workflow opens as its own surface instead of bloating the launcher bar.",
+          permPrompts: "Pending plugin permission approvals waiting for attention."
+        }
+      };
 
   return (
     <section className="shell-panel rounded-[30px] p-4 md:p-5">
       <div className="grid gap-4 md:grid-cols-[280px_minmax(0,1fr)]">
-        <div className="space-y-2">
-          <div className="shell-kicker">Configuration</div>
+        <div className="space-y-2 overflow-y-auto max-h-[calc(100vh-120px)]">
+          <div className="shell-kicker">{copy.configuration}</div>
           {CONFIG_HUB_SECTIONS.map((section) => {
-            const sectionMeta = CONFIG_SECTION_META[section];
+            const sectionMeta = getConfigSectionMeta(section, useChineseCopy);
             const selected = section === selectedSection;
 
             return (
               <button
                 key={section}
+                ref={(el) => { itemRefs.current[section] = el; }}
                 type="button"
                 className={clsx(
                   "w-full rounded-[22px] border px-4 py-3 text-left transition",
@@ -65,7 +131,7 @@ export function ConfigHub({
         </div>
 
         <div className="rounded-[24px] border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-muted)] p-5">
-          <div className="shell-kicker">Section Intro</div>
+          <div className="shell-kicker">{copy.sectionIntro}</div>
           <h2 className="mt-2 text-[1.9rem] font-semibold tracking-[-0.03em] text-[color:var(--shell-text-primary)]">
             {meta.label}
           </h2>
@@ -77,38 +143,44 @@ export function ConfigHub({
             {meta.summary}
           </div>
 
-          <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            <MetricCard
-              title="Indexed files"
-              value={String(stats.indexedFiles)}
-              note="Lightweight filename and path entries ready for file search."
-            />
-            <MetricCard
-              title="Clipboard"
-              value={String(stats.clipboardItems)}
-              note="Local clipboard items available to search and actions."
-            />
-            <MetricCard
-              title="Snippets"
-              value={String(stats.snippets)}
-              note="Saved snippets ready for search and expansion actions."
-            />
-            <MetricCard
-              title="Plugins"
-              value={String(stats.plugins)}
-              note="Discovered plugin runtimes or manifests in the current workspace."
-            />
-            <MetricCard
-              title="Workflow"
-              value="Dedicated"
-              note="Workflow opens as its own surface instead of bloating the launcher bar."
-            />
-            <MetricCard
-              title="Perm prompts"
-              value={String(stats.pendingPermissions)}
-              note="Pending plugin permission approvals waiting for attention."
-            />
-          </div>
+          {showOverviewMetrics ? (
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              <MetricCard
+                title={copy.metrics.indexedFiles}
+                value={String(stats.indexedFiles)}
+                note={copy.notes.indexedFiles}
+              />
+              <MetricCard
+                title={copy.metrics.clipboard}
+                value={String(stats.clipboardItems)}
+                note={copy.notes.clipboard}
+              />
+              <MetricCard
+                title={copy.metrics.snippets}
+                value={String(stats.snippets)}
+                note={copy.notes.snippets}
+              />
+              <MetricCard
+                title={copy.metrics.plugins}
+                value={String(stats.plugins)}
+                note={copy.notes.plugins}
+              />
+              <MetricCard
+                title={copy.metrics.workflow}
+                value={copy.workflowValue}
+                note={copy.notes.workflow}
+              />
+              <MetricCard
+                title={copy.metrics.permPrompts}
+                value={String(stats.pendingPermissions)}
+                note={copy.notes.permPrompts}
+              />
+            </div>
+          ) : (
+            <div className="mt-5 rounded-[20px] border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-soft)] px-4 py-3 text-sm text-[color:var(--shell-text-secondary)]">
+              {copy.sharedCountsNote}
+            </div>
+          )}
 
           <div className="mt-5 flex flex-wrap gap-2">
             <button
@@ -116,15 +188,15 @@ export function ConfigHub({
               className="button-primary"
               onClick={() => onOpen(selectedSection)}
             >
-              Open {meta.label}
+              {copy.openPrefix} {meta.label}
             </button>
             <button type="button" className="button-secondary" onClick={onClose}>
-              Back
+              {copy.back}
             </button>
           </div>
 
           <div className="mt-5 text-xs uppercase tracking-[0.24em] text-[color:var(--shell-text-tertiary)]">
-            Up/Down to move, Enter to open
+            {copy.navigationHint}
           </div>
         </div>
       </div>

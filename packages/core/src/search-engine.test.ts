@@ -145,4 +145,51 @@ describe("SearchEngine", () => {
 
     expect(results[0]?.id).toBe("app:terminal");
   });
+
+  it("prioritizes slash workflows when the query starts with a slash", async () => {
+    const providers: SearchProvider[] = [
+      {
+        id: "apps",
+        label: "Apps",
+        source: "apps",
+        sourceWeight: 1.2,
+        async search() {
+          return [createResult("app:github", "GitHub Desktop", 3, "apps")];
+        }
+      },
+      {
+        id: "workflows",
+        label: "Workflows",
+        source: "workflows",
+        sourceWeight: 1.06,
+        async search() {
+          return [
+            {
+              id: "workflow:gh-search",
+              title: "GitHub Search",
+              subtitle: "Slash workflow",
+              type: "workflow",
+              source: "workflows",
+              score: 0.25,
+              actions: [],
+              payload: {
+                triggerType: "slash-command"
+              }
+            }
+          ];
+        }
+      }
+    ];
+
+    const engine = new SearchEngine(providers, { providerTimeoutMs: 20 });
+    const results = await engine.search(
+      "/gh",
+      createContext({
+        query: "/gh",
+        normalizedQuery: "/gh"
+      })
+    );
+
+    expect(results[0]?.id).toBe("workflow:gh-search");
+  });
 });

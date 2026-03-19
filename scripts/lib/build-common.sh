@@ -33,7 +33,7 @@ run_release_build() {
   fi
 
   echo "==> Building Tauri bundle"
-  pnpm --filter @pulse/desktop tauri build
+  pnpm --dir apps/desktop exec tauri build
 
   echo "==> Bundles available under apps/desktop/src-tauri/target/release/bundle"
 }

@@ -7,6 +7,7 @@ export * from "./workflow-examples";
 export * from "./workflow-library";
 export * from "./workflow-references";
 export * from "./workflow-runtime";
+export * from "./workflow-templates";
 export * from "./workflow-triggers";
 export * from "./workflow-utils";
 export * from "./workflow-validation";

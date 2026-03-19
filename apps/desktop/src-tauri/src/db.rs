@@ -1,6 +1,6 @@
 use std::{
     path::Path,
-    sync::Mutex,
+    sync::{Mutex, MutexGuard},
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -8,7 +8,7 @@ use rusqlite::{params, Connection, OptionalExtension};
 use uuid::Uuid;
 
 use crate::{
-    error::AppResult,
+    error::{AppError, AppResult},
     models::{
         BootstrapPayload, ClipboardItem, DiscoveredPlugin, FileIndexStatus, FileRecord,
         LauncherSettings, SnippetInput, SnippetRecord, UsageStat, WorkflowRecord,
@@ -31,8 +31,14 @@ impl Database {
         Ok(database)
     }
 
+    fn conn(&self) -> AppResult<MutexGuard<'_, Connection>> {
+        self.connection
+            .lock()
+            .map_err(|e| AppError::MutexPoisoned(e.to_string()))
+    }
+
     pub fn init(&self) -> AppResult<()> {
-        let connection = self.connection.lock().expect("database mutex poisoned");
+        let connection = self.conn()?;
         connection.execute_batch(
             r#"
             CREATE TABLE IF NOT EXISTS settings (
@@ -111,7 +117,7 @@ impl Database {
     }
 
     pub fn get_settings(&self) -> AppResult<LauncherSettings> {
-        let connection = self.connection.lock().expect("database mutex poisoned");
+        let connection = self.conn()?;
         let raw = connection
             .query_row(
                 "SELECT value FROM settings WHERE key = 'launcher_settings'",
@@ -130,7 +136,7 @@ impl Database {
     }
 
     pub fn save_settings(&self, settings: &LauncherSettings) -> AppResult<()> {
-        let connection = self.connection.lock().expect("database mutex poisoned");
+        let connection = self.conn()?;
         let raw = serde_json::to_string(settings)?;
         connection.execute(
             "INSERT INTO settings (key, value) VALUES ('launcher_settings', ?1)
@@ -141,7 +147,7 @@ impl Database {
     }
 
     pub fn get_file_index_status(&self) -> AppResult<FileIndexStatus> {
-        let connection = self.connection.lock().expect("database mutex poisoned");
+        let connection = self.conn()?;
         let raw = connection
             .query_row(
                 "SELECT value FROM settings WHERE key = 'file_index_status'",
@@ -158,7 +164,7 @@ impl Database {
     }
 
     pub fn save_file_index_status(&self, status: &FileIndexStatus) -> AppResult<()> {
-        let connection = self.connection.lock().expect("database mutex poisoned");
+        let connection = self.conn()?;
         let raw = serde_json::to_string(status)?;
         connection.execute(
             "INSERT INTO settings (key, value) VALUES ('file_index_status', ?1)
@@ -169,7 +175,7 @@ impl Database {
     }
 
     pub fn list_usage_stats(&self) -> AppResult<Vec<UsageStat>> {
-        let connection = self.connection.lock().expect("database mutex poisoned");
+        let connection = self.conn()?;
         let mut statement = connection.prepare(
             "SELECT item_id, item_type, query, selected_count, last_selected_at
              FROM usage_stats
@@ -188,7 +194,7 @@ impl Database {
     }
 
     pub fn record_selection(&self, item_id: &str, item_type: &str, query: &str) -> AppResult<()> {
-        let connection = self.connection.lock().expect("database mutex poisoned");
+        let connection = self.conn()?;
         let now = now_ms();
         connection.execute(
             "INSERT INTO usage_stats (item_id, item_type, query, selected_count, last_selected_at)
@@ -205,7 +211,7 @@ impl Database {
 
     pub fn list_clipboard_items(&self) -> AppResult<Vec<ClipboardItem>> {
         let settings = self.get_settings()?;
-        let connection = self.connection.lock().expect("database mutex poisoned");
+        let connection = self.conn()?;
         let mut statement = connection.prepare(
             "SELECT id, content_type, text, preview, pinned, created_at, source_app, metadata_json
              FROM clipboard_items
@@ -243,7 +249,7 @@ impl Database {
             .chars()
             .take(120)
             .collect::<String>();
-        let connection = self.connection.lock().expect("database mutex poisoned");
+        let connection = self.conn()?;
         let existing = connection
             .query_row(
                 "SELECT id FROM clipboard_items WHERE content_type = 'text' AND text = ?1 LIMIT 1",
@@ -288,7 +294,7 @@ impl Database {
     }
 
     pub fn set_clipboard_pinned(&self, item_id: &str, pinned: bool) -> AppResult<()> {
-        let connection = self.connection.lock().expect("database mutex poisoned");
+        let connection = self.conn()?;
         connection.execute(
             "UPDATE clipboard_items SET pinned = ?2 WHERE id = ?1",
             params![item_id, if pinned { 1 } else { 0 }],
@@ -297,19 +303,19 @@ impl Database {
     }
 
     pub fn delete_clipboard_item(&self, item_id: &str) -> AppResult<()> {
-        let connection = self.connection.lock().expect("database mutex poisoned");
+        let connection = self.conn()?;
         connection.execute("DELETE FROM clipboard_items WHERE id = ?1", [item_id])?;
         Ok(())
     }
 
     pub fn clear_clipboard_items(&self) -> AppResult<()> {
-        let connection = self.connection.lock().expect("database mutex poisoned");
+        let connection = self.conn()?;
         connection.execute("DELETE FROM clipboard_items", [])?;
         Ok(())
     }
 
     pub fn list_snippets(&self) -> AppResult<Vec<SnippetRecord>> {
-        let connection = self.connection.lock().expect("database mutex poisoned");
+        let connection = self.conn()?;
         let mut statement = connection.prepare(
             "SELECT id, name, trigger, content, enabled, scope, app_restriction, created_at, updated_at
              FROM snippets
@@ -332,7 +338,7 @@ impl Database {
     }
 
     pub fn get_snippet(&self, id: &str) -> AppResult<Option<SnippetRecord>> {
-        let connection = self.connection.lock().expect("database mutex poisoned");
+        let connection = self.conn()?;
         connection
             .query_row(
                 "SELECT id, name, trigger, content, enabled, scope, app_restriction, created_at, updated_at
@@ -358,7 +364,7 @@ impl Database {
     }
 
     pub fn save_snippet(&self, snippet: &SnippetInput) -> AppResult<SnippetRecord> {
-        let connection = self.connection.lock().expect("database mutex poisoned");
+        let connection = self.conn()?;
         let now = now_ms();
         let id = snippet
             .id
@@ -415,13 +421,13 @@ impl Database {
     }
 
     pub fn delete_snippet(&self, id: &str) -> AppResult<()> {
-        let connection = self.connection.lock().expect("database mutex poisoned");
+        let connection = self.conn()?;
         connection.execute("DELETE FROM snippets WHERE id = ?1", [id])?;
         Ok(())
     }
 
     pub fn list_workflows(&self) -> AppResult<Vec<WorkflowRecord>> {
-        let connection = self.connection.lock().expect("database mutex poisoned");
+        let connection = self.conn()?;
         let mut statement = connection.prepare(
             "SELECT definition_json
              FROM workflows
@@ -436,7 +442,7 @@ impl Database {
     }
 
     pub fn save_workflow(&self, workflow: &WorkflowRecord) -> AppResult<WorkflowRecord> {
-        let connection = self.connection.lock().expect("database mutex poisoned");
+        let connection = self.conn()?;
         let now = now_ms();
         let id = if workflow.id.trim().is_empty() {
             Uuid::new_v4().to_string()
@@ -504,13 +510,13 @@ impl Database {
     }
 
     pub fn delete_workflow(&self, id: &str) -> AppResult<()> {
-        let connection = self.connection.lock().expect("database mutex poisoned");
+        let connection = self.conn()?;
         connection.execute("DELETE FROM workflows WHERE id = ?1", [id])?;
         Ok(())
     }
 
     pub fn search_files(&self, query: &str, limit: usize) -> AppResult<Vec<FileRecord>> {
-        let connection = self.connection.lock().expect("database mutex poisoned");
+        let connection = self.conn()?;
         let normalized = query.trim().to_lowercase();
         if normalized.is_empty() {
             return Ok(Vec::new());
@@ -548,7 +554,7 @@ impl Database {
     }
 
     pub fn count_indexed_files(&self) -> AppResult<usize> {
-        let connection = self.connection.lock().expect("database mutex poisoned");
+        let connection = self.conn()?;
         let count = connection.query_row("SELECT COUNT(*) FROM indexed_files", [], |row| {
             row.get::<_, i64>(0)
         })?;
@@ -556,7 +562,7 @@ impl Database {
     }
 
     pub fn replace_indexed_files(&self, files: &[FileRecord]) -> AppResult<()> {
-        let mut connection = self.connection.lock().expect("database mutex poisoned");
+        let mut connection = self.conn()?;
         let transaction = connection.transaction()?;
         transaction.execute("DELETE FROM indexed_files", [])?;
         {

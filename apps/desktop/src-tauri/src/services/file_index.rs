@@ -105,7 +105,7 @@ pub async fn rebuild_now(app_handle: AppHandle) -> AppResult<FileIndexStatus> {
         last_indexed_at: state
             .file_index_status
             .lock()
-            .expect("file index status mutex poisoned")
+            .map_err(|e| AppError::MutexPoisoned(e.to_string()))?
             .last_indexed_at,
         message: Some("Indexing lightweight filename, path, and metadata entries...".to_string()),
         last_error: None,
@@ -280,7 +280,7 @@ fn set_status(state: &AppState, status: &FileIndexStatus) -> AppResult<()> {
         let mut guard = state
             .file_index_status
             .lock()
-            .expect("file index status mutex poisoned");
+            .map_err(|e| AppError::MutexPoisoned(e.to_string()))?;
         *guard = status.clone();
     }
 

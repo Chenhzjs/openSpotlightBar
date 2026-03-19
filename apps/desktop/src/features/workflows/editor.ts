@@ -53,7 +53,10 @@ export function createWorkflowDraft(): WorkflowRecord {
   };
 }
 
-export function createNodeDraft(type: WorkflowNodeType): WorkflowNode {
+export function createNodeDraft(
+  type: WorkflowNodeType,
+  position?: { x: number; y: number }
+): WorkflowNode {
   const definition = WORKFLOW_NODE_LIBRARY_BY_TYPE[type];
   return {
     id: `node-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
@@ -61,7 +64,8 @@ export function createNodeDraft(type: WorkflowNodeType): WorkflowNode {
     title: definition.label,
     description: definition.description,
     status: definition.status,
-    config: defaultConfigForNode(type)
+    config: defaultConfigForNode(type),
+    ...(position ? { position } : {})
   };
 }
 

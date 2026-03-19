@@ -5,11 +5,11 @@ import { parseConfigCommand } from "./config-command";
 describe("parseConfigCommand", () => {
   it("recognizes bare config commands", () => {
     expect(parseConfigCommand("/config")).toEqual({
-      section: "general",
+      section: "overview",
       rawSection: undefined
     });
     expect(parseConfigCommand("/settings")).toEqual({
-      section: "general",
+      section: "overview",
       rawSection: undefined
     });
   });
@@ -20,9 +20,9 @@ describe("parseConfigCommand", () => {
     expect(parseConfigCommand("/config theme")?.section).toBe("appearance");
   });
 
-  it("falls back to general for unknown sections", () => {
+  it("falls back to overview for unknown sections", () => {
     expect(parseConfigCommand("/config unknown")).toEqual({
-      section: "general",
+      section: "overview",
       rawSection: "unknown"
     });
   });

@@ -4,10 +4,10 @@
   "private": true,
   "packageManager": "pnpm@9.12.2",
   "scripts": {
-    "dev": "pnpm tauri:dev",
+    "dev": "pnpm --dir apps/desktop exec tauri dev",
     "build": "pnpm -r build",
-    "desktop:build": "pnpm --filter @pulse/desktop build",
-    "desktop:dev": "pnpm --filter @pulse/desktop dev",
+    "desktop:build": "pnpm --dir apps/desktop build",
+    "desktop:dev": "pnpm --dir apps/desktop dev",
     "macos:native:build": "bash scripts/build-macos-native.sh",
     "macos:native:dev": "bash scripts/run-macos-native.sh",
     "macos:native:test": "swift test --package-path apps/macos",
@@ -18,11 +18,11 @@
     "release:macos": "bash scripts/build-macos.sh",
     "release:windows": "pwsh -File scripts/build-windows.ps1",
     "rust:check": "cargo fmt --check --manifest-path apps/desktop/src-tauri/Cargo.toml && cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml",
-    "tauri:build": "pnpm --filter @pulse/desktop tauri build",
-    "tauri:dev": "pnpm --filter @pulse/desktop tauri dev",
+    "tauri:build": "pnpm --dir apps/desktop exec tauri build",
+    "tauri:dev": "pnpm --dir apps/desktop exec tauri dev",
     "test": "vitest run",
     "test:watch": "vitest",
-    "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm --filter @pulse/desktop build && pnpm rust:check",
+    "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm --dir apps/desktop build && pnpm rust:check",
     "typecheck": "pnpm -r typecheck"
   },
   "devDependencies": {

@@ -32,7 +32,7 @@ try {
   }
 
   Write-Host "==> Building Tauri bundle"
-  pnpm --filter @pulse/desktop tauri build
+  pnpm --dir apps/desktop exec tauri build
 
   Write-Host "==> Bundles available under apps/desktop/src-tauri/target/release/bundle"
 } finally {

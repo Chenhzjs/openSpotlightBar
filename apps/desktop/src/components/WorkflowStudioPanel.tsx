@@ -10,7 +10,6 @@ import {
 } from "@pulse/core";
 import type {
   ActionKind,
-  WorkflowEdge,
   WorkflowNode,
   WorkflowNodeStatus,
   WorkflowNodeType,
@@ -33,13 +32,13 @@ import {
   createWorkflowDraft,
   sortWorkflowNodes
 } from "../features/workflows/editor";
+import { WorkflowCanvas } from "./workflow-canvas/WorkflowCanvas";
+import { WorkflowTemplateGallery } from "./workflow-canvas/WorkflowTemplateGallery";
 
 interface WorkflowStudioPanelProps {
   workflows: WorkflowRecord[];
   workflowRuns: Record<string, WorkflowRunResult[]>;
-  snippets: number;
-  plugins: number;
-  indexedFiles: number;
+  useChineseCopy?: boolean;
   onBack(): void;
   onSaveWorkflow(workflow: WorkflowRecord): Promise<WorkflowRecord>;
   onDeleteWorkflow(id: string): Promise<void>;
@@ -79,15 +78,75 @@ const REUSABLE_VALUE_TYPES: WorkflowValueType[] = [
 export function WorkflowStudioPanel({
   workflows,
   workflowRuns,
-  snippets,
-  plugins,
-  indexedFiles,
+  useChineseCopy,
   onBack,
   onSaveWorkflow,
   onDeleteWorkflow,
   onDuplicateWorkflow,
   onRunWorkflow
 }: WorkflowStudioPanelProps) {
+  const t = useChineseCopy
+    ? {
+        back: "返回",
+        unsaved: "(未保存)",
+        runPlaceholder: "运行输入",
+        run: "运行",
+        running: "运行中...",
+        save: "保存",
+        saving: "保存中...",
+        builtIn: "内置",
+        new: "新建",
+        more: "更多",
+        duplicate: "复制",
+        delete: "删除",
+        addNode: "添加节点",
+        close: "关闭",
+        validation: "验证",
+        debug: "调试",
+        inspector: "检查器",
+        nodeLibrary: "节点库",
+        newWorkflow: "+ 新建工作流",
+        noCustom: "暂无自定义工作流。",
+        emptyTitle: "工作流编辑器为空",
+        emptyDetail: "创建一个工作流草稿，开始编排斜杠命令和共享动作。",
+        readyToRun: "可以运行",
+        readyDetail: "此工作流通过了运行时 v1 验证。",
+        noRuns: "暂无运行记录",
+        noRunsDetail: "从此界面或启动器搜索中运行工作流，以捕获逐节点执行日志。",
+        templateApplied: "模板已应用。保存后可在启动器中发现。",
+        newDraftCreated: "新工作流草稿已创建。保存后可在启动器中发现。",
+      }
+    : {
+        back: "Back",
+        unsaved: "(unsaved)",
+        runPlaceholder: "Run input",
+        run: "Run",
+        running: "Running...",
+        save: "Save",
+        saving: "Saving...",
+        builtIn: "Built-in",
+        new: "New",
+        more: "More",
+        duplicate: "Duplicate",
+        delete: "Delete",
+        addNode: "Add Node",
+        close: "Close",
+        validation: "Validation",
+        debug: "Debug",
+        inspector: "Inspector",
+        nodeLibrary: "Node Library",
+        newWorkflow: "+ New workflow",
+        noCustom: "No custom workflows yet.",
+        emptyTitle: "Workflow Studio is empty",
+        emptyDetail: "Create a workflow draft to start wiring slash commands and shared actions together.",
+        readyToRun: "Ready to run",
+        readyDetail: "This workflow passes runtime v1 validation.",
+        noRuns: "No runs yet",
+        noRunsDetail: "Run the workflow from this surface or from launcher search to capture per-node execution logs.",
+        templateApplied: "Template applied. Save to add it to launcher discovery.",
+        newDraftCreated: "New workflow draft created. Save to add it to launcher discovery.",
+      };
+
   const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(
     workflows[0]?.id ?? null
   );
@@ -103,6 +162,11 @@ export function WorkflowStudioPanel({
   const [busyMessage, setBusyMessage] = useState<string | null>(null);
   const [localNotice, setLocalNotice] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
+  const [showGallery, setShowGallery] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerTab, setDrawerTab] = useState<"inspector" | "validation" | "debug">("inspector");
+  const [nodeLibraryOpen, setNodeLibraryOpen] = useState(false);
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
 
   useEffect(() => {
     if (draft) {
@@ -147,7 +211,6 @@ export function WorkflowStudioPanel({
     ? validateWorkflow(selectedWorkflow, { workflowCatalog: workflows })
     : [];
   const blockingIssues = validationIssues.filter((issue) => issue.level === "error");
-  const latestRun = selectedWorkflow ? workflowRuns[selectedWorkflow.id]?.[0] : undefined;
   const builtIns = workflows.filter((workflow) => workflow.builtIn);
   const customWorkflows = workflows.filter((workflow) => !workflow.builtIn);
 
@@ -159,6 +222,7 @@ export function WorkflowStudioPanel({
     setDirty(false);
     setRunInput("");
     setLocalNotice(null);
+    setDrawerOpen(false);
   }
 
   function updateDraft(nextWorkflow: WorkflowRecord) {
@@ -177,7 +241,7 @@ export function WorkflowStudioPanel({
     setSelectedNodeId(created.nodes[0]?.id ?? null);
     setRunInput("");
     setDirty(true);
-    setLocalNotice("New workflow draft created. Save to add it to launcher discovery.");
+    setLocalNotice(t.newDraftCreated);
   }
 
   async function saveDraft() {
@@ -246,10 +310,21 @@ export function WorkflowStudioPanel({
       return;
     }
 
+    // If toolbar runInput is empty, fall back to debugValue from query-input nodes
+    let effectiveInput = runInput;
+    if (!effectiveInput.trim()) {
+      const queryInputNode = selectedWorkflow.nodes.find(
+        (n) => (n.type === "query-input" || n.type === "clipboard-input") && (n.config?.debugValue as string | undefined)
+      );
+      if (queryInputNode) {
+        effectiveInput = (queryInputNode.config!.debugValue as string) ?? "";
+      }
+    }
+
     setRunning(true);
     setBusyMessage("Running workflow...");
     try {
-      await onRunWorkflow(selectedWorkflow, buildWorkflowInvocation(selectedWorkflow, runInput));
+      await onRunWorkflow(selectedWorkflow, buildWorkflowInvocation(selectedWorkflow, effectiveInput));
       setLocalNotice("Workflow run finished. See the debug panel for per-node logs.");
     } catch {
       setLocalNotice("Workflow run failed. Review logs and the launcher error banner.");
@@ -310,6 +385,14 @@ export function WorkflowStudioPanel({
     });
   }
 
+  function selectNode(nodeId: string | null) {
+    setSelectedNodeId(nodeId);
+    if (nodeId) {
+      setDrawerOpen(true);
+      setDrawerTab("inspector");
+    }
+  }
+
   function addNode(type: WorkflowNodeType) {
     if (!selectedWorkflow) {
       return;
@@ -343,7 +426,8 @@ export function WorkflowStudioPanel({
       nodes: [...selectedWorkflow.nodes, nextNode],
       edges: nextEdges
     });
-    setSelectedNodeId(nextNode.id);
+    selectNode(nextNode.id);
+    setNodeLibraryOpen(false);
   }
 
   function removeNode(nodeId: string) {
@@ -361,535 +445,306 @@ export function WorkflowStudioPanel({
       nodes: remainingNodes,
       edges: remainingEdges
     });
-    setSelectedNodeId(remainingNodes[0]?.id ?? null);
-  }
-
-  function addEdge() {
-    if (!selectedWorkflow || selectedWorkflow.nodes.length < 2) {
-      return;
-    }
-
-    const fromNode = selectedNode ?? orderedNodes[0];
-    const toNode = orderedNodes.find((node) => node.id !== fromNode.id) ?? orderedNodes[1];
-    if (!fromNode || !toNode) {
-      return;
-    }
-
-    updateDraft({
-      ...selectedWorkflow,
-      edges: [...selectedWorkflow.edges, createEdgeDraft(selectedWorkflow, fromNode.id, toNode.id)]
-    });
-  }
-
-  function updateEdge(edgeId: string, patch: Partial<WorkflowEdge>) {
-    if (!selectedWorkflow) {
-      return;
-    }
-
-    updateDraft({
-      ...selectedWorkflow,
-      edges: selectedWorkflow.edges.map((edge) =>
-        edge.id === edgeId
-          ? {
-              ...edge,
-              ...patch
-            }
-          : edge
-      )
-    });
-  }
-
-  function removeEdge(edgeId: string) {
-    if (!selectedWorkflow) {
-      return;
-    }
-
-    updateDraft({
-      ...selectedWorkflow,
-      edges: selectedWorkflow.edges.filter((edge) => edge.id !== edgeId)
-    });
+    selectNode(remainingNodes[0]?.id ?? null);
   }
 
   return (
-    <section className="shell-panel rounded-[28px] p-4 md:p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[color:var(--shell-border)] pb-4">
-        <div>
-          <div className="shell-kicker">Workflow Studio</div>
-          <h2 className="mt-2 text-[1.95rem] font-semibold tracking-[-0.03em] text-[color:var(--shell-text-primary)]">
-            Custom slash commands and composable actions
-          </h2>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-[color:var(--shell-text-secondary)]">
-            Runtime v1 supports acyclic flows, simple branches, typed node ports, reusable
-            subflows, shared action reuse, and plugin command routing. Loops, concurrency, and
-            free-form graph editing stay deferred.
-          </p>
+    <section className="shell-panel rounded-[28px] flex flex-col h-full overflow-hidden">
+      {/* ── Compact toolbar ── */}
+      <div className="flex items-center gap-2 border-b border-[color:var(--shell-border)] px-4 py-2.5 shrink-0">
+        <button type="button" className={secondaryButtonClassName} onClick={onBack}>
+          {t.back}
+        </button>
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="truncate text-sm font-semibold text-[color:var(--shell-text-primary)]">
+            {selectedWorkflow?.name ?? "Workflow Studio"}
+          </span>
+          {dirty && (
+            <span className="shrink-0 text-xs text-[color:var(--shell-text-tertiary)]">
+              {t.unsaved}
+            </span>
+          )}
         </div>
-
-        <div className="flex flex-wrap gap-2">
-          <button type="button" className={secondaryButtonClassName} onClick={onBack}>
-            Back
+        <div className="flex-1" />
+        <input
+          value={runInput}
+          onChange={(event) => setRunInput(event.target.value)}
+          className="w-[180px] shrink-0 rounded-full border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-muted)] px-3 py-1.5 text-xs text-[color:var(--shell-text-primary)] outline-none placeholder:text-[color:var(--shell-text-muted)] focus:border-[color:var(--shell-border-strong)]"
+          placeholder={selectedWorkflow ? getRunInputPlaceholder(selectedWorkflow) : t.runPlaceholder}
+        />
+        <button
+          type="button"
+          className={primaryButtonClassName}
+          onClick={() => void runDraft()}
+          disabled={!selectedWorkflow || running || blockingIssues.length > 0}
+        >
+          {running ? t.running : t.run}
+        </button>
+        <button
+          type="button"
+          className={primaryButtonClassName}
+          onClick={() => void saveDraft()}
+          disabled={!selectedWorkflow || selectedWorkflow?.builtIn || saving}
+        >
+          {saving ? t.saving : selectedWorkflow?.builtIn ? t.builtIn : t.save}
+        </button>
+        <button type="button" className={secondaryButtonClassName} onClick={() => setShowGallery(true)}>
+          {t.new}
+        </button>
+        <div className="relative">
+          <button type="button" className={secondaryButtonClassName} onClick={() => setMoreMenuOpen((v) => !v)}>
+            {t.more}
           </button>
-          <button type="button" className={secondaryButtonClassName} onClick={createNewWorkflow}>
-            New workflow
-          </button>
-          <button
-            type="button"
-            className={secondaryButtonClassName}
-            onClick={() => {
-              if (selectedWorkflow) {
-                void duplicateDraft();
-              }
-            }}
-            disabled={!selectedWorkflow || saving}
-          >
-            Duplicate
-          </button>
-          <button
-            type="button"
-            className={secondaryButtonClassName}
-            onClick={() => {
-              if (selectedWorkflow && !selectedWorkflow.builtIn) {
-                void deleteDraft();
-              }
-            }}
-            disabled={!selectedWorkflow || selectedWorkflow?.builtIn || saving}
-          >
-            Delete
-          </button>
-          <button
-            type="button"
-            className={primaryButtonClassName}
-            onClick={() => {
-              void saveDraft();
-            }}
-            disabled={!selectedWorkflow || selectedWorkflow?.builtIn || saving}
-          >
-            {saving ? "Saving..." : selectedWorkflow?.builtIn ? "Built-in" : "Save"}
-          </button>
-          <button
-            type="button"
-            className={primaryButtonClassName}
-            onClick={() => {
-              void runDraft();
-            }}
-            disabled={!selectedWorkflow || running || blockingIssues.length > 0}
-          >
-            {running ? "Running..." : "Run"}
-          </button>
+          {moreMenuOpen && (
+            <div className="absolute right-0 top-full z-30 mt-1 w-[140px] rounded-xl border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-soft)] py-1 shadow-lg backdrop-blur-xl">
+              <button
+                type="button"
+                className="w-full px-3 py-2 text-left text-sm text-[color:var(--shell-text-secondary)] hover:bg-[color:var(--shell-fill-muted)]"
+                onClick={() => { setMoreMenuOpen(false); if (selectedWorkflow) void duplicateDraft(); }}
+                disabled={!selectedWorkflow || saving}
+              >
+                {t.duplicate}
+              </button>
+              <button
+                type="button"
+                className="w-full px-3 py-2 text-left text-sm text-[color:var(--shell-text-secondary)] hover:bg-[color:var(--shell-fill-muted)]"
+                onClick={() => { setMoreMenuOpen(false); if (selectedWorkflow && !selectedWorkflow.builtIn) void deleteDraft(); }}
+                disabled={!selectedWorkflow || selectedWorkflow?.builtIn || saving}
+              >
+                {t.delete}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="mt-4 grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)_340px]">
-        <aside className="space-y-4">
-          <div className="rounded-[24px] border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-muted)] p-4">
-            <div className="shell-kicker">Workflows</div>
-            <div className="mt-3 space-y-4">
-              <WorkflowGroup
-                title="Built-in"
-                workflows={builtIns}
-                selectedWorkflowId={selectedWorkflow?.id ?? null}
-                onSelect={loadWorkflow}
-              />
-              <WorkflowGroup
-                title="Custom"
-                workflows={customWorkflows}
-                selectedWorkflowId={selectedWorkflow?.id ?? null}
-                onSelect={loadWorkflow}
-                emptyLabel="No saved custom workflows yet."
-              />
-            </div>
-          </div>
+      {/* ── Toast for localNotice / busyMessage ── */}
+      {(localNotice || busyMessage) && (
+        <div className="shrink-0 border-b border-[color:var(--shell-border)] bg-[color:var(--shell-fill-muted)] px-4 py-1.5 text-xs text-[color:var(--shell-text-secondary)]">
+          {busyMessage ?? localNotice}
+        </div>
+      )}
 
-          <div className="rounded-[24px] border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-muted)] p-4">
-            <div className="shell-kicker">Node Library</div>
-            <div className="mt-3 space-y-4">
-              {["input", "transform", "action", "output"].map((category) => {
-                const nodes = WORKFLOW_NODE_LIBRARY.filter((node) => node.category === category);
-                return (
-                  <div key={category} className="space-y-2">
-                    <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--shell-text-tertiary)]">
-                      {category}
-                    </div>
-                    <div className="space-y-2">
-                      {nodes.map((node) => (
-                        <button
-                          key={node.type}
-                          type="button"
-                          className="w-full rounded-[18px] border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-soft)] px-3 py-2 text-left transition hover:border-[color:var(--shell-border-strong)]"
-                          onClick={() => addNode(node.type)}
-                        >
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="text-sm font-medium text-[color:var(--shell-text-primary)]">
-                              {node.label}
-                            </div>
-                            <StatusBadge status={node.status} />
-                          </div>
-                          <div className="mt-1 text-xs leading-5 text-[color:var(--shell-text-secondary)]">
-                            {node.description}
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+      {/* ── Flex body: sidebar + canvas + drawer ── */}
+      <div className="flex flex-1 min-h-0 overflow-hidden">
+        {/* Left sidebar — workflow list */}
+        <aside className="w-[180px] shrink-0 border-r border-[color:var(--shell-border)] overflow-y-auto overflow-x-hidden p-3 space-y-3">
+          <WorkflowGroup
+            title="Built-in"
+            workflows={builtIns}
+            selectedWorkflowId={selectedWorkflow?.id ?? null}
+            onSelect={loadWorkflow}
+          />
+          <WorkflowGroup
+            title="Custom"
+            workflows={customWorkflows}
+            selectedWorkflowId={selectedWorkflow?.id ?? null}
+            onSelect={loadWorkflow}
+            emptyLabel={t.noCustom}
+          />
+          <button
+            type="button"
+            className="w-full rounded-[18px] border border-dashed border-[color:var(--shell-border)] px-3 py-2.5 text-sm text-[color:var(--shell-text-secondary)] hover:border-[color:var(--shell-border-strong)] transition"
+            onClick={() => setShowGallery(true)}
+          >
+            {t.newWorkflow}
+          </button>
         </aside>
 
-        <div className="space-y-4">
+        {/* Canvas area */}
+        <div className="relative flex-1 min-w-0 self-stretch">
           {selectedWorkflow ? (
             <>
-              <div className="rounded-[24px] border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-muted)] p-4">
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div>
-                    <div className="shell-kicker">Selected Workflow</div>
-                    <h3 className="mt-2 text-2xl font-semibold text-[color:var(--shell-text-primary)]">
-                      {selectedWorkflow.name}
-                    </h3>
-                    <p className="mt-2 max-w-2xl text-sm leading-6 text-[color:var(--shell-text-secondary)]">
-                      {selectedWorkflow.description ?? "Add a short description for launcher discovery and demos."}
-                    </p>
-                  </div>
-
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <MetricChip
-                      title="Trigger"
-                      value={selectedWorkflow.trigger.label}
-                      note={
-                        selectedWorkflow.trigger.type === "slash-command"
-                          ? "Discoverable in launcher search and slash command parsing."
-                          : "Scaffold trigger type. Manual run works now; deeper integration is planned."
-                      }
-                    />
-                    <MetricChip
-                      title="Nodes"
-                      value={String(selectedWorkflow.nodes.length)}
-                      note={`${selectedWorkflow.edges.length} edges, ${blockingIssues.length} blocking issue(s)`}
-                    />
-                    <MetricChip
-                      title="Runtime"
-                      value={latestRun ? (latestRun.ok ? "Healthy" : "Needs attention") : "Unrun"}
-                      note={latestRun ? formatTimestamp(latestRun.logs[0]?.startedAt) : "Run from this surface to inspect per-node logs."}
-                    />
-                    <MetricChip
-                      title="Inputs"
-                      value={`${indexedFiles} files / ${snippets} snippets / ${plugins} plugins`}
-                      note="Runtime can already consume launcher query, clipboard text, shared actions, and plugin commands."
-                    />
-                  </div>
-                </div>
-
-                <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_320px]">
-                  <div className="rounded-[20px] border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-soft)] p-4">
-                    <div className="shell-kicker">Test Invocation</div>
-                    <div className="mt-2 text-sm text-[color:var(--shell-text-secondary)]">
-                      {getInvocationHint(selectedWorkflow)}
-                    </div>
-                    <input
-                      value={runInput}
-                      onChange={(event) => setRunInput(event.target.value)}
-                      className={`${inputClassName} mt-3`}
-                      placeholder={getRunInputPlaceholder(selectedWorkflow)}
-                    />
-                    <div className="mt-3 text-xs leading-5 text-[color:var(--shell-text-tertiary)]">
-                      {buildWorkflowInvocation(selectedWorkflow, runInput)}
-                    </div>
-                  </div>
-
-                  <div className="rounded-[20px] border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-soft)] p-4">
-                    <div className="shell-kicker">Status</div>
-                    <div className="mt-3 space-y-2 text-sm text-[color:var(--shell-text-secondary)]">
-                      {selectedWorkflow.builtIn ? (
-                        <p>
-                          This is a built-in demo workflow. Duplicate it to customize nodes,
-                          trigger shape, or copied actions.
-                        </p>
-                      ) : dirty ? (
-                        <p>Unsaved edits are only stored in this editor until you save.</p>
-                      ) : (
-                        <p>Saved workflow definition matches the last persisted draft.</p>
-                      )}
-                      {localNotice ? <p>{localNotice}</p> : null}
-                      {busyMessage ? <p>{busyMessage}</p> : null}
-                    </div>
-                  </div>
-                </div>
+              {/* Canvas toolbar overlay */}
+              <div className="absolute top-3 left-3 z-10 flex items-center gap-2">
+                <button
+                  type="button"
+                  className={clsx(secondaryButtonClassName, "text-xs py-1.5 px-3")}
+                  onClick={() => setNodeLibraryOpen((v) => !v)}
+                >
+                  {nodeLibraryOpen ? t.close : t.addNode}
+                </button>
+                <button
+                  type="button"
+                  className={clsx(secondaryButtonClassName, "text-xs py-1.5 px-3")}
+                  onClick={() => { setDrawerOpen(true); setDrawerTab("validation"); }}
+                >
+                  {t.validation} ({validationIssues.length})
+                </button>
+                <button
+                  type="button"
+                  className={clsx(secondaryButtonClassName, "text-xs py-1.5 px-3")}
+                  onClick={() => { setDrawerOpen(true); setDrawerTab("debug"); }}
+                >
+                  {t.debug}
+                </button>
               </div>
 
-              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-                <div className="space-y-4">
-                  <div className="rounded-[24px] border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-muted)] p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <div className="shell-kicker">Flow Editor</div>
-                        <div className="mt-2 text-sm text-[color:var(--shell-text-secondary)]">
-                          Runtime v1 executes a simplified DAG. Use this ordered canvas to compose linear flows and explicit small branches.
-                        </div>
-                      </div>
-                      <button type="button" className={secondaryButtonClassName} onClick={addEdge}>
-                        Add edge
-                      </button>
+              {/* Floating Node Library */}
+              {nodeLibraryOpen && (
+                <>
+                  <div className="fixed inset-0 z-15" onClick={() => setNodeLibraryOpen(false)} />
+                  <div className="absolute top-12 left-3 z-20 w-[240px] max-h-[60vh] overflow-y-auto rounded-[20px] border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-soft)] p-3 shadow-lg backdrop-blur-xl space-y-3">
+                    <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--shell-text-tertiary)]">
+                      {t.nodeLibrary}
                     </div>
-
-                    <div className="mt-4 space-y-3">
-                      {orderedNodes.length === 0 ? (
-                        <EmptyPanel
-                          title="No nodes yet"
-                          detail="Add an input node and at least one output node to make the workflow executable."
-                        />
-                      ) : (
-                        orderedNodes.map((node, index) => {
-                          const definition = WORKFLOW_NODE_LIBRARY_BY_TYPE[node.type];
-                          const inbound = selectedWorkflow.edges.filter(
-                            (edge) => edge.toNodeId === node.id
-                          );
-                          const outbound = selectedWorkflow.edges.filter(
-                            (edge) => edge.fromNodeId === node.id
-                          );
-
-                          return (
-                            <div key={node.id} className="space-y-2">
-                              <button
-                                type="button"
-                                className={clsx(
-                                  "w-full rounded-[22px] border px-4 py-4 text-left transition",
-                                  node.id === selectedNodeId
-                                    ? "border-[color:var(--shell-accent-soft)] bg-[color:var(--shell-accent-muted)]"
-                                    : "border-[color:var(--shell-border)] bg-[color:var(--shell-fill-soft)] hover:border-[color:var(--shell-border-strong)]"
-                                )}
-                                onClick={() => setSelectedNodeId(node.id)}
-                              >
-                                <div className="flex items-start justify-between gap-3">
-                                  <div>
-                                    <div className="flex flex-wrap items-center gap-2">
-                                      <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--shell-text-tertiary)]">
-                                        {index + 1}
-                                      </span>
-                                      <span className="text-lg font-semibold text-[color:var(--shell-text-primary)]">
-                                        {node.title}
-                                      </span>
-                                      <StatusBadge status={node.status} />
-                                    </div>
-                                    <div className="mt-1 text-sm text-[color:var(--shell-text-secondary)]">
-                                      {node.description ?? definition.description}
-                                    </div>
-                                  </div>
-                                  <div className="rounded-full border border-[color:var(--shell-border)] px-3 py-1 text-xs uppercase tracking-[0.18em] text-[color:var(--shell-text-tertiary)]">
-                                    {definition.category}
-                                  </div>
-                                </div>
-
-                                <div className="mt-4 grid gap-3 md:grid-cols-2">
-                                  <PortList
-                                    title="Inputs"
-                                    ports={definition.inputs.map((port) => ({
-                                      name: port.name,
-                                      valueType: port.valueType,
-                                      acceptedValueTypes: port.acceptedValueTypes,
-                                      required: port.required
-                                    }))}
-                                    emptyLabel="No incoming inputs"
-                                  />
-                                  <PortList
-                                    title="Outputs"
-                                    ports={definition.outputs.map((port) => ({
-                                      name: port.name,
-                                      valueType: port.valueType
-                                    }))}
-                                    emptyLabel="No outputs"
-                                  />
-                                </div>
-
-                                <div className="mt-4 grid gap-2 md:grid-cols-2">
-                                  <ConnectionSummary label="Inbound" edges={inbound} />
-                                  <ConnectionSummary label="Outbound" edges={outbound} />
-                                </div>
-                              </button>
-
-                              {index < orderedNodes.length - 1 ? (
-                                <div className="flex justify-center text-xs uppercase tracking-[0.24em] text-[color:var(--shell-text-tertiary)]">
-                                  continue
-                                </div>
-                              ) : null}
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="rounded-[24px] border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-muted)] p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <div className="shell-kicker">Edges</div>
-                        <div className="mt-2 text-sm text-[color:var(--shell-text-secondary)]">
-                          Runtime v1 only supports explicit DAG edges. Non-branch nodes may keep one outgoing edge; Conditional Branch may route true and false separately.
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="mt-4 space-y-3">
-                      {selectedWorkflow.edges.length === 0 ? (
-                        <EmptyPanel
-                          title="No edges yet"
-                          detail="Add at least one connection so data can move between nodes."
-                        />
-                      ) : (
-                        selectedWorkflow.edges.map((edge) => {
-                          const fromNode = selectedWorkflow.nodes.find(
-                            (node) => node.id === edge.fromNodeId
-                          );
-                          const toNode = selectedWorkflow.nodes.find(
-                            (node) => node.id === edge.toNodeId
-                          );
-                          const fromOutputs = fromNode
-                            ? WORKFLOW_NODE_LIBRARY_BY_TYPE[fromNode.type].outputs
-                            : [];
-                          const toInputs = toNode
-                            ? WORKFLOW_NODE_LIBRARY_BY_TYPE[toNode.type].inputs
-                            : [];
-
-                          return (
-                            <div
-                              key={edge.id}
-                              className="rounded-[20px] border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-soft)] p-4"
+                    {["input", "transform", "action", "output"].map((category) => {
+                      const nodes = WORKFLOW_NODE_LIBRARY.filter((node) => node.category === category);
+                      return (
+                        <div key={category} className="space-y-2">
+                          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--shell-text-tertiary)]">
+                            {category}
+                          </div>
+                          {nodes.map((node) => (
+                            <button
+                              key={node.type}
+                              type="button"
+                              draggable
+                              onDragStart={(event) => {
+                                event.dataTransfer.setData("application/workflow-node-type", node.type);
+                                event.dataTransfer.effectAllowed = "move";
+                              }}
+                              className="w-full rounded-[14px] border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-soft)] px-3 py-2 text-left transition hover:border-[color:var(--shell-border-strong)] cursor-grab active:cursor-grabbing"
+                              onClick={() => addNode(node.type)}
                             >
-                              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_120px_minmax(0,1fr)_120px_auto]">
-                                <select
-                                  value={edge.fromNodeId}
-                                  onChange={(event) =>
-                                    updateEdge(edge.id, {
-                                      fromNodeId: event.target.value
-                                    })
-                                  }
-                                  className={selectClassName}
-                                >
-                                  {selectedWorkflow.nodes.map((node) => (
-                                    <option key={node.id} value={node.id}>
-                                      {node.title}
-                                    </option>
-                                  ))}
-                                </select>
-                                <select
-                                  value={edge.fromPort}
-                                  onChange={(event) =>
-                                    updateEdge(edge.id, {
-                                      fromPort: event.target.value
-                                    })
-                                  }
-                                  className={selectClassName}
-                                >
-                                  {fromOutputs.map((port) => (
-                                    <option key={port.name} value={port.name}>
-                                      {port.name}
-                                    </option>
-                                  ))}
-                                </select>
-                                <select
-                                  value={edge.toNodeId}
-                                  onChange={(event) =>
-                                    updateEdge(edge.id, {
-                                      toNodeId: event.target.value
-                                    })
-                                  }
-                                  className={selectClassName}
-                                >
-                                  {selectedWorkflow.nodes.map((node) => (
-                                    <option key={node.id} value={node.id}>
-                                      {node.title}
-                                    </option>
-                                  ))}
-                                </select>
-                                <select
-                                  value={edge.toInput}
-                                  onChange={(event) =>
-                                    updateEdge(edge.id, {
-                                      toInput: event.target.value
-                                    })
-                                  }
-                                  className={selectClassName}
-                                >
-                                  {toInputs.map((port) => (
-                                    <option key={port.name} value={port.name}>
-                                      {port.name}
-                                    </option>
-                                  ))}
-                                </select>
-                                <button
-                                  type="button"
-                                  className={secondaryButtonClassName}
-                                  onClick={() => removeEdge(edge.id)}
-                                >
-                                  Remove
-                                </button>
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="text-xs font-medium text-[color:var(--shell-text-primary)]">
+                                  {node.label}
+                                </div>
+                                <StatusBadge status={node.status} />
                               </div>
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
+                              <div className="mt-0.5 text-[11px] leading-4 text-[color:var(--shell-text-secondary)]">
+                                {node.description}
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      );
+                    })}
                   </div>
-                </div>
+                </>
+              )}
 
-                <div className="space-y-4">
-                  <div className="rounded-[24px] border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-muted)] p-4">
-                    <div className="shell-kicker">Inspector</div>
-                    <div className="mt-3 space-y-4">
-                      <WorkflowInspector
-                        workflow={selectedWorkflow}
-                        workflows={workflows}
-                        selectedNode={selectedNode}
-                        onWorkflowChange={updateWorkflowFields}
-                        onTriggerChange={updateTrigger}
-                        onNodeChange={updateNode}
-                        onNodeConfigChange={updateNodeConfig}
-                        onDeleteNode={removeNode}
-                      />
-                    </div>
-                  </div>
+              <WorkflowCanvas
+                workflow={selectedWorkflow}
+                allWorkflows={workflows}
+                selectedNodeId={selectedNodeId}
+                onSelectNode={selectNode}
+                onUpdateDraft={updateDraft}
+                onNodeConfigChange={updateNodeConfig}
+                onRunWorkflow={() => void runDraft()}
+              />
 
-                  <div className="rounded-[24px] border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-muted)] p-4">
-                    <div className="shell-kicker">Validation</div>
-                    <div className="mt-3 space-y-2">
-                      {validationIssues.length === 0 ? (
-                        <EmptyPanel
-                          title="Ready to run"
-                          detail="This workflow passes runtime v1 validation."
-                        />
-                      ) : (
-                        validationIssues.map((issue, index) => (
-                          <IssueCard key={`${issue.nodeId ?? "workflow"}:${index}`} issue={issue} />
-                        ))
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="rounded-[24px] border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-muted)] p-4">
-                    <div className="shell-kicker">Debug Runs</div>
-                    <div className="mt-3 space-y-3">
-                      {(workflowRuns[selectedWorkflow.id] ?? []).length === 0 ? (
-                        <EmptyPanel
-                          title="No runs yet"
-                          detail="Run the workflow from this surface or from launcher search to capture per-node execution logs."
-                        />
-                      ) : (
-                        (workflowRuns[selectedWorkflow.id] ?? []).map((run, index) => (
-                          <RunCard key={`${run.workflowId}:${index}`} run={run} />
-                        ))
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
+              {showGallery && (
+                <WorkflowTemplateGallery
+                  onSelect={(wf) => {
+                    setDraft(wf);
+                    setSelectedWorkflowId(wf.id);
+                    setSelectedNodeId(wf.nodes[0]?.id ?? null);
+                    setDirty(true);
+                    setShowGallery(false);
+                    setLocalNotice(t.templateApplied);
+                  }}
+                  onBlank={() => {
+                    createNewWorkflow();
+                    setShowGallery(false);
+                  }}
+                  onClose={() => setShowGallery(false)}
+                />
+              )}
             </>
           ) : (
-            <EmptyPanel
-              title="Workflow Studio is empty"
-              detail="Create a workflow draft to start wiring slash commands and shared actions together."
-            />
+            <div className="flex items-center justify-center h-full">
+              <EmptyPanel
+                title={t.emptyTitle}
+                detail={t.emptyDetail}
+              />
+            </div>
           )}
         </div>
+
+        {/* Right drawer — slide in/out via negative margin */}
+        {selectedWorkflow && (
+          <div
+            className={clsx(
+              "shrink-0 w-[340px] border-l border-[color:var(--shell-border)] transition-[margin] duration-300 ease-in-out",
+              drawerOpen ? "mr-0" : "-mr-[340px]"
+            )}
+          >
+            <div className="flex flex-col h-full">
+              {/* Drawer header: tabs + close */}
+              <div className="flex items-center justify-between border-b border-[color:var(--shell-border)] px-3 py-2 shrink-0">
+                <div className="flex items-center gap-1">
+                  {(["inspector", "validation", "debug"] as const).map((tab) => (
+                    <button
+                      key={tab}
+                      type="button"
+                      className={clsx(
+                        "rounded-full px-3 py-1 text-xs font-medium transition",
+                        drawerTab === tab
+                          ? "border border-[color:var(--shell-accent-soft)] bg-[color:var(--shell-accent-muted)] text-[color:var(--shell-text-primary)]"
+                          : "text-[color:var(--shell-text-secondary)] hover:text-[color:var(--shell-text-primary)]"
+                      )}
+                      onClick={() => setDrawerTab(tab)}
+                    >
+                      {tab === "inspector" ? t.inspector : tab === "validation" ? `${t.validation} (${validationIssues.length})` : t.debug}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  className="rounded-full p-1 text-[color:var(--shell-text-tertiary)] hover:text-[color:var(--shell-text-primary)] transition"
+                  onClick={() => setDrawerOpen(false)}
+                  aria-label="Close drawer"
+                >
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                    <path d="M4 4l8 8M12 4l-8 8" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Scrollable content */}
+              <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 space-y-4">
+                {drawerTab === "inspector" && (
+                  <WorkflowInspector
+                    workflow={selectedWorkflow}
+                    workflows={workflows}
+                    selectedNode={selectedNode}
+                    onWorkflowChange={updateWorkflowFields}
+                    onTriggerChange={updateTrigger}
+                    onNodeChange={updateNode}
+                    onNodeConfigChange={updateNodeConfig}
+                    onDeleteNode={removeNode}
+                  />
+                )}
+                {drawerTab === "validation" && (
+                  validationIssues.length === 0 ? (
+                    <EmptyPanel
+                      title={t.readyToRun}
+                      detail={t.readyDetail}
+                    />
+                  ) : (
+                    validationIssues.map((issue, index) => (
+                      <IssueCard key={`${issue.nodeId ?? "workflow"}:${index}`} issue={issue} />
+                    ))
+                  )
+                )}
+                {drawerTab === "debug" && (
+                  (workflowRuns[selectedWorkflow.id] ?? []).length === 0 ? (
+                    <EmptyPanel
+                      title={t.noRuns}
+                      detail={t.noRunsDetail}
+                    />
+                  ) : (
+                    (workflowRuns[selectedWorkflow.id] ?? []).map((run, index) => (
+                      <RunCard key={`${run.workflowId}:${index}`} run={run} />
+                    ))
+                  )
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );
@@ -923,24 +778,22 @@ function WorkflowGroup({
             key={workflow.id}
             type="button"
             className={clsx(
-              "w-full rounded-[18px] border px-3 py-3 text-left transition",
+              "w-full rounded-[18px] border px-3 py-2.5 text-left transition overflow-hidden",
               workflow.id === selectedWorkflowId
                 ? "border-[color:var(--shell-accent-soft)] bg-[color:var(--shell-accent-muted)]"
                 : "border-[color:var(--shell-border)] bg-[color:var(--shell-fill-soft)] hover:border-[color:var(--shell-border-strong)]"
             )}
             onClick={() => onSelect(workflow)}
           >
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <div className="text-sm font-medium text-[color:var(--shell-text-primary)]">
-                  {workflow.name}
-                </div>
-                <StatusPill label={getWorkflowTriggerRoleLabel(workflow)} />
-                {workflow.reusable ? <StatusPill label="Reusable" /> : null}
-              </div>
-              {workflow.enabled ? <StatusPill label="Enabled" /> : <StatusPill label="Disabled" />}
+            <div className="text-sm font-medium text-[color:var(--shell-text-primary)] truncate">
+              {workflow.name}
             </div>
-            <div className="mt-1 text-xs leading-5 text-[color:var(--shell-text-secondary)]">
+            <div className="mt-1 flex items-center gap-1 flex-wrap">
+              <StatusPill label={getWorkflowTriggerRoleLabel(workflow)} />
+              {workflow.reusable ? <StatusPill label="Reusable" /> : null}
+              {workflow.enabled ? <StatusPill label="On" /> : <StatusPill label="Off" />}
+            </div>
+            <div className="mt-1 text-xs leading-5 text-[color:var(--shell-text-secondary)] truncate">
               {getWorkflowTriggerSummary(workflow)}
             </div>
           </button>
@@ -2434,29 +2287,56 @@ function NodeConfigEditor({
 }
 
 function RunCard({ run }: { run: WorkflowRunResult }) {
+  function buildLogText(): string {
+    const lines: string[] = [];
+    lines.push(`[${run.ok ? "OK" : "FAIL"}] ${run.workflowId}`);
+    if (run.returnedText) lines.push(`Return: ${run.returnedText}`);
+    if (run.error) lines.push(`Error: ${run.error}`);
+    if (run.actionResponse?.message) lines.push(`Action: ${run.actionResponse.message}`);
+    if (run.validationIssues.length > 0) {
+      lines.push(`Validation (${run.validationIssues.length}):`);
+      for (const issue of run.validationIssues) {
+        lines.push(`  [${issue.level}] ${issue.nodeId ?? "workflow"}: ${issue.message}`);
+      }
+    }
+    for (const log of run.logs) {
+      appendLogLines(lines, log, 0);
+    }
+    return lines.join("\n");
+  }
+
   return (
-    <div className="rounded-[20px] border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-soft)] p-4">
-      <div className="flex items-center justify-between gap-3">
+    <div className="rounded-[20px] border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-soft)] p-4 overflow-hidden">
+      <div className="flex items-center justify-between gap-2">
         <div className="text-sm font-semibold text-[color:var(--shell-text-primary)]">
           {run.ok ? "Run succeeded" : "Run failed"}
         </div>
-        <StatusPill
-          label={
-            run.ok
-              ? "success"
-              : run.failureStage === "validation"
-                ? "validation"
-                : "runtime"
-          }
-        />
+        <div className="flex items-center gap-1.5 shrink-0">
+          <button
+            type="button"
+            className="rounded-full px-2 py-0.5 text-[10px] font-medium text-[color:var(--shell-text-secondary)] border border-[color:var(--shell-border)] hover:bg-[color:var(--shell-fill-muted)] transition"
+            onClick={() => { void navigator.clipboard.writeText(buildLogText()); }}
+          >
+            Copy
+          </button>
+          <StatusPill
+            label={
+              run.ok
+                ? "success"
+                : run.failureStage === "validation"
+                  ? "validation"
+                  : "runtime"
+            }
+          />
+        </div>
       </div>
 
-      <div className="mt-2 text-sm text-[color:var(--shell-text-secondary)]">
+      <div className="mt-2 text-sm text-[color:var(--shell-text-secondary)] break-words">
         {run.returnedText ?? run.actionResponse?.message ?? run.error ?? "No explicit output."}
       </div>
 
       {run.validationIssues.length > 0 ? (
-        <div className="mt-3 rounded-[16px] border border-[color:var(--shell-border)] px-3 py-2 text-xs text-[color:var(--shell-text-secondary)]">
+        <div className="mt-3 rounded-[16px] border border-[color:var(--shell-border)] px-3 py-2 text-xs text-[color:var(--shell-text-secondary)] break-words">
           {run.failureStage === "validation"
             ? `Validation blocked execution with ${run.validationIssues.length} issue(s).`
             : `Validation completed with ${run.validationIssues.length} warning or non-blocking issue(s).`}
@@ -2472,6 +2352,23 @@ function RunCard({ run }: { run: WorkflowRunResult }) {
   );
 }
 
+function appendLogLines(lines: string[], log: WorkflowRunResult["logs"][number], depth: number) {
+  const indent = "  ".repeat(depth);
+  lines.push(`${indent}[${log.status}] ${log.title} (${log.durationMs ?? 0}ms)`);
+  if (log.error) lines.push(`${indent}  Error: ${log.error}`);
+  if (log.inputPreview?.length) {
+    lines.push(`${indent}  Inputs: ${log.inputPreview.map((e) => e.summary).join(" · ")}`);
+  }
+  if (log.outputPreview) {
+    lines.push(`${indent}  Output: ${log.outputPreview.summary}`);
+  }
+  if (log.nestedLogs?.length) {
+    for (const nested of log.nestedLogs) {
+      appendLogLines(lines, nested, depth + 1);
+    }
+  }
+}
+
 function WorkflowLogEntryCard({
   log,
   depth
@@ -2481,27 +2378,27 @@ function WorkflowLogEntryCard({
 }) {
   return (
     <div
-      className="rounded-[16px] border border-[color:var(--shell-border)] px-3 py-3"
+      className="rounded-[16px] border border-[color:var(--shell-border)] px-3 py-3 overflow-hidden"
       style={{ marginLeft: depth === 0 ? 0 : depth * 12 }}
     >
-      <div className="flex items-center justify-between gap-3 text-sm">
-        <div className="font-medium text-[color:var(--shell-text-primary)]">
+      <div className="flex items-center justify-between gap-2 text-sm">
+        <div className="font-medium text-[color:var(--shell-text-primary)] truncate min-w-0">
           {log.title}
         </div>
-        <div className="text-[color:var(--shell-text-tertiary)]">
+        <div className="text-[color:var(--shell-text-tertiary)] shrink-0 text-xs">
           {log.status} · {log.durationMs ?? 0}ms
         </div>
       </div>
-      <div className="mt-2 text-xs leading-5 text-[color:var(--shell-text-secondary)]">
+      <div className="mt-2 text-xs leading-5 text-[color:var(--shell-text-secondary)] break-words">
         {log.error ?? log.outputPreview?.summary ?? "No preview captured."}
       </div>
       {log.inputPreview?.length ? (
-        <div className="mt-2 rounded-[12px] border border-[color:var(--shell-border)] px-3 py-2 text-[11px] leading-5 text-[color:var(--shell-text-secondary)]">
+        <div className="mt-2 rounded-[12px] border border-[color:var(--shell-border)] px-3 py-2 text-[11px] leading-5 text-[color:var(--shell-text-secondary)] break-words">
           Inputs: {log.inputPreview.map((entry) => entry.summary).join(" · ")}
         </div>
       ) : null}
       {log.outputPreview ? (
-        <div className="mt-2 rounded-[12px] border border-[color:var(--shell-border)] px-3 py-2 text-[11px] leading-5 text-[color:var(--shell-text-secondary)]">
+        <div className="mt-2 rounded-[12px] border border-[color:var(--shell-border)] px-3 py-2 text-[11px] leading-5 text-[color:var(--shell-text-secondary)] break-words">
           Output: {log.outputPreview.summary}
         </div>
       ) : null}
@@ -2537,102 +2434,6 @@ function IssueCard({ issue }: { issue: WorkflowValidationIssue }) {
         {issue.nodeId ? `Node ${issue.nodeId}` : "Workflow"}
       </div>
       <div className="mt-1 leading-6">{issue.message}</div>
-    </div>
-  );
-}
-
-function PortList({
-  title,
-  ports,
-  emptyLabel
-}: {
-  title: string;
-  ports: Array<{
-    name: string;
-    valueType: string;
-    acceptedValueTypes?: string[];
-    required?: boolean;
-  }>;
-  emptyLabel: string;
-}) {
-  return (
-    <div className="rounded-[18px] border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-muted)] px-3 py-3">
-      <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--shell-text-tertiary)]">
-        {title}
-      </div>
-      <div className="mt-2 space-y-2">
-        {ports.length === 0 ? (
-          <div className="text-sm text-[color:var(--shell-text-tertiary)]">{emptyLabel}</div>
-        ) : (
-          ports.map((port) => (
-            <div
-              key={`${title}:${port.name}`}
-              className="flex items-center justify-between gap-2 text-sm"
-            >
-              <div className="text-[color:var(--shell-text-primary)]">
-                {port.name}
-                {port.required ? " *" : ""}
-              </div>
-              <div className="text-right text-[color:var(--shell-text-tertiary)]">
-                {port.acceptedValueTypes?.length
-                  ? port.acceptedValueTypes.join(" | ")
-                  : port.valueType}
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-    </div>
-  );
-}
-
-function ConnectionSummary({
-  label,
-  edges
-}: {
-  label: string;
-  edges: WorkflowEdge[];
-}) {
-  return (
-    <div className="rounded-[18px] border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-muted)] px-3 py-3">
-      <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--shell-text-tertiary)]">
-        {label}
-      </div>
-      <div className="mt-2 text-sm text-[color:var(--shell-text-secondary)]">
-        {edges.length === 0
-          ? "None"
-          : edges
-              .map((edge) =>
-                label === "Inbound"
-                  ? `${edge.fromNodeId}.${edge.fromPort} -> ${edge.toInput}`
-                  : `${edge.fromPort} -> ${edge.toNodeId}.${edge.toInput}`
-              )
-              .join(" · ")}
-      </div>
-    </div>
-  );
-}
-
-function MetricChip({
-  title,
-  value,
-  note
-}: {
-  title: string;
-  value: string;
-  note: string;
-}) {
-  return (
-    <div className="rounded-[18px] border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-soft)] px-4 py-3">
-      <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--shell-text-tertiary)]">
-        {title}
-      </div>
-      <div className="mt-2 text-base font-semibold text-[color:var(--shell-text-primary)]">
-        {value}
-      </div>
-      <div className="mt-1 text-xs leading-5 text-[color:var(--shell-text-secondary)]">
-        {note}
-      </div>
     </div>
   );
 }
@@ -2786,22 +2587,6 @@ function getRunInputPlaceholder(workflow: WorkflowRecord): string {
   return "Sample input for manual run";
 }
 
-function getInvocationHint(workflow: WorkflowRecord): string {
-  const example = getWorkflowTriggerExampleInvocation(workflow);
-  switch (workflow.trigger.type) {
-    case "slash-command":
-      return `Launcher entrypoint: ${example ?? getWorkflowTriggerDisplayLabel(workflow)}`;
-    case "keyword":
-      return `Launcher keyword: ${example ?? getWorkflowTriggerDisplayLabel(workflow)}`;
-    case "hotkey":
-      return `Hotkey scaffold: ${workflow.trigger.hotkey}`;
-    case "manual":
-      return workflow.reusable
-        ? "Reusable subflow. Invoke it from another workflow or run it here."
-        : "This workflow currently runs from the editor only.";
-  }
-}
-
 function getWorkflowTriggerRoleLabel(workflow: WorkflowRecord): string {
   switch (workflow.trigger.type) {
     case "slash-command":
@@ -2822,23 +2607,6 @@ function getWorkflowTriggerSummary(workflow: WorkflowRecord): string {
     return `${label} • ${example}`;
   }
   return label;
-}
-
-function formatTimestamp(value?: number): string {
-  if (!value) {
-    return "Not run yet";
-  }
-
-  try {
-    return new Intl.DateTimeFormat(undefined, {
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit"
-    }).format(value);
-  } catch {
-    return "Recently";
-  }
 }
 
 const inputClassName =

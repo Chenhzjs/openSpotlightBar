@@ -114,20 +114,20 @@ function createGoogleWorkflow(): WorkflowRecord {
       placeholder: "Search query"
     },
     nodes: [
-      node("query", "query-input", "Query Input"),
+      node("query", "query-input", "Query Input", {}, { x: 0, y: 0 }),
       node("build", "invoke-workflow", "Build Search URL", {
         workflowId: "builtin-reusable-build-search-url",
         inputTemplates: {
           baseUrl: "https://www.google.com/search",
           query: "{{input}}"
         }
-      }),
+      }, { x: 500, y: 0 }),
       node("template", "template", "Select URL", {
         template: "{{inputs.input.url}}",
         outputType: "url"
-      }),
-      node("open", "open-url", "Open URL"),
-      node("return", "return-action-result", "Return Action Result")
+      }, { x: 1000, y: 0 }),
+      node("open", "open-url", "Open URL", {}, { x: 1500, y: 0 }),
+      node("return", "return-action-result", "Return Action Result", {}, { x: 2000, y: 0 })
     ],
     edges: [
       edge("query", "default", "build", "input"),
@@ -157,13 +157,13 @@ function createJiraWorkflow(): WorkflowRecord {
       placeholder: "ENG-123"
     },
     nodes: [
-      node("query", "query-input", "Ticket Input"),
+      node("query", "query-input", "Ticket Input", {}, { x: 0, y: 0 }),
       node("template", "template", "Build Jira URL", {
         template: "https://jira.example.com/browse/{{args.ticket | upper}}",
         outputType: "url"
-      }),
-      node("open", "open-url", "Open URL"),
-      node("return", "return-action-result", "Return Action Result")
+      }, { x: 500, y: 0 }),
+      node("open", "open-url", "Open URL", {}, { x: 1000, y: 0 }),
+      node("return", "return-action-result", "Return Action Result", {}, { x: 1500, y: 0 })
     ],
     edges: [
       edge("query", "default", "template", "input"),
@@ -192,13 +192,13 @@ function createClipCleanWorkflow(): WorkflowRecord {
       placeholder: "Uses clipboard input"
     },
     nodes: [
-      node("clipboard", "clipboard-input", "Clipboard Input"),
+      node("clipboard", "clipboard-input", "Clipboard Input", {}, { x: 0, y: 0 }),
       node("clean", "regex-replace", "Collapse Whitespace", {
         pattern: "\\s+",
         replacement: " "
-      }),
-      node("copy", "copy-to-clipboard", "Copy Clean Text"),
-      node("return", "return-action-result", "Return Action Result")
+      }, { x: 500, y: 0 }),
+      node("copy", "copy-to-clipboard", "Copy Clean Text", {}, { x: 1000, y: 0 }),
+      node("return", "return-action-result", "Return Action Result", {}, { x: 1500, y: 0 })
     ],
     edges: [
       edge("clipboard", "default", "clean", "input"),
@@ -227,8 +227,8 @@ function createEchoWorkflow(): WorkflowRecord {
       placeholder: "Any text"
     },
     nodes: [
-      node("query", "query-input", "Text Input"),
-      node("return", "return-text", "Return Text")
+      node("query", "query-input", "Text Input", {}, { x: 0, y: 0 }),
+      node("return", "return-text", "Return Text", {}, { x: 500, y: 0 })
     ],
     edges: [edge("query", "default", "return", "text")],
     createdAt: BUILTIN_TIMESTAMP,
@@ -253,13 +253,13 @@ function createJsonPrettyWorkflow(): WorkflowRecord {
       placeholder: "{\"hello\": \"world\"}"
     },
     nodes: [
-      node("query", "query-input", "JSON Input"),
-      node("parse", "json-parse", "Parse JSON"),
+      node("query", "query-input", "JSON Input", {}, { x: 0, y: 0 }),
+      node("parse", "json-parse", "Parse JSON", {}, { x: 500, y: 0 }),
       node("template", "template", "Pretty JSON", {
         template: "{{inputs.input | prettyjson}}",
         outputType: "text"
-      }),
-      node("return", "return-text", "Return Text")
+      }, { x: 1000, y: 0 }),
+      node("return", "return-text", "Return Text", {}, { x: 1500, y: 0 })
     ],
     edges: [
       edge("query", "default", "parse", "input"),
@@ -288,12 +288,12 @@ function createUrlEncodeWorkflow(): WorkflowRecord {
       placeholder: "Text to encode"
     },
     nodes: [
-      node("query", "query-input", "Text Input"),
+      node("query", "query-input", "Text Input", {}, { x: 0, y: 0 }),
       node("template", "template", "Encode", {
         template: "{{args.text | urlencode}}",
         outputType: "text"
-      }),
-      node("return", "return-text", "Return Text")
+      }, { x: 500, y: 0 }),
+      node("return", "return-text", "Return Text", {}, { x: 1000, y: 0 })
     ],
     edges: [
       edge("query", "default", "template", "input"),
@@ -316,16 +316,14 @@ function createReindexWorkflow(): WorkflowRecord {
       type: "slash-command",
       label: "/reindex-now",
       enabled: true,
-      command: "/reindex-now",
-      argumentName: "query",
-      placeholder: "No input required"
+      command: "/reindex-now"
     },
     nodes: [
       node("action", "invoke-shared-action", "Rebuild Index", {
         actionKind: "rebuild-file-index",
         title: "Rebuild file index"
-      }),
-      node("return", "return-action-result", "Return Action Result")
+      }, { x: 0, y: 0 }),
+      node("return", "return-action-result", "Return Action Result", {}, { x: 500, y: 0 })
     ],
     edges: [edge("action", "default", "return", "result")],
     createdAt: BUILTIN_TIMESTAMP,
@@ -351,11 +349,11 @@ function createGitHubWorkflow(): WorkflowRecord {
       placeholder: "Repository query"
     },
     nodes: [
-      node("query", "query-input", "Query Input"),
+      node("query", "query-input", "Query Input", {}, { x: 0, y: 0 }),
       node("plugin", "invoke-plugin-command", "Invoke gh Command", {
         command: "gh"
-      }),
-      node("return", "return-action-result", "Return Action Result")
+      }, { x: 500, y: 0 }),
+      node("return", "return-action-result", "Return Action Result", {}, { x: 1000, y: 0 })
     ],
     edges: [
       edge("query", "default", "plugin", "input"),
@@ -384,22 +382,22 @@ function createGitHubHttpWorkflow(): WorkflowRecord {
       placeholder: "Repository query"
     },
     nodes: [
-      node("query", "query-input", "Query Input"),
+      node("query", "query-input", "Query Input", {}, { x: 0, y: 0 }),
       node("request", "http-request", "GitHub Request", {
         method: "GET",
         urlTemplate: "https://api.github.com/search/repositories",
         headersTemplate:
           '{\n  "Accept": "application/vnd.github+json",\n  "User-Agent": "Pulse Launcher"\n}',
         queryParamsTemplate:
-          '{\n  "q": "{{args.query}}",\n  "per_page": "5",\n  "sort": "stars"\n}',
+          '{\n  "q": "{{args.query}}",\n  "per_page": "5"\n}',
         timeoutMs: 5000
-      }),
+      }, { x: 500, y: 0 }),
       node("items", "invoke-workflow", "Map Repo Items", {
         workflowId: "builtin-reusable-github-items",
         inputTemplates: {
           response: "{{nodes.request.default}}"
         }
-      }),
+      }, { x: 1000, y: 0 }),
       node("results", "show-launcher-results", "Show Repository Results", {
         mode: "items",
         itemsPath: "items",
@@ -414,7 +412,7 @@ function createGitHubHttpWorkflow(): WorkflowRecord {
         actionPayloadTemplate: '{\n  "url": "{{item.html_url}}"\n}',
         payloadTemplate:
           '{\n  "url": "{{item.html_url}}",\n  "stars": "{{item.stargazers_count}}",\n  "language": "{{item.language}}"\n}'
-      })
+      }, { x: 1500, y: 0 })
     ],
     edges: [
       edge("query", "default", "request", "input"),
@@ -462,13 +460,13 @@ function createReusableNormalizeQueryWorkflow(): WorkflowRecord {
       node("query", "template", "Forward Query", {
         template: "{{args.query}}",
         outputType: "text"
-      }),
+      }, { x: 0, y: 0 }),
       node("clean", "regex-replace", "Collapse Whitespace", {
         pattern: "\\s+",
         replacement: " ",
         flags: "g"
-      }),
-      node("return", "return-text", "Return Text")
+      }, { x: 500, y: 0 }),
+      node("return", "return-text", "Return Text", {}, { x: 1000, y: 0 })
     ],
     edges: [
       edge("query", "default", "clean", "input"),
@@ -523,12 +521,12 @@ function createReusableBuildSearchUrlWorkflow(): WorkflowRecord {
         inputTemplates: {
           query: "{{args.query}}"
         }
-      }),
+      }, { x: 0, y: 0 }),
       node("url", "template", "Compose URL", {
         template: "{{args.baseUrl}}?q={{nodes.normalize.default.normalized | urlencode}}",
         outputType: "url"
-      }),
-      node("return", "return-text", "Return Text")
+      }, { x: 500, y: 0 }),
+      node("return", "return-text", "Return Text", {}, { x: 1000, y: 0 })
     ],
     edges: [
       edge("normalize", "default", "url", "input"),
@@ -575,14 +573,14 @@ function createReusableGitHubItemsWorkflow(): WorkflowRecord {
       node("response", "template", "Forward Response", {
         template: "{{args.response}}",
         outputType: "object"
-      }),
+      }, { x: 0, y: 0 }),
       node("items", "json-extract", "Extract Items", {
         path: "json.items",
         outputType: "object"
-      }),
+      }, { x: 500, y: 0 }),
       node("return", "return-text", "Return Text", {
         template: "{{nodes.items.default | json}}"
-      })
+      }, { x: 1000, y: 0 })
     ],
     edges: [
       edge("response", "default", "items", "input"),
@@ -611,19 +609,19 @@ function createWeatherWorkflow(): WorkflowRecord {
       placeholder: "Shanghai"
     },
     nodes: [
-      node("query", "query-input", "Location Input"),
+      node("query", "query-input", "Location Input", {}, { x: 0, y: 0 }),
       node("request", "http-request", "Weather Request", {
         method: "GET",
         urlTemplate: "https://wttr.in/{{args.location | urlencode}}",
         queryParamsTemplate: '{\n  "format": "j1"\n}',
         timeoutMs: 5000
-      }),
+      }, { x: 500, y: 0 }),
       node("summary", "template", "Build Weather Summary", {
         template:
           "{{nodes.request.default.json.current_condition.0.temp_C}}°C · {{nodes.request.default.json.current_condition.0.weatherDesc.0.value}} · feels like {{nodes.request.default.json.current_condition.0.FeelsLikeC}}°C",
         outputType: "text"
-      }),
-      node("return", "return-text", "Return Text")
+      }, { x: 1000, y: 0 }),
+      node("return", "return-text", "Return Text", {}, { x: 1500, y: 0 })
     ],
     edges: [
       edge("query", "default", "request", "input"),
@@ -653,20 +651,18 @@ function createHttpGetWorkflow(): WorkflowRecord {
       placeholder: "https://api.github.com"
     },
     nodes: [
-      node("query", "query-input", "URL Input"),
+      node("query", "query-input", "URL Input", {}, { x: 0, y: 0 }),
       node("request", "http-request", "HTTP Request", {
         method: "GET",
         urlTemplate: "{{args.url}}",
         headersTemplate: '{\n  "Accept": "application/json"\n}',
         timeoutMs: 5000
-      }),
+      }, { x: 500, y: 0 }),
       node("preview", "template", "Preview Response", {
         template: "{{nodes.request.default.json | prettyjson}}",
         outputType: "text"
-      }),
-      node("return", "return-text", "Return Text", {
-        template: "{{nodes.request.text}}"
-      })
+      }, { x: 1000, y: 0 }),
+      node("return", "return-text", "Return Text", {}, { x: 1500, y: 0 })
     ],
     edges: [
       edge("query", "default", "request", "input"),
@@ -682,7 +678,8 @@ function node(
   id: string,
   type: WorkflowRecord["nodes"][number]["type"],
   title: string,
-  config: Record<string, unknown> = {}
+  config: Record<string, unknown> = {},
+  position?: { x: number; y: number }
 ): WorkflowRecord["nodes"][number] {
   return {
     id,
@@ -692,7 +689,8 @@ function node(
       type === "file-input" || type === "return-files"
         ? "planned"
         : "supported",
-    config
+    config,
+    ...(position ? { position } : {})
   };
 }
 
