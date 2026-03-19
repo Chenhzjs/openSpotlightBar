@@ -96,3 +96,30 @@ jobs:
         with:
           name: windows-bundle
           path: apps/desktop/src-tauri/target/release/bundle/
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build-macos, build-linux, build-windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Collect release assets
+        run: |
+          mkdir -p release
+          cp artifacts/macos-bundle/dmg/*.dmg release/ || true
+          cp artifacts/linux-bundle/deb/*.deb release/ || true
+          cp artifacts/linux-bundle/rpm/*.rpm release/ || true
+          cp artifacts/linux-bundle/appimage/*.AppImage release/ || true
+          cp artifacts/windows-bundle/msi/*.msi release/ || true
+          cp artifacts/windows-bundle/nsis/*.exe release/ || true
+          ls -lh release/
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: release/*
+          generate_release_notes: true
