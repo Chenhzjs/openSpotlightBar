@@ -1,403 +1,139 @@
-# Pulse Launcher
+<p align="center">
+  <img src="apps/desktop/src-tauri/icons/icon.png" width="128" height="128" alt="Pulse Launcher" />
+</p>
 
-Pulse Launcher is a production-oriented cross-platform desktop launcher built with Tauri 2, React, TypeScript, Rust, SQLite, Tailwind CSS, and Zustand. It targets macOS, Windows, and Linux with a keyboard-first, local-first architecture inspired by Alfred, Raycast, PowerToys Run, and Ulauncher.
+<h1 align="center">Pulse Launcher</h1>
 
-The active implementation lives under `apps/`, `packages/`, and `plugins/`. The legacy Qt/C++ code in this repository is reference-only and is not part of the Pulse Launcher runtime.
+<p align="center">
+  <strong>A keyboard-first, cross-platform desktop launcher.</strong><br/>
+  Fast local search · Clipboard history · Snippets · Workflows · Plugins
+</p>
 
-## Product overview
+<p align="center">
+  <a href="#features">Features</a> ·
+  <a href="#getting-started">Getting Started</a> ·
+  <a href="#architecture">Architecture</a> ·
+  <a href="#plugin-authoring">Plugin Authoring</a> ·
+  <a href="#workflows">Workflows</a> ·
+  <a href="#contributing">Contributing</a>
+</p>
 
-Pulse Launcher is designed around a few fixed constraints:
+---
 
-- keyboard-first interaction
-- local-only storage by default
-- fast provider fan-out with timeout protection
-- unified result and action models
-- extensibility through a permission-gated plugin system
-- platform-specific behavior isolated in Rust
+## Why Pulse Launcher?
 
-The product goal is launcher-first. Workflows, commands, snippets, clipboard, plugins, and settings are meant to feel like one coherent launcher surface in the spirit of Alfred, not like separate demos bolted onto a launcher shell.
+Pulse Launcher is an open-source alternative to Alfred, Raycast, and PowerToys Run. Built with **Tauri 2 + React + Rust**, it delivers native performance with a modern web UI — all while keeping your data local by default.
 
-Current product slices:
+## Features
 
-- launcher window with global hotkey wiring
-- application search
-- lightweight file search by filename and path metadata
-- clipboard history
-- snippets with variable expansion
-- web search shortcuts
-- result action panel on `Tab`
-- settings UI
-- workflow runtime v1 with a unified trigger model for slash commands, keyword commands, manual runs, and hotkey scaffolds
-- workflow editor v1 with list, inspector, validation, and debug logs
-- workflow variable references, reusable subflows, structured JSON handling, typed node contracts, and scoped HTTP fetch support
-- persisted usage-based ranking
-- local plugin host with example plugins
+| Category | Highlights |
+|----------|-----------|
+| **Search** | Apps, files, clipboard, snippets, web shortcuts — all from one bar |
+| **Clipboard History** | Automatic capture with pin, delete, privacy exclusions |
+| **Snippets** | Text expansion with `{{date}}`, `{{time}}`, `{{clipboard}}`, `{{uuid}}` variables |
+| **Workflows** | Visual node editor with slash-command & keyword triggers, HTTP requests, JSON transforms, reusable subflows |
+| **Plugins** | Worker-isolated JS plugins with permission-gated APIs (network, filesystem, clipboard, shell) |
+| **Plugin Marketplace** | Browse, search, install & uninstall community plugins from an online registry |
+| **Settings Hub** | Unified `/config` surface for every subsystem |
+| **Cross-platform** | macOS (native SwiftUI shell + Tauri), Windows, Linux |
 
-Recent search and index productization work:
+### Keyboard Shortcuts
 
-- richer file index health and status visibility
-- explicit indexed directories and excluded paths
-- pause or resume indexing scaffold
-- better file-result ranking using filename/path match, modified-time recency, and usage history
-- more informative file-search empty, loading, and error states
+| Key | Action |
+|-----|--------|
+| `Enter` | Execute default action |
+| `Tab` | Open action panel |
+| `Ctrl + ,` | Open settings |
+| `Escape` | Close panel / dismiss launcher |
+| `↑ ↓` | Navigate results |
 
-Demo-ready now:
+## Getting Started
 
-- open launcher and search apps, files, web results, snippets, clipboard items, and plugin inventory
-- open the action panel with `Tab`
-- execute primary and common secondary actions
-- route `/config` into a hub and detail surfaces
-- open the dedicated workflow surface
-- run slash-command workflows such as `/google`, `/jira`, `/clip-clean`, `/echo`, `/json-pretty`, `/url-encode`, `/reindex-now`, `/ghrepo`, `/gh-search`, `/weather`, and `/http-get`
-- run keyword workflows such as `g pulse launcher`, `jira ENG-123`, `gh pulse launcher`, and `weather Shanghai`
-- edit, validate, save, duplicate, and debug workflows from `/config workflow`
-- demo reusable workflow composition through `Invoke Workflow` and built-in helper subflows
-- demo the native macOS shell against shared Rust and SQLite-backed data
+### Prerequisites
 
-## Architecture
+- **Node.js** 20+
+- **pnpm** 9+
+- **Rust** stable toolchain
+- Tauri system dependencies ([guide](https://v2.tauri.app/start/prerequisites/))
 
-Pulse Launcher keeps a strict split between shared search logic, the React UI shell, plugin runtime orchestration, and platform services:
-
-- [apps/desktop](/Users/chenhz/Documents/work-station/openSpotlightBar/apps/desktop) contains the React UI, Zustand state, provider wiring, launcher interaction model, and plugin host.
-- [apps/desktop/src-tauri](/Users/chenhz/Documents/work-station/openSpotlightBar/apps/desktop/src-tauri) contains Rust commands, SQLite persistence, file indexing, clipboard observation, plugin discovery, and platform-specific modules.
-- [apps/macos](/Users/chenhz/Documents/work-station/openSpotlightBar/apps/macos) contains the native SwiftUI/AppKit macOS shell with the floating Spotlight-style panel, native materials, global hotkey registration, and native outside-click hiding.
-- [packages/shared-types](/Users/chenhz/Documents/work-station/openSpotlightBar/packages/shared-types) defines shared domain models such as `ResultItem`, `ActionItem`, settings, clipboard, snippets, plugins, and bootstrap payloads.
-- [packages/core](/Users/chenhz/Documents/work-station/openSpotlightBar/packages/core) owns query parsing, fuzzy scoring, ranking, timeout-protected provider aggregation, workflow validation/runtime helpers, and the unified workflow trigger registry.
-- [packages/plugin-sdk](/Users/chenhz/Documents/work-station/openSpotlightBar/packages/plugin-sdk) defines the plugin contracts and host API surface.
-
-Search remains provider-based. Each provider returns the same `ResultItem` shape, each result exposes `ActionItem` actions, and ranking combines:
-
-- provider score
-- fuzzy score
-- prefix bonus
-- exact match bonus
-- source weight
-- recency bonus
-- usage history boost
-
-For file results specifically, ranking now also uses:
-
-- filename and path match quality
-- file modified-time recency
-- usage history on top of the lightweight file metadata index
-
-Platform-specific discovery stays isolated under [apps/desktop/src-tauri/src/platform](/Users/chenhz/Documents/work-station/openSpotlightBar/apps/desktop/src-tauri/src/platform). Plugin discovery and manifest validation stay on the Rust side, while plugin execution happens in isolated frontend workers with permission-gated host APIs.
-
-On macOS, the launcher shell now has a native SwiftUI/AppKit host. The current native host now owns:
-
-- native floating panel presentation
-- native material rendering
-- outside-click and focus-loss hiding
-- global hotkey registration
-- native application search
-- Rust and SQLite-backed bootstrap snapshot loading
-- Rust-backed file search
-- shared action dispatch for file, clipboard, and snippet actions
-- usage recording back into the shared persistence layer
-- `/config` hub routing and section detail windows
-- dedicated workflow window with shared status context
-- shared workflow definitions through the Rust and SQLite store
-
-The remaining macOS gap is no longer the basic shell bridge. The remaining work is richer plugin exposure, deeper settings completeness, native text expansion hooks, and fuller workflow editor/runtime bridging into the native host.
-
-More detail: [docs/architecture.md](/Users/chenhz/Documents/work-station/openSpotlightBar/docs/architecture.md), [docs/status.md](/Users/chenhz/Documents/work-station/openSpotlightBar/docs/status.md), and [DEMO.md](/Users/chenhz/Documents/work-station/openSpotlightBar/DEMO.md)
-
-## Monorepo structure
-
-```text
-apps/
-  desktop/               React + Tauri desktop app
-  macos/                 native SwiftUI/AppKit macOS launcher host
-packages/
-  core/                  query parsing, ranking, search orchestration
-  plugin-sdk/            plugin authoring contracts
-  shared-types/          shared models and settings
-plugins/
-  calculator/            calculator example plugin
-  github/                GitHub search example plugin
-  shell/                 shell command example plugin
-scripts/                 local build and release helpers
-docs/                    architecture, release notes, roadmap
-```
-
-## Setup
-
-Requirements:
-
-- Node.js 20+
-- pnpm 9+
-- Rust stable
-- Tauri system dependencies for your OS
-
-Install dependencies:
+### Install & Run
 
 ```bash
+# Clone the repo
+git clone https://github.com/Chenhzjs/openSpotlightBar.git
+cd openSpotlightBar
+
+# Install dependencies
 pnpm install
-```
 
-Run the desktop app:
-
-```bash
+# Start the development app
 pnpm dev
 ```
 
-Run the native macOS host:
+### Other Commands
 
 ```bash
-pnpm macos:native:dev
+pnpm typecheck          # TypeScript checks across all packages
+pnpm test               # Run Vitest unit tests
+pnpm lint               # ESLint
+pnpm format             # Prettier
+pnpm verify             # Full CI pipeline (format + lint + typecheck + test + build)
+
+pnpm macos:native:dev   # Run native SwiftUI/AppKit macOS host
+pnpm release:macos      # Production build for macOS
+pnpm release:windows    # Production build for Windows
+pnpm release:linux      # Production build for Linux
 ```
 
-The native macOS scripts build the shared Rust bridge binary first and then launch the SwiftUI host with that bridge wired in.
+## Architecture
 
-Run the production frontend build:
-
-```bash
-pnpm desktop:build
+```
+pulse-launcher-workspace/
+├── apps/
+│   ├── desktop/                 # React + Tailwind UI, Tauri shell
+│   │   └── src-tauri/           # Rust backend: commands, SQLite, file index, plugins
+│   └── macos/                   # Native SwiftUI/AppKit host
+├── packages/
+│   ├── core/                    # Query parsing, ranking, search engine, workflow runtime
+│   ├── shared-types/            # Domain models shared across frontend & backend
+│   └── plugin-sdk/              # Plugin contracts & host API surface
+├── plugins/                     # Example plugins (calculator, github, shell)
+├── scripts/                     # Build & release helpers
+└── docs/                        # Architecture, roadmap, release notes
 ```
 
-Run the full verification pipeline:
+### Tech Stack
 
-```bash
-pnpm verify
+| Layer | Technology |
+|-------|-----------|
+| Desktop shell | [Tauri 2](https://v2.tauri.app/) |
+| Frontend | React 19, TypeScript, Tailwind CSS, Vite |
+| Backend | Rust, SQLite (via rusqlite), reqwest, tokio |
+| Native macOS | SwiftUI + AppKit |
+| Monorepo | pnpm workspaces |
+| Testing | Vitest, ESLint, Prettier |
+
+### Search Pipeline
+
+Results flow through a provider-based pipeline where each provider (Apps, Files, Clipboard, Snippets, Plugins, Workflows, Web, System) returns a unified `ResultItem`. Ranking combines:
+
+- Fuzzy score + prefix/exact match bonuses
+- Per-source weight configuration
+- File recency and usage history boost
+- Timeout-protected fan-out across all providers
+
+## Plugin Authoring
+
+Plugins live in `{app_data_dir}/plugins/{plugin-id}/` or the local `./plugins/` directory.
+
 ```
-
-## Development workflow
-
-Useful workspace commands:
-
-- `pnpm dev` starts the Tauri development app
-- `pnpm desktop:dev` starts the Vite frontend only
-- `pnpm macos:native:dev` runs the native SwiftUI/AppKit macOS host
-- `pnpm macos:native:build` compiles the native macOS host
-- `pnpm macos:native:test` runs Swift tests for the native macOS host
-- `pnpm typecheck` runs TypeScript checks across workspaces
-- `pnpm lint` runs ESLint on the active TypeScript and plugin sources
-- `pnpm test` runs Vitest unit tests
-- `pnpm format` applies Prettier
-- `pnpm verify` runs format check, lint, typecheck, tests, frontend build, Rust format check, and Rust compile check
-
-Phase 4 test coverage currently focuses on:
-
-- ranking logic
-- provider aggregation
-- usage-based ranking boost
-- action payload resolution
-- workflow validation
-- workflow runtime execution
-
-The current error-handling pass also adds:
-
-- a React error boundary for fatal UI failures
-- scoped frontend logging
-- provider timeout diagnostics
-- plugin timeout and crash diagnostics
-
-## Search and interaction model
-
-Current built-in providers:
-
-- `AppProvider`
-- `FileProvider`
-- `ClipboardProvider`
-- `SnippetProvider`
-- `PluginProvider`
-- `WorkflowProvider`
-- `WebSearchProvider`
-- `SystemProvider`
-
-Current built-in actions:
-
-- open or launch
-- reveal in folder
-- copy path
-- copy text
-- open in terminal
-- search on web
-- paste text hook with TODO marker for native simulation
-- pin or unpin clipboard item
-- delete clipboard item
-- clear clipboard history
-- expand snippet
-- rebuild file index
-- open settings
-- run plugin action
-- run workflow
-
-Interaction rules:
-
-- arrow keys move selection
-- `Enter` runs the default action
-- `Tab` opens the action panel for the selected result
-- `Ctrl+,` opens settings
-- `Escape` closes the launcher or exits the current panel
-
-The native macOS host currently covers the Spotlight shell, app search, Rust-backed file search, action dispatch through the shared Rust layer, `/config`, workflow, and usage recording. Full plugin runtime exposure still primarily lives in the shared desktop stack.
-
-## Index management
-
-File indexing stays intentionally lightweight:
-
-- filename
-- path
-- extension
-- file or folder kind
-- modified time
-
-There is still no full-text content indexing in this phase.
-
-Current index management capabilities:
-
-- view indexed directory roots
-- view excluded paths
-- view indexed file count
-- view last indexed time
-- view rebuild state, stale state, paused state, truncation, and last error
-- rebuild the index manually
-- add or remove indexed directories
-- add or remove exclusions
-- pause or resume indexing as a lightweight scaffold
-
-Index settings live under `/config indexing`, with index health also summarized under `/config search`.
-
-## Platform status
-
-- macOS: native SwiftUI/AppKit shell is demo-ready for launcher presentation, app search, file search via the Rust bridge, shared actions, `/config`, and the workflow surface.
-- Windows: Tauri shell is the active runtime, with the `/config -> hub -> detail` interaction model and platform-adaptive tokens.
-- Linux: Tauri shell is the active runtime, with the same interaction model and Linux-friendly tokenized presentation.
-
-Windows and Linux are not native WinUI or GTK frontends in this phase. They intentionally stay on the shared Tauri UI and are being tightened for demo quality rather than replaced.
-
-## Workflow status
-
-Workflow is now a real but scoped subsystem rather than a placeholder:
-
-- workflows are stored locally in SQLite and exposed through shared types
-- unified workflow triggers currently support slash commands, keyword commands, manual runs, and hotkey scaffolds
-- slash and keyword triggers are discoverable in launcher results and execute through runtime v1
-- trigger conflicts are deterministic: custom workflows override built-ins, then newer workflows override older ones
-- runtime v1 validates graphs before execution and supports acyclic flows plus explicit simple branches
-- workflow references support trigger args, launcher context values, current node inputs, and previous node outputs
-- reusable workflows can declare explicit input/output contracts and be invoked from other workflows
-- workflow result mapping also supports per-item references such as `{{item.full_name}}` and `{{index}}`
-- template rendering supports filters such as `trim`, `lower`, `upper`, `urlencode`, `json`, and `prettyjson`
-- HTTP Request nodes support scoped `GET` and `POST`, headers, query params, optional JSON body, timeout, response status, response text, parsed JSON when available, and header scaffolding
-- Show Launcher Results supports both provider-query mode and workflow item-mapping mode that emits real `ResultItem` entries through the shared launcher model
-- node execution logs capture per-node input or output previews, timing, validation vs runtime failure stage, and errors
-- workflow editor v1 includes a workflow list, ordered canvas, inspector, edge editor, validation panel, and debug runs
-- built-in examples cover `/google`, `/jira`, `/clip-clean`, `/echo`, `/json-pretty`, `/url-encode`, `/reindex-now`, `/ghrepo`, `/gh-search`, `/weather`, and `/http-get`
-- built-in keyword examples cover `g`, `jira`, `gh`, and `weather`
-- built-in reusable helpers cover `Normalize Query`, `Build Search URL`, and `GitHub Response Items`
-
-Current workflow reference syntax:
-
-- `{{args.query}}`
-- `{{context.clipboard}}`
-- `{{inputs.input}}`
-- `{{nodes.parse.default.user.name}}`
-- `{{item.full_name}}` inside launcher-result item mapping
-- `{{index}}` inside launcher-result item mapping
-
-Reusable workflow contracts:
-
-- reusable workflows declare named inputs with value types
-- reusable workflows declare named outputs via `valueTemplate`
-- `Invoke Workflow` returns those outputs as a structured object on `default`
-- parent workflows read them with references such as `{{nodes.build.default.url}}`
-
-Current trigger model:
-
-- `slash-command`: `/google pulse launcher`
-- `keyword`: `g pulse launcher`
-- `manual`: editor or reusable-subflow entrypoint
-- `hotkey`: persisted scaffold only in this phase
-
-Keyword Trigger v1 behavior:
-
-- the first token is the fixed trigger keyword
-- the remaining text becomes the workflow's primary argument payload
-- optional aliases can point at the same workflow
-- launcher results show trigger type and example invocation where helpful
-- conflicts are resolved locally with deterministic priority instead of implicit merging
-
-Current workflow node support:
-
-- input:
-  query input, clipboard input, static value
-- transform:
-  template, regex replace, conditional branch, JSON parse, JSON extract
-- action:
-  HTTP request, invoke workflow, open URL, copy to clipboard, open file, run shell command, invoke shared action, invoke plugin command
-- output:
-  return text, return action result, show launcher results, emit toast
-
-HTTP Request output schema:
-
-- `default`: full response object with `url`, `status`, `ok`, `headers`, `contentType`, `text`, and `json`
-- `status`: numeric HTTP status
-- `ok`: boolean success flag
-- `text`: raw response text
-- `json`: parsed JSON object when available, otherwise `null`
-- `headers`: response header map scaffold
-
-Show Launcher Results modes:
-
-- `query`: re-run launcher search through the shared provider pipeline
-- `items`: map workflow data into real launcher results with `title`, `subtitle`, `icon`, `payload`, `default action`, `type`, and `source`
-
-Reusable composition constraints in runtime v1:
-
-- invoked workflows must be explicitly marked reusable
-- reusable calls are validated against the local workflow catalog
-- self-recursion and cyclic workflow dependencies are rejected
-- reusable outputs currently come back as one structured object, not dynamic graph ports
-- nested subflow execution logs are preserved under the `Invoke Workflow` node
-
-Planned-only nodes that remain deferred:
-
-- file input
-- return files
-
-Workflow runtime v1 intentionally does not include:
-
-- loops
-- parallel branches or async orchestration
-- authenticated or stateful HTTP sessions beyond simple headers and JSON body
-- recursive or arbitrarily deep workflow composition beyond validated acyclic subflows
-- free-form drag-anywhere graph editing
-- full native shell workflow editing parity
-- full hotkey trigger execution
-
-## Plugin authoring
-
-Plugin System v1 is local-only and intentionally small:
-
-- plugins are discovered from a local plugins directory
-- each plugin has a `manifest.json` plus a JS-compatible ESM entry file
-- each plugin runs in a dedicated worker
-- plugin search and action execution are wrapped in timeouts
-- sensitive capabilities are gated by explicit permissions
-- missing permissions surface as approval requests in Settings
-
-Current permission model:
-
-- `network`
-- `filesystem.read`
-- `filesystem.write`
-- `clipboard.read`
-- `clipboard.write`
-- `shell.exec`
-- `notifications`
-
-Minimal plugin shape:
-
-```text
 my-plugin/
 ├── manifest.json
 └── src/
     └── index.js
 ```
 
-Minimal manifest:
+**manifest.json**
 
 ```json
 {
@@ -405,102 +141,104 @@ Minimal manifest:
   "name": "Demo Plugin",
   "version": "0.1.0",
   "entry": "src/index.js",
-  "commands": [
-    {
-      "name": "demo",
-      "title": "Demo command"
-    }
-  ],
+  "commands": [{ "name": "demo", "title": "Demo command" }],
   "permissions": []
 }
 ```
 
-Minimal entry:
+**src/index.js**
 
 ```js
-/** @typedef {import("@pulse/plugin-sdk").LauncherPluginModule} LauncherPluginModule */
-
-/** @type {LauncherPluginModule} */
 const plugin = {
   async search(context) {
     if (!context.query.startsWith("demo ")) return [];
-    return [
-      {
-        id: "demo:hello",
-        title: "Hello from plugin",
-        type: "plugin",
-        actions: [
-          {
-            id: "copy",
-            title: "Copy text",
-            kind: "copy-text",
-            payload: { text: "hello" }
-          }
-        ]
-      }
-    ];
+    return [{
+      id: "demo:hello",
+      title: "Hello from plugin",
+      type: "plugin",
+      actions: [{
+        id: "copy",
+        title: "Copy text",
+        kind: "copy-text",
+        payload: { text: "hello" }
+      }]
+    }];
   }
 };
-
 export default plugin;
 ```
 
-Example plugins shipped in this repo:
+### Permission Model
 
-- [plugins/calculator](/Users/chenhz/Documents/work-station/openSpotlightBar/plugins/calculator)
-- [plugins/github](/Users/chenhz/Documents/work-station/openSpotlightBar/plugins/github)
-- [plugins/shell](/Users/chenhz/Documents/work-station/openSpotlightBar/plugins/shell)
+Plugins request capabilities explicitly in their manifest:
 
-## Packaging and release
+`network` · `filesystem.read` · `filesystem.write` · `clipboard.read` · `clipboard.write` · `shell.exec` · `notifications`
 
-Platform build helpers:
+Missing permissions surface as approval requests in Settings → Plugins.
 
-- `pnpm release:macos`
-- `pnpm release:windows`
-- `pnpm release:linux`
+### Plugin Marketplace
 
-Each script installs dependencies with a frozen lockfile, runs `pnpm verify` by default, and then executes `tauri build`.
+The marketplace connects to a remote plugin registry (GitHub-hosted JSON index). From **Settings → Marketplace** you can:
 
-Detailed local release notes: [docs/release.md](/Users/chenhz/Documents/work-station/openSpotlightBar/docs/release.md)
+- Browse available community plugins sorted by stars or update date
+- Search by name, description, or tags
+- One-click install via `git clone`
+- Uninstall with directory cleanup
 
-## Current limitations by platform
+## Workflows
 
-macOS:
+Workflows are a visual, node-based automation system triggered from the launcher.
 
-- application discovery currently scans `/Applications` and `~/Applications`
-- deeper Launch Services integration is still TODO
-- signing and notarization are not configured yet
+### Trigger Types
 
-Windows:
+| Type | Example |
+|------|---------|
+| Slash command | `/google pulse launcher` |
+| Keyword | `g pulse launcher`, `weather Shanghai` |
+| Manual | Run from the workflow editor |
+| Hotkey | *(scaffold — coming soon)* |
 
-- application discovery is based on Start Menu shortcuts and common install paths
-- richer registry-backed discovery can be added later
-- signing and installer hardening are not configured yet
+### Built-in Workflows
 
-Linux:
+`/google` · `/jira` · `/clip-clean` · `/echo` · `/json-pretty` · `/url-encode` · `/reindex-now` · `/ghrepo` · `/gh-search` · `/weather` · `/http-get`
 
-- application discovery currently parses standard `.desktop` entries
-- package dependencies vary by distribution
-- native clipboard watcher improvements are still TODO
+Keyword triggers: `g`, `jira`, `gh`, `weather`
 
-Cross-platform:
+### Node Types
 
-- file indexing is intentionally shallow and does not do content indexing
-- file indexing uses full rebuilds, not incremental updates
-- clipboard history is text-first; image and file payloads are modeled but not implemented
-- clipboard watching still uses a polling-first implementation
-- snippet expansion currently copies output to the clipboard instead of injecting text globally
-- hotkey editing is a scaffold, not a native shortcut recorder
-- plugin isolation currently uses workers plus host permission gating, not a hardened OS sandbox
-- plugin entries must currently be JS-compatible at runtime
-- the native macOS shell exposes shared data and actions, but not yet the full plugin worker runtime
+- **Input**: Query, Clipboard, Static Value
+- **Transform**: Template, Regex Replace, Conditional Branch, JSON Parse/Extract
+- **Action**: HTTP Request, Invoke Workflow, Open URL, Copy to Clipboard, Run Shell, Open File
+- **Output**: Return Text, Show Launcher Results, Emit Toast
 
-## Roadmap
+### Reference Syntax
 
-1. Add stronger index scheduling and eventual incremental indexing without leaving the lightweight metadata model.
-2. Expose more of the shared plugin runtime inside the native macOS shell.
-3. Replace polling-based clipboard observation with native watchers and privacy-aware source filtering.
-4. Add true global snippet expansion hooks with app-aware restrictions.
-5. Harden plugin sandboxing, packaging, installation flows, and final release automation.
+```
+{{args.query}}                        # Trigger argument
+{{context.clipboard}}                 # Launcher context
+{{nodes.parse.default.user.name}}     # Previous node output
+{{item.full_name}}                    # Item mapping in result lists
+```
 
-Additional roadmap detail: [docs/roadmap.md](/Users/chenhz/Documents/work-station/openSpotlightBar/docs/roadmap.md)
+## Platform Status
+
+| Platform | Status |
+|----------|--------|
+| **macOS** | Native SwiftUI/AppKit shell + Tauri — demo-ready |
+| **Windows** | Tauri shell — demo-ready |
+| **Linux** | Tauri shell — demo-ready |
+
+## Contributing
+
+1. Fork the repo and create a feature branch
+2. Run `pnpm verify` to ensure everything passes
+3. Open a pull request
+
+See [docs/architecture.md](docs/architecture.md) for deeper technical context and [docs/roadmap.md](docs/roadmap.md) for planned work.
+
+## License
+
+This project is open source. See the repository for license details.
+
+
+

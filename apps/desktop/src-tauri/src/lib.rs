@@ -10,17 +10,17 @@ mod state;
 use std::sync::Arc;
 
 use commands::{
-    bootstrap_state, delete_snippet, delete_workflow, get_file_index_status, hide_window,
-    resize_window,
+    bootstrap_state, delete_snippet, delete_workflow, fetch_plugin_registry,
+    get_file_index_status, hide_window, install_marketplace_plugin, open_devtools, resize_window,
     list_clipboard_items, list_snippets, list_workflows, perform_action, plugin_exec_shell,
     plugin_read_clipboard_text, plugin_write_clipboard_text, rebuild_file_index, record_selection,
-    save_snippet, save_workflow, search_apps, search_files, update_settings, workflow_exec_shell,
-    workflow_http_request,
+    save_snippet, save_workflow, search_apps, search_files, uninstall_marketplace_plugin,
+    update_settings, workflow_exec_shell, workflow_http_request,
 };
 use db::Database;
 use error::{AppError, AppResult};
 use state::AppState;
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Manager, PhysicalPosition, WebviewWindow};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 
 pub fn run() {
@@ -47,6 +47,12 @@ pub fn run() {
                 *guard = file_index_status;
             }
             app.manage(state.clone());
+
+            // Auto-open devtools in debug builds
+            #[cfg(debug_assertions)]
+            if let Some(window) = app.get_webview_window("main") {
+                window.open_devtools();
+            }
 
             refresh_app_cache(app.handle());
             register_hotkey(app.handle(), &settings.hotkey)?;
@@ -77,7 +83,11 @@ pub fn run() {
             plugin_read_clipboard_text,
             plugin_write_clipboard_text,
             perform_action,
-            hide_window
+            hide_window,
+            open_devtools,
+            fetch_plugin_registry,
+            install_marketplace_plugin,
+            uninstall_marketplace_plugin
         ])
         .run(tauri::generate_context!())
         .expect("error while running Pulse Launcher");
@@ -129,9 +139,26 @@ pub fn toggle_main_window(app: &AppHandle) -> AppResult<()> {
     if window.is_visible()? {
         window.hide()?;
     } else {
-        window.center()?;
         window.show()?;
+        center_window_for_current_size(&window)?;
         window.set_focus()?;
     }
+    Ok(())
+}
+
+fn center_window_for_current_size(window: &WebviewWindow) -> AppResult<()> {
+    let monitor = window.current_monitor()?.or(window.primary_monitor()?);
+
+    let Some(monitor) = monitor else {
+        window.center()?;
+        return Ok(());
+    };
+
+    let work_area = monitor.work_area();
+    let size = window.outer_size()?;
+    let x = work_area.position.x + ((work_area.size.width as i32 - size.width as i32) / 2);
+    let y = work_area.position.y + ((work_area.size.height as i32 - size.height as i32) / 2);
+
+    window.set_position(PhysicalPosition::new(x, y))?;
     Ok(())
 }

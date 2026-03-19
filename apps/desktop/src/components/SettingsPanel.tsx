@@ -13,6 +13,7 @@ import type {
 } from "@pulse/shared-types";
 
 import type { ConfigSection } from "../features/commands/config-command";
+import { MarketplacePanel } from "./MarketplacePanel";
 
 interface SettingsPanelProps {
   settings: LauncherSettings;
@@ -21,6 +22,7 @@ interface SettingsPanelProps {
   clipboardCount: number;
   plugins: PluginRuntimeSnapshot[];
   permissionRequests: PluginPermissionRequest[];
+  useChineseCopy: boolean;
   initialSection?: ConfigSection;
   onSaveSettings(settings: LauncherSettings): Promise<void>;
   onRebuildIndex(): Promise<void>;
@@ -55,55 +57,204 @@ const SOURCE_WEIGHT_FIELDS: ResultSource[] = [
   "system"
 ];
 
-const SETTINGS_SECTIONS: Array<{
+function getSourceWeightLabel(source: ResultSource, useChineseCopy: boolean): string {
+  const labels: Record<ResultSource, string> = useChineseCopy
+    ? {
+        apps: "应用",
+        files: "文件",
+        web: "网页",
+        clipboard: "剪贴板",
+        snippets: "片段",
+        plugins: "插件",
+        workflows: "工作流",
+        system: "系统"
+      }
+    : {
+        apps: "Apps",
+        files: "Files",
+        web: "Web",
+        clipboard: "Clipboard",
+        snippets: "Snippets",
+        plugins: "Plugins",
+        workflows: "Workflows",
+        system: "System"
+      };
+
+  return useChineseCopy ? `${labels[source]} 权重` : `${labels[source]} weight`;
+}
+
+function formatIndexStateLabel(
+  state: FileIndexStatus["state"] | undefined | null,
+  useChineseCopy: boolean
+): string {
+  if (!state) {
+    return useChineseCopy ? "初始化中" : "bootstrapping";
+  }
+
+  if (!useChineseCopy) {
+    return state;
+  }
+
+  switch (state) {
+    case "idle":
+      return "空闲";
+    case "indexing":
+      return "索引中";
+    case "ready":
+      return "就绪";
+    case "error":
+      return "错误";
+    case "stale":
+      return "待刷新";
+    case "paused":
+      return "已暂停";
+  }
+}
+
+function formatPluginStatusLabel(
+  status: PluginRuntimeSnapshot["status"],
+  useChineseCopy: boolean
+): string {
+  if (!useChineseCopy) {
+    return status;
+  }
+
+  switch (status) {
+    case "loading":
+      return "加载中";
+    case "ready":
+      return "就绪";
+    case "disabled":
+      return "已禁用";
+    case "permission-required":
+      return "需要权限";
+    case "timed-out":
+      return "超时";
+    case "error":
+      return "错误";
+  }
+}
+
+function getSettingsSections(useChineseCopy: boolean): Array<{
   id: ConfigSection;
   label: string;
   command: string;
   description: string;
-}> = [
-  {
-    id: "general",
-    label: "General",
-    command: "/config",
-    description: "Launcher defaults and hotkey scaffolding."
-  },
-  {
-    id: "search",
-    label: "Search",
-    command: "/config search",
-    description: "Provider weights, result limits, and scope hints."
-  },
-  {
-    id: "clipboard",
-    label: "Clipboard",
-    command: "/config clipboard",
-    description: "Local clipboard retention and privacy scaffolding."
-  },
-  {
-    id: "indexing",
-    label: "Indexing",
-    command: "/config indexing",
-    description: "Directory roots for lightweight file search."
-  },
-  {
-    id: "snippets",
-    label: "Snippets",
-    command: "/config snippets",
-    description: "Snippet CRUD and expansion settings."
-  },
-  {
-    id: "plugins",
-    label: "Plugins",
-    command: "/config plugins",
-    description: "Plugin host state, permissions, and timeouts."
-  },
-  {
-    id: "appearance",
-    label: "Appearance",
-    command: "/config appearance",
-    description: "Theme and density placeholders."
-  }
-];
+}> {
+  return useChineseCopy
+    ? [
+        {
+          id: "overview",
+          label: "总览",
+          command: "/config overview",
+          description: "查看整个启动器的全局计数和健康状态。"
+        },
+        {
+          id: "general",
+          label: "常规",
+          command: "/config general",
+          description: "启动器默认行为与快捷键基础配置。"
+        },
+        {
+          id: "search",
+          label: "搜索",
+          command: "/config search",
+          description: "Provider 权重、结果数量和作用域提示。"
+        },
+        {
+          id: "clipboard",
+          label: "剪贴板",
+          command: "/config clipboard",
+          description: "本地剪贴板保留策略与隐私设置。"
+        },
+        {
+          id: "indexing",
+          label: "索引",
+          command: "/config indexing",
+          description: "轻量文件搜索所使用的目录根路径。"
+        },
+        {
+          id: "snippets",
+          label: "片段",
+          command: "/config snippets",
+          description: "片段的增删改查与展开设置。"
+        },
+        {
+          id: "plugins",
+          label: "插件",
+          command: "/config plugins",
+          description: "插件宿主状态、权限和超时配置。"
+        },
+        {
+          id: "marketplace",
+          label: "插件市场",
+          command: "/config marketplace",
+          description: "浏览、安装和管理社区插件。"
+        },
+        {
+          id: "appearance",
+          label: "外观",
+          command: "/config appearance",
+          description: "主题和密度等外观设置。"
+        }
+      ]
+    : [
+        {
+          id: "overview",
+          label: "Overview",
+          command: "/config overview",
+          description: "Cross-launcher counts and health snapshot."
+        },
+        {
+          id: "general",
+          label: "General",
+          command: "/config general",
+          description: "Launcher defaults and hotkey scaffolding."
+        },
+        {
+          id: "search",
+          label: "Search",
+          command: "/config search",
+          description: "Provider weights, result limits, and scope hints."
+        },
+        {
+          id: "clipboard",
+          label: "Clipboard",
+          command: "/config clipboard",
+          description: "Local clipboard retention and privacy scaffolding."
+        },
+        {
+          id: "indexing",
+          label: "Indexing",
+          command: "/config indexing",
+          description: "Directory roots for lightweight file search."
+        },
+        {
+          id: "snippets",
+          label: "Snippets",
+          command: "/config snippets",
+          description: "Snippet CRUD and expansion settings."
+        },
+        {
+          id: "plugins",
+          label: "Plugins",
+          command: "/config plugins",
+          description: "Plugin host state, permissions, and timeouts."
+        },
+        {
+          id: "marketplace",
+          label: "Marketplace",
+          command: "/config marketplace",
+          description: "Browse, install, and manage community plugins."
+        },
+        {
+          id: "appearance",
+          label: "Appearance",
+          command: "/config appearance",
+          description: "Theme and density placeholders."
+        }
+      ];
+}
 
 const EMPTY_SNIPPET: SnippetFormState = {
   name: "",
@@ -121,7 +272,8 @@ export function SettingsPanel({
   clipboardCount,
   plugins,
   permissionRequests,
-  initialSection = "general",
+  useChineseCopy,
+  initialSection = "overview",
   onSaveSettings,
   onRebuildIndex,
   onSaveSnippet,
@@ -133,6 +285,352 @@ export function SettingsPanel({
   onTogglePluginEnabled,
   onClose
 }: SettingsPanelProps) {
+  const sections = getSettingsSections(useChineseCopy);
+  const copy = useChineseCopy
+    ? {
+        settingsTitle: "设置",
+        back: "返回",
+        save: "保存",
+        saving: "保存中...",
+        commandEntry: "命令入口",
+        metricDedicated: "独立界面",
+        overviewTitle: "总览",
+        overviewDescription: "把整个启动器的关键计数和健康状态集中放在这里。",
+        overviewFooter: "把这里当作全局快照入口，需要调整具体行为时再进入对应分区。",
+        metricTitles: {
+          indexedFiles: "已索引文件",
+          clipboard: "剪贴板",
+          snippets: "片段",
+          plugins: "插件",
+          workflow: "工作流",
+          permPrompts: "权限请求"
+        },
+        metricDetails: {
+          indexedFiles: "轻量文件名和路径条目已可用于文件搜索。",
+          clipboard: "本地剪贴板条目可用于搜索和动作执行。",
+          snippets: "已保存片段可用于搜索和展开动作。",
+          plugins: "当前工作区中已发现的插件运行时或清单。",
+          workflow: "工作流保持独立界面，避免把启动器 bar 挤满。",
+          permPrompts: "等待处理的插件权限批准请求。"
+        },
+        general: {
+          title: "常规",
+          description: "启动器级别的偏好、语言以及基础搜索默认值。",
+          hotkeyTitle: "快捷键",
+          hotkeyDescription: "全局快捷键自定义的基础版本。原生按键录制后续补齐。",
+          language: "语言",
+          followSystem: "跟随系统",
+          english: "English",
+          simplifiedChinese: "简体中文",
+          maxResults: "最大结果数",
+          defaultWebEngine: "默认网页搜索引擎",
+          launcherHotkey: "启动器快捷键",
+          hotkeyTodo: "TODO：后续替换为平台感知的按键录制和冲突检测。"
+        },
+        search: {
+          title: "搜索",
+          description: "调节排序管线中的 Provider 权重和作用域快捷方式。",
+          fileIndex: "文件索引",
+          fileIndexFallback: "轻量文件名和路径索引支撑文件搜索。",
+          indexedFiles: "已索引文件",
+          indexedFilesCap: (maxIndexedFiles: number) =>
+            `当前已达到 ${maxIndexedFiles} 条的索引上限。`,
+          indexedFilesDirectories: (directoryCount: number) =>
+            `已纳入 ${directoryCount} 个目录。`,
+          lastRebuild: "最近重建",
+          lastRebuildDetail: "用 /config indexing 查看根目录、排除项和重建状态。",
+          fileRanking: "文件排序",
+          fileRankingValue: "模糊 + 时效",
+          fileRankingDetail:
+            "文件名和路径匹配会综合 prefix、精确匹配、修改时间和使用历史。",
+          rankingNote:
+            "文件结果刻意保持轻量，只根据文件名与路径匹配质量、prefix/精确命中奖励、修改时间和本地使用历史来排序。"
+        },
+        clipboard: {
+          title: "剪贴板",
+          description: "以文本优先的本地历史，带隐私排除和动作钩子。",
+          storedItems: "存储条数",
+          pollInterval: "轮询间隔（毫秒）",
+          currentItems: "当前本地条目",
+          privateApps: "私密应用（每行一个）",
+          privateAppsPlaceholder: "1Password\n钥匙串访问",
+          clearHistory: "清空历史",
+          privacyTodo: "TODO：后续按平台把私密应用排除真正接进原生剪贴板监听。"
+        },
+        indexing: {
+          title: "目录索引",
+          description:
+            "这里只做轻量文件名、路径和元数据索引。管理根目录和排除项后再重建。",
+          state: "状态",
+          indexedEntries: "已索引条目",
+          indexedEntriesCap: (maxIndexedFiles: number) =>
+            `已触达当前 ${maxIndexedFiles} 条的轻量索引上限。`,
+          indexedEntriesBelowCap: "仍低于当前轻量索引上限。",
+          directories: "目录数",
+          directoriesDetail: "为空时会使用默认的 Desktop、Documents 和 Downloads 根目录。",
+          lastRebuild: "最近重建",
+          lastRebuildPaused: "索引已暂停，恢复后才会继续。",
+          lastRebuildReady: "修改根目录或排除项后请重建。",
+          pauseAutomaticIndexing: "暂停自动索引",
+          rebuildNotice:
+            "目录和排除项的变更只有在重建后才生效；在那之前，现有结果仍可搜索。",
+          indexedDirectories: "已索引目录",
+          excludedPaths: "排除路径",
+          remove: "移除",
+          addDirectory: "添加目录",
+          addExclusion: "添加排除项",
+          rebuildIndex: "重建索引",
+          implicitIgnores: "隐式忽略项",
+          currentStatus: (
+            stateLabel: string,
+            indexedCount: number,
+            directoryCount: number,
+            exclusionCount: number
+          ) =>
+            `当前索引状态：${stateLabel} · ${indexedCount} 条目 · ${directoryCount} 个目录 · ${exclusionCount} 个排除项。`,
+          lastError: "最近一次索引错误"
+        },
+        snippets: {
+          title: "片段",
+          description: "本地片段存储，支持轻量变量展开和搜索集成。",
+          showInSearch: "在启动器搜索中显示片段",
+          enableHooks: "启用展开钩子",
+          variablesNote:
+            "变量：{{date}}、{{time}}、{{clipboard}}、{{uuid}}。TODO：全局文本展开钩子仍是平台相关工作。",
+          newSnippet: "新建片段",
+          name: "名称",
+          trigger: "触发词",
+          content: "内容",
+          scope: "作用域占位",
+          appRestriction: "应用限制占位",
+          enabled: "启用片段",
+          saveSnippet: "保存片段",
+          deleteSnippet: "删除片段"
+        },
+        plugins: {
+          title: "插件",
+          description: "Worker 隔离插件宿主，带显式本地权限和优雅失败处理。",
+          enableHost: "启用插件宿主",
+          promptOnFirstPermission: "首次权限请求时提示",
+          timeout: "插件超时（毫秒）",
+          pendingPrompts: "待处理权限请求",
+          requestsPermission: (pluginName: string) => `${pluginName} 请求权限`,
+          grant: "允许",
+          dismiss: "忽略",
+          disable: "禁用",
+          enable: "启用",
+          permissions: "权限",
+          granted: "已允许",
+          notGranted: "未允许",
+          revoke: "撤销",
+          noPermissions: "这个插件没有申请权限。",
+          lastHostError: "最近一次宿主错误",
+          sandboxTodo:
+            "TODO：把插件执行放进更严格的沙箱，并补上第三方插件签名安装流程。"
+        },
+        appearance: {
+          title: "外观",
+          description: "启动器 UI 仍保持紧凑，这里先提供主题和密度相关设置。",
+          theme: "主题",
+          system: "跟随系统",
+          light: "浅色",
+          dark: "深色",
+          denseMode: "紧凑模式",
+          reduceMotion: "减少动效",
+          todo: "TODO：等桌面端视觉语言稳定后，再补更完整的主题系统。"
+        },
+        workflow: {
+          title: "工作流",
+          description: "面向未来工作流自动化的命令式配置入口。",
+          intro:
+            "这里是工作流编排和自动化规则的占位入口，后续会通过 /config workflow 从启动器进入。",
+          today:
+            "当前最接近的扩展点还是 snippets、plugin commands 和 action composition。专用工作流编辑器仍需要独立模型和执行层。",
+          todo:
+            "TODO：补上工作流定义、排序、触发器和逐条权限控制，同时不要把 launcher shell 变成整页设置应用。"
+        },
+        marketplace: {
+          title: "插件市场",
+          description: "浏览、安装和管理来自在线注册表的社区插件。"
+        }
+      }
+    : {
+        settingsTitle: "Settings",
+        back: "Back",
+        save: "Save",
+        saving: "Saving...",
+        commandEntry: "Command entry",
+        metricDedicated: "Dedicated",
+        overviewTitle: "Overview",
+        overviewDescription: "Cross-launcher counts and health summarized in one place.",
+        overviewFooter:
+          "Use this section as the launcher-wide snapshot, then jump into the task-specific pages below when you need to change behavior.",
+        metricTitles: {
+          indexedFiles: "Indexed files",
+          clipboard: "Clipboard",
+          snippets: "Snippets",
+          plugins: "Plugins",
+          workflow: "Workflow",
+          permPrompts: "Perm prompts"
+        },
+        metricDetails: {
+          indexedFiles: "Lightweight filename and path entries ready for file search.",
+          clipboard: "Local clipboard items available to search and actions.",
+          snippets: "Saved snippets ready for search and expansion actions.",
+          plugins: "Discovered plugin runtimes or manifests in the current workspace.",
+          workflow: "Workflow opens as its own surface instead of bloating the launcher bar.",
+          permPrompts: "Pending plugin permission approvals waiting for attention."
+        },
+        general: {
+          title: "General",
+          description: "Launcher-wide preferences, language, and baseline search defaults.",
+          hotkeyTitle: "Hotkey",
+          hotkeyDescription:
+            "Scaffold for global hotkey customization. Native key capture remains a later TODO.",
+          language: "Language",
+          followSystem: "Follow system",
+          english: "English",
+          simplifiedChinese: "简体中文",
+          maxResults: "Max results",
+          defaultWebEngine: "Default web engine",
+          launcherHotkey: "Launcher hotkey",
+          hotkeyTodo:
+            "TODO: replace free-form input with a platform-aware recorder and conflict detection."
+        },
+        search: {
+          title: "Search",
+          description: "Provider weights and scope shortcuts that drive the ranking pipeline.",
+          fileIndex: "File index",
+          fileIndexFallback: "Lightweight filename and path indexing powers file search.",
+          indexedFiles: "Indexed files",
+          indexedFilesCap: (maxIndexedFiles: number) =>
+            `Current cap reached at ${maxIndexedFiles} items.`,
+          indexedFilesDirectories: (directoryCount: number) =>
+            `${directoryCount} directories included.`,
+          lastRebuild: "Last rebuild",
+          lastRebuildDetail: "Use /config indexing to review roots, exclusions, and rebuild health.",
+          fileRanking: "File ranking",
+          fileRankingValue: "Fuzzy + recency",
+          fileRankingDetail:
+            "Filename/path matching combines prefix, exact match, modified time, and usage history.",
+          rankingNote:
+            "File results stay lightweight by design. They rank on filename and path match quality, prefix and exact bonuses, modified-time recency, and local usage history."
+        },
+        clipboard: {
+          title: "Clipboard",
+          description:
+            "Text-first history with local storage, privacy scaffolding, and action hooks.",
+          storedItems: "Stored items",
+          pollInterval: "Poll interval (ms)",
+          currentItems: "Current local items",
+          privateApps: "Private apps (one per line)",
+          privateAppsPlaceholder: "1Password\nKeychain Access",
+          clearHistory: "Clear history",
+          privacyTodo:
+            "TODO: enforce private-app exclusion from native clipboard watchers per platform."
+        },
+        indexing: {
+          title: "Directory Indexing",
+          description:
+            "Lightweight filename, path, and metadata indexing only. Manage roots and exclusions here, then rebuild.",
+          state: "State",
+          indexedEntries: "Indexed entries",
+          indexedEntriesCap: (maxIndexedFiles: number) =>
+            `Hit the current cap of ${maxIndexedFiles} indexed items.`,
+          indexedEntriesBelowCap: "Below the current lightweight index cap.",
+          directories: "Directories",
+          directoriesDetail:
+            "Empty means the default Desktop, Documents, and Downloads roots.",
+          lastRebuild: "Last rebuild",
+          lastRebuildPaused: "Indexing is paused until you resume it.",
+          lastRebuildReady: "Rebuild after changing roots or exclusions.",
+          pauseAutomaticIndexing: "Pause automatic indexing",
+          rebuildNotice:
+            "Exclusions and directory changes only apply after a rebuild. Existing indexed results remain searchable until then.",
+          indexedDirectories: "Indexed directories",
+          excludedPaths: "Excluded paths",
+          remove: "Remove",
+          addDirectory: "Add directory",
+          addExclusion: "Add exclusion",
+          rebuildIndex: "Rebuild index",
+          implicitIgnores: "Implicit ignores",
+          currentStatus: (
+            stateLabel: string,
+            indexedCount: number,
+            directoryCount: number,
+            exclusionCount: number
+          ) =>
+            `Current index status: ${stateLabel} · ${indexedCount} entries · ${directoryCount} directories · ${exclusionCount} exclusions.`,
+          lastError: "Last index error"
+        },
+        snippets: {
+          title: "Snippets",
+          description:
+            "Local snippet storage with lightweight variable expansion and search integration.",
+          showInSearch: "Show snippets in launcher search",
+          enableHooks: "Enable expansion hooks",
+          variablesNote:
+            "Variables: {{date}}, {{time}}, {{clipboard}}, {{uuid}}. TODO: global text expansion hooks remain platform-specific work.",
+          newSnippet: "New snippet",
+          name: "Name",
+          trigger: "Trigger",
+          content: "Content",
+          scope: "Scope scaffold",
+          appRestriction: "App restriction scaffold",
+          enabled: "Snippet enabled",
+          saveSnippet: "Save snippet",
+          deleteSnippet: "Delete snippet"
+        },
+        plugins: {
+          title: "Plugins",
+          description:
+            "Worker-isolated plugin host with explicit local permissions and graceful failure handling.",
+          enableHost: "Enable plugin host",
+          promptOnFirstPermission: "Prompt on first permission",
+          timeout: "Plugin timeout (ms)",
+          pendingPrompts: "Pending permission prompts",
+          requestsPermission: (pluginName: string) => `${pluginName} requests`,
+          grant: "Grant",
+          dismiss: "Dismiss",
+          disable: "Disable",
+          enable: "Enable",
+          permissions: "Permissions",
+          granted: "Granted",
+          notGranted: "Not granted",
+          revoke: "Revoke",
+          noPermissions: "This plugin does not request permissions.",
+          lastHostError: "Last host error",
+          sandboxTodo:
+            "TODO: move plugin execution into a stricter sandbox and add signed-install flows for third-party plugins."
+        },
+        appearance: {
+          title: "Appearance",
+          description:
+            "Theme and density placeholder while the launcher UI system stays compact.",
+          theme: "Theme",
+          system: "System",
+          light: "Light",
+          dark: "Dark",
+          denseMode: "Dense mode",
+          reduceMotion: "Reduce motion",
+          todo:
+            "TODO: add a broader theming system once the visual language stabilizes across desktop platforms."
+        },
+        workflow: {
+          title: "Workflow",
+          description: "Command-driven configuration entry for future workflow automation.",
+          intro:
+            "This section is the placeholder for workflow authoring and automation rules that should be reachable from the launcher via /config workflow.",
+          today:
+            "Today, the closest extension points are snippets, plugin commands, and action composition. A dedicated workflow editor still needs a separate model and execution layer.",
+          todo:
+            "TODO: add workflow definitions, ordering, triggers, and per-workflow permissions without turning the launcher shell into a full-page settings app."
+        },
+        marketplace: {
+          title: "Marketplace",
+          description: "Browse, install, and manage community plugins from the online registry."
+        }
+      };
   const [draft, setDraft] = useState(() => cloneSettings(settings));
   const [activeSection, setActiveSection] = useState<ConfigSection>(initialSection);
   const [privateAppsDraft, setPrivateAppsDraft] = useState(
@@ -218,16 +716,14 @@ export function SettingsPanel({
     }
   }
 
-  const sectionMeta =
-    SETTINGS_SECTIONS.find((section) => section.id === activeSection) ??
-    SETTINGS_SECTIONS[0];
+  const sectionMeta = sections.find((section) => section.id === activeSection) ?? sections[0];
 
   return (
     <section className="shell-panel rounded-[28px] p-4 md:p-5">
       <div className="flex flex-col gap-4 border-b border-[color:var(--shell-border)] pb-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <div className="shell-kicker">Settings</div>
+            <div className="shell-kicker">{copy.settingsTitle}</div>
             <div className="mt-2 text-2xl font-semibold text-[color:var(--shell-text-primary)]">
               {sectionMeta.label}
             </div>
@@ -237,7 +733,7 @@ export function SettingsPanel({
           </div>
           <div className="flex flex-wrap gap-2">
             <button type="button" className={secondaryButtonClassName} onClick={onClose}>
-              Back
+              {copy.back}
             </button>
             <button
               type="button"
@@ -247,13 +743,13 @@ export function SettingsPanel({
               }}
               disabled={savingSettings}
             >
-              {savingSettings ? "Saving..." : "Save"}
+              {savingSettings ? copy.saving : copy.save}
             </button>
           </div>
         </div>
 
         <div className="flex flex-wrap gap-2">
-          {SETTINGS_SECTIONS.map((section) => (
+          {sections.map((section) => (
             <button
               key={section.id}
               type="button"
@@ -271,7 +767,7 @@ export function SettingsPanel({
         </div>
 
         <div className="rounded-2xl border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-muted)] px-4 py-3 text-sm text-[color:var(--shell-text-secondary)]">
-          Command entry: <code>{sectionMeta.command}</code>
+          {copy.commandEntry}: <code>{sectionMeta.command}</code>
         </div>
       </div>
 
@@ -281,15 +777,60 @@ export function SettingsPanel({
 
   function renderActiveSection(): ReactNode {
     switch (activeSection) {
+      case "overview":
+        return (
+          <SectionCard
+            title={copy.overviewTitle}
+            description={copy.overviewDescription}
+          >
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              <StatusMetricCard
+                title={copy.metricTitles.indexedFiles}
+                value={String(fileIndexStatus?.indexedCount ?? 0)}
+                detail={copy.metricDetails.indexedFiles}
+              />
+              <StatusMetricCard
+                title={copy.metricTitles.clipboard}
+                value={String(clipboardCount)}
+                detail={copy.metricDetails.clipboard}
+              />
+              <StatusMetricCard
+                title={copy.metricTitles.snippets}
+                value={String(snippets.length)}
+                detail={copy.metricDetails.snippets}
+              />
+              <StatusMetricCard
+                title={copy.metricTitles.plugins}
+                value={String(plugins.length)}
+                detail={copy.metricDetails.plugins}
+              />
+              <StatusMetricCard
+                title={copy.metricTitles.workflow}
+                value={copy.metricDedicated}
+                detail={copy.metricDetails.workflow}
+              />
+              <StatusMetricCard
+                title={copy.metricTitles.permPrompts}
+                value={String(permissionRequests.length)}
+                detail={copy.metricDetails.permPrompts}
+              />
+            </div>
+
+            <p className="mt-4 text-sm text-[color:var(--shell-text-secondary)]">
+              {copy.overviewFooter}
+            </p>
+          </SectionCard>
+        );
+
       case "general":
         return (
           <div className="space-y-4">
             <SectionCard
-              title="General"
-              description="Launcher-wide preferences, language, and baseline search defaults."
+              title={copy.general.title}
+              description={copy.general.description}
             >
               <div className="grid gap-3 md:grid-cols-2">
-                <Field label="Language">
+                <Field label={copy.general.language}>
                   <select
                     value={draft.language}
                     onChange={(event) =>
@@ -300,13 +841,13 @@ export function SettingsPanel({
                     }
                     className={selectClassName}
                   >
-                    <option value="system">Follow system</option>
-                    <option value="en-US">English</option>
-                    <option value="zh-CN">简体中文</option>
+                    <option value="system">{copy.general.followSystem}</option>
+                    <option value="en-US">{copy.general.english}</option>
+                    <option value="zh-CN">{copy.general.simplifiedChinese}</option>
                   </select>
                 </Field>
 
-                <Field label="Max results">
+                <Field label={copy.general.maxResults}>
                   <input
                     type="number"
                     min={3}
@@ -325,7 +866,7 @@ export function SettingsPanel({
                   />
                 </Field>
 
-                <Field label="Default web engine">
+                <Field label={copy.general.defaultWebEngine}>
                   <input
                     type="text"
                     value={draft.webSearch.defaultEngine}
@@ -345,10 +886,10 @@ export function SettingsPanel({
             </SectionCard>
 
             <SectionCard
-              title="Hotkey"
-              description="Scaffold for global hotkey customization. Native key capture remains a later TODO."
+              title={copy.general.hotkeyTitle}
+              description={copy.general.hotkeyDescription}
             >
-              <Field label="Launcher hotkey">
+              <Field label={copy.general.launcherHotkey}>
                 <input
                   type="text"
                   value={draft.hotkey}
@@ -357,8 +898,7 @@ export function SettingsPanel({
                 />
               </Field>
               <p className="mt-2 text-sm text-slate-400">
-                TODO: replace free-form input with a platform-aware recorder and conflict
-                detection.
+                {copy.general.hotkeyTodo}
               </p>
             </SectionCard>
           </div>
@@ -367,42 +907,43 @@ export function SettingsPanel({
       case "search":
         return (
           <SectionCard
-            title="Search"
-            description="Provider weights and scope shortcuts that drive the ranking pipeline."
+            title={copy.search.title}
+            description={copy.search.description}
           >
             <div className="mb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               <StatusMetricCard
-                title="File index"
-                value={fileIndexStatus?.state ?? "bootstrapping"}
+                title={copy.search.fileIndex}
+                value={formatIndexStateLabel(fileIndexStatus?.state, useChineseCopy)}
                 detail={
-                  fileIndexStatus?.message ??
-                  "Lightweight filename and path indexing powers file search."
+                  fileIndexStatus?.message ?? copy.search.fileIndexFallback
                 }
               />
               <StatusMetricCard
-                title="Indexed files"
+                title={copy.search.indexedFiles}
                 value={String(fileIndexStatus?.indexedCount ?? 0)}
                 detail={
                   fileIndexStatus?.truncated
-                    ? `Current cap reached at ${fileIndexStatus.maxIndexedFiles} items.`
-                    : `${fileIndexStatus?.indexedPaths.length ?? 0} directories included.`
+                    ? copy.search.indexedFilesCap(fileIndexStatus.maxIndexedFiles)
+                    : copy.search.indexedFilesDirectories(
+                        fileIndexStatus?.indexedPaths.length ?? 0
+                      )
                 }
               />
               <StatusMetricCard
-                title="Last rebuild"
+                title={copy.search.lastRebuild}
                 value={formatTimestamp(fileIndexStatus?.lastIndexedAt)}
-                detail="Use /config indexing to review roots, exclusions, and rebuild health."
+                detail={copy.search.lastRebuildDetail}
               />
               <StatusMetricCard
-                title="File ranking"
-                value="Fuzzy + recency"
-                detail="Filename/path matching combines prefix, exact match, modified time, and usage history."
+                title={copy.search.fileRanking}
+                value={copy.search.fileRankingValue}
+                detail={copy.search.fileRankingDetail}
               />
             </div>
 
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {SOURCE_WEIGHT_FIELDS.map((source) => (
-                <Field key={source} label={`${source} weight`}>
+                <Field key={source} label={getSourceWeightLabel(source, useChineseCopy)}>
                   <input
                     type="number"
                     step="0.05"
@@ -433,9 +974,7 @@ export function SettingsPanel({
               <ShortcutTag>`;standup`</ShortcutTag>
             </div>
             <p className="mt-3 text-sm text-[color:var(--shell-text-secondary)]">
-              File results stay lightweight by design. They rank on filename and path
-              match quality, prefix and exact bonuses, modified-time recency, and local
-              usage history.
+              {copy.search.rankingNote}
             </p>
           </SectionCard>
         );
@@ -443,11 +982,11 @@ export function SettingsPanel({
       case "clipboard":
         return (
           <SectionCard
-            title="Clipboard"
-            description="Text-first history with local storage, privacy scaffolding, and action hooks."
+            title={copy.clipboard.title}
+            description={copy.clipboard.description}
           >
             <div className="grid gap-3 md:grid-cols-3">
-              <Field label="Stored items">
+              <Field label={copy.clipboard.storedItems}>
                 <input
                   type="number"
                   min={10}
@@ -466,7 +1005,7 @@ export function SettingsPanel({
                 />
               </Field>
 
-              <Field label="Poll interval (ms)">
+              <Field label={copy.clipboard.pollInterval}>
                 <input
                   type="number"
                   min={400}
@@ -485,18 +1024,18 @@ export function SettingsPanel({
                 />
               </Field>
 
-              <Field label="Current local items">
+              <Field label={copy.clipboard.currentItems}>
                 <div className={staticFieldClassName}>{clipboardCount}</div>
               </Field>
             </div>
 
-            <Field label="Private apps (one per line)">
+            <Field label={copy.clipboard.privateApps}>
               <textarea
                 value={privateAppsDraft}
                 onChange={(event) => setPrivateAppsDraft(event.target.value)}
                 rows={4}
                 className={textareaClassName}
-                placeholder="1Password\nKeychain Access"
+                placeholder={copy.clipboard.privateAppsPlaceholder}
               />
             </Field>
 
@@ -508,11 +1047,10 @@ export function SettingsPanel({
                   void onClearClipboard();
                 }}
               >
-                Clear history
+                {copy.clipboard.clearHistory}
               </button>
               <span className="text-sm text-slate-400">
-                TODO: enforce private-app exclusion from native clipboard watchers per
-                platform.
+                {copy.clipboard.privacyTodo}
               </span>
             </div>
           </SectionCard>
@@ -521,47 +1059,47 @@ export function SettingsPanel({
       case "indexing":
         return (
           <SectionCard
-            title="Directory Indexing"
-            description="Lightweight filename, path, and metadata indexing only. Manage roots and exclusions here, then rebuild."
+            title={copy.indexing.title}
+            description={copy.indexing.description}
           >
             <div className="mb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               <StatusMetricCard
-                title="State"
-                value={fileIndexStatus?.state ?? "bootstrapping"}
+                title={copy.indexing.state}
+                value={formatIndexStateLabel(fileIndexStatus?.state, useChineseCopy)}
                 detail={
                   fileIndexStatus?.lastError ??
                   fileIndexStatus?.message ??
-                  "The file index is ready when lightweight metadata has been scanned."
+                  copy.search.fileIndexFallback
                 }
               />
               <StatusMetricCard
-                title="Indexed entries"
+                title={copy.indexing.indexedEntries}
                 value={String(fileIndexStatus?.indexedCount ?? 0)}
                 detail={
                   fileIndexStatus?.truncated
-                    ? `Hit the current cap of ${fileIndexStatus.maxIndexedFiles} indexed items.`
-                    : "Below the current lightweight index cap."
+                    ? copy.indexing.indexedEntriesCap(fileIndexStatus.maxIndexedFiles)
+                    : copy.indexing.indexedEntriesBelowCap
                 }
               />
               <StatusMetricCard
-                title="Directories"
+                title={copy.indexing.directories}
                 value={String(draft.indexPaths.length || fileIndexStatus?.indexedPaths.length || 0)}
-                detail="Empty means the default Desktop, Documents, and Downloads roots."
+                detail={copy.indexing.directoriesDetail}
               />
               <StatusMetricCard
-                title="Last rebuild"
+                title={copy.indexing.lastRebuild}
                 value={formatTimestamp(fileIndexStatus?.lastIndexedAt)}
                 detail={
                   draft.indexingPaused
-                    ? "Indexing is paused until you resume it."
-                    : "Rebuild after changing roots or exclusions."
+                    ? copy.indexing.lastRebuildPaused
+                    : copy.indexing.lastRebuildReady
                 }
               />
             </div>
 
             <div className="mb-4 grid gap-3 md:grid-cols-2">
               <ToggleRow
-                label="Pause automatic indexing"
+                label={copy.indexing.pauseAutomaticIndexing}
                 checked={draft.indexingPaused}
                 onChange={(checked) =>
                   setDraft({
@@ -571,12 +1109,11 @@ export function SettingsPanel({
                 }
               />
               <div className="rounded-2xl border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-soft)] px-4 py-3 text-sm text-[color:var(--shell-text-secondary)]">
-                Exclusions and directory changes only apply after a rebuild. Existing
-                indexed results remain searchable until then.
+                {copy.indexing.rebuildNotice}
               </div>
             </div>
 
-            <Field label="Indexed directories">
+            <Field label={copy.indexing.indexedDirectories}>
               <div className="flex flex-wrap gap-2">
                 {(draft.indexPaths.length > 0
                   ? draft.indexPaths
@@ -597,7 +1134,7 @@ export function SettingsPanel({
                         })
                       }
                     >
-                      Remove
+                      {copy.indexing.remove}
                     </button>
                   </div>
                 ))}
@@ -628,11 +1165,11 @@ export function SettingsPanel({
                   setIndexPathDraft("");
                 }}
               >
-                Add directory
+                {copy.indexing.addDirectory}
               </button>
             </div>
 
-            <Field label="Excluded paths">
+            <Field label={copy.indexing.excludedPaths}>
               <div className="flex flex-wrap gap-2">
                 {draft.indexExclusions.map((path) => (
                   <div
@@ -652,7 +1189,7 @@ export function SettingsPanel({
                         })
                       }
                     >
-                      Remove
+                      {copy.indexing.remove}
                     </button>
                   </div>
                 ))}
@@ -683,7 +1220,7 @@ export function SettingsPanel({
                   setIndexExclusionDraft("");
                 }}
               >
-                Add exclusion
+                {copy.indexing.addExclusion}
               </button>
             </div>
 
@@ -696,24 +1233,26 @@ export function SettingsPanel({
                 }}
                 disabled={draft.indexingPaused}
               >
-                Rebuild index
+                {copy.indexing.rebuildIndex}
               </button>
               <div className="text-sm text-[color:var(--shell-text-secondary)]">
-                Implicit ignores: <code>.git</code>, <code>node_modules</code>,{" "}
+                {copy.indexing.implicitIgnores}: <code>.git</code>, <code>node_modules</code>,{" "}
                 <code>target</code>, <code>Library</code>, <code>.cache</code>.
               </div>
             </div>
 
             <p className="mt-3 text-sm text-[color:var(--shell-text-secondary)]">
-              Current index status: {fileIndexStatus?.state ?? "bootstrapping"} ·{" "}
-              {fileIndexStatus?.indexedCount ?? 0} entries ·{" "}
-              {fileIndexStatus?.indexedPaths.length ?? draft.indexPaths.length} directories ·{" "}
-              {fileIndexStatus?.excludedPaths.length ?? draft.indexExclusions.length} exclusions.
+              {copy.indexing.currentStatus(
+                formatIndexStateLabel(fileIndexStatus?.state, useChineseCopy),
+                fileIndexStatus?.indexedCount ?? 0,
+                fileIndexStatus?.indexedPaths.length ?? draft.indexPaths.length,
+                fileIndexStatus?.excludedPaths.length ?? draft.indexExclusions.length
+              )}
             </p>
 
             {fileIndexStatus?.lastError ? (
               <p className="mt-2 text-sm text-amber-200">
-                Last index error: {fileIndexStatus.lastError}
+                {copy.indexing.lastError}: {fileIndexStatus.lastError}
               </p>
             ) : null}
           </SectionCard>
@@ -722,12 +1261,12 @@ export function SettingsPanel({
       case "snippets":
         return (
           <SectionCard
-            title="Snippets"
-            description="Local snippet storage with lightweight variable expansion and search integration."
+            title={copy.snippets.title}
+            description={copy.snippets.description}
           >
             <div className="mb-3 grid gap-3 md:grid-cols-2">
               <ToggleRow
-                label="Show snippets in launcher search"
+                label={copy.snippets.showInSearch}
                 checked={draft.snippets.enabledInSearch}
                 onChange={(checked) =>
                   setDraft({
@@ -740,7 +1279,7 @@ export function SettingsPanel({
                 }
               />
               <ToggleRow
-                label="Enable expansion hooks"
+                label={copy.snippets.enableHooks}
                 checked={draft.snippets.enableExpansionHooks}
                 onChange={(checked) =>
                   setDraft({
@@ -755,9 +1294,7 @@ export function SettingsPanel({
             </div>
 
             <p className="mb-3 text-sm text-slate-400">
-              Variables: <code>{"{{date}}"}</code>, <code>{"{{time}}"}</code>,{" "}
-              <code>{"{{clipboard}}"}</code>, <code>{"{{uuid}}"}</code>. TODO: global text
-              expansion hooks remain platform-specific work.
+              {copy.snippets.variablesNote}
             </p>
 
             <div className="grid gap-3 xl:grid-cols-[220px_minmax(0,1fr)]">
@@ -770,7 +1307,7 @@ export function SettingsPanel({
                     setSnippetDraft(EMPTY_SNIPPET);
                   }}
                 >
-                  New snippet
+                  {copy.snippets.newSnippet}
                 </button>
 
                 <div className="space-y-2">
@@ -795,7 +1332,7 @@ export function SettingsPanel({
 
               <div className="space-y-3">
                 <div className="grid gap-3 md:grid-cols-2">
-                  <Field label="Name">
+                  <Field label={copy.snippets.name}>
                     <input
                       type="text"
                       value={snippetDraft.name}
@@ -806,7 +1343,7 @@ export function SettingsPanel({
                     />
                   </Field>
 
-                  <Field label="Trigger">
+                  <Field label={copy.snippets.trigger}>
                     <input
                       type="text"
                       value={snippetDraft.trigger}
@@ -819,7 +1356,7 @@ export function SettingsPanel({
                   </Field>
                 </div>
 
-                <Field label="Content">
+                <Field label={copy.snippets.content}>
                   <textarea
                     value={snippetDraft.content}
                     onChange={(event) =>
@@ -831,7 +1368,7 @@ export function SettingsPanel({
                 </Field>
 
                 <div className="grid gap-3 md:grid-cols-2">
-                  <Field label="Scope scaffold">
+                  <Field label={copy.snippets.scope}>
                     <input
                       type="text"
                       value={snippetDraft.scope}
@@ -843,7 +1380,7 @@ export function SettingsPanel({
                     />
                   </Field>
 
-                  <Field label="App restriction scaffold">
+                  <Field label={copy.snippets.appRestriction}>
                     <input
                       type="text"
                       value={snippetDraft.appRestriction}
@@ -860,7 +1397,7 @@ export function SettingsPanel({
                 </div>
 
                 <ToggleRow
-                  label="Snippet enabled"
+                  label={copy.snippets.enabled}
                   checked={snippetDraft.enabled}
                   onChange={(checked) =>
                     setSnippetDraft({ ...snippetDraft, enabled: checked })
@@ -876,7 +1413,7 @@ export function SettingsPanel({
                     }}
                     disabled={savingSnippet}
                   >
-                    {savingSnippet ? "Saving..." : "Save snippet"}
+                    {savingSnippet ? copy.saving : copy.snippets.saveSnippet}
                   </button>
                   {snippetDraft.id ? (
                     <button
@@ -886,7 +1423,7 @@ export function SettingsPanel({
                         void handleDeleteSnippet(snippetDraft.id!);
                       }}
                     >
-                      Delete snippet
+                      {copy.snippets.deleteSnippet}
                     </button>
                   ) : null}
                 </div>
@@ -898,12 +1435,12 @@ export function SettingsPanel({
       case "plugins":
         return (
           <SectionCard
-            title="Plugins"
-            description="Worker-isolated plugin host with explicit local permissions and graceful failure handling."
+            title={copy.plugins.title}
+            description={copy.plugins.description}
           >
             <div className="space-y-3">
               <ToggleRow
-                label="Enable plugin host"
+                label={copy.plugins.enableHost}
                 checked={draft.plugins.enableHost}
                 onChange={(checked) =>
                   setDraft({
@@ -916,7 +1453,7 @@ export function SettingsPanel({
                 }
               />
               <ToggleRow
-                label="Prompt on first permission"
+                label={copy.plugins.promptOnFirstPermission}
                 checked={draft.plugins.promptOnFirstPermission}
                 onChange={(checked) =>
                   setDraft({
@@ -928,7 +1465,7 @@ export function SettingsPanel({
                   })
                 }
               />
-              <Field label="Plugin timeout (ms)">
+              <Field label={copy.plugins.timeout}>
                 <input
                   type="number"
                   min={250}
@@ -950,7 +1487,7 @@ export function SettingsPanel({
               {permissionRequests.length > 0 ? (
                 <div className="rounded-2xl border border-amber-400/20 bg-amber-500/8 p-4">
                   <div className="mb-3 font-medium text-amber-100">
-                    Pending permission prompts
+                    {copy.plugins.pendingPrompts}
                   </div>
                   <div className="space-y-3">
                     {permissionRequests.map((request) => (
@@ -959,7 +1496,10 @@ export function SettingsPanel({
                         className="rounded-2xl border border-white/8 bg-black/20 p-3"
                       >
                         <div className="text-sm text-white">
-                          {request.pluginName} requests <code>{request.permission}</code>
+                          {copy.plugins.requestsPermission(
+                            request.pluginName
+                          )}{" "}
+                          <code>{request.permission}</code>
                         </div>
                         <div className="mt-1 text-sm text-slate-400">
                           {request.reason}
@@ -975,7 +1515,7 @@ export function SettingsPanel({
                               );
                             }}
                           >
-                            Grant
+                            {copy.plugins.grant}
                           </button>
                           <button
                             type="button"
@@ -987,7 +1527,7 @@ export function SettingsPanel({
                               )
                             }
                           >
-                            Dismiss
+                            {copy.plugins.dismiss}
                           </button>
                         </div>
                       </div>
@@ -1023,7 +1563,7 @@ export function SettingsPanel({
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
                           <div className="rounded-full border border-white/8 px-3 py-1 text-xs uppercase tracking-[0.18em] text-slate-300">
-                            {plugin.status}
+                            {formatPluginStatusLabel(plugin.status, useChineseCopy)}
                           </div>
                           <button
                             type="button"
@@ -1032,7 +1572,7 @@ export function SettingsPanel({
                               void onTogglePluginEnabled(plugin.pluginId, !enabled);
                             }}
                           >
-                            {enabled ? "Disable" : "Enable"}
+                            {enabled ? copy.plugins.disable : copy.plugins.enable}
                           </button>
                         </div>
                       </div>
@@ -1053,7 +1593,7 @@ export function SettingsPanel({
                       {plugin.manifest.permissions.length > 0 ? (
                         <div className="mt-3">
                           <div className="mb-2 text-xs uppercase tracking-[0.18em] text-slate-400">
-                            Permissions
+                            {copy.plugins.permissions}
                           </div>
                           <div className="space-y-2">
                             {plugin.manifest.permissions.map((permission) => {
@@ -1070,7 +1610,7 @@ export function SettingsPanel({
                                   </div>
                                   <div className="flex flex-wrap gap-2">
                                     <div className="rounded-full border border-white/8 px-3 py-1 text-xs text-slate-300">
-                                      {granted ? "Granted" : "Not granted"}
+                                      {granted ? copy.plugins.granted : copy.plugins.notGranted}
                                     </div>
                                     {granted ? (
                                       <button
@@ -1083,7 +1623,7 @@ export function SettingsPanel({
                                           );
                                         }}
                                       >
-                                        Revoke
+                                        {copy.plugins.revoke}
                                       </button>
                                     ) : (
                                       <button
@@ -1096,7 +1636,7 @@ export function SettingsPanel({
                                           );
                                         }}
                                       >
-                                        Grant
+                                        {copy.plugins.grant}
                                       </button>
                                     )}
                                   </div>
@@ -1107,7 +1647,7 @@ export function SettingsPanel({
                         </div>
                       ) : (
                         <div className="mt-3 text-sm text-slate-400">
-                          This plugin does not request permissions.
+                          {copy.plugins.noPermissions}
                         </div>
                       )}
 
@@ -1119,7 +1659,7 @@ export function SettingsPanel({
 
                       {plugin.lastError ? (
                         <div className="mt-3 rounded-2xl border border-amber-400/20 bg-amber-500/8 p-3 text-sm text-amber-100">
-                          Last host error: {plugin.lastError}
+                          {copy.plugins.lastHostError}: {plugin.lastError}
                         </div>
                       ) : null}
                     </div>
@@ -1128,8 +1668,7 @@ export function SettingsPanel({
               </div>
 
               <p className="text-sm text-slate-400">
-                TODO: move plugin execution into a stricter sandbox and add signed-install
-                flows for third-party plugins.
+                {copy.plugins.sandboxTodo}
               </p>
             </div>
           </SectionCard>
@@ -1138,11 +1677,11 @@ export function SettingsPanel({
       case "appearance":
         return (
           <SectionCard
-            title="Appearance"
-            description="Theme and density placeholder while the launcher UI system stays compact."
+            title={copy.appearance.title}
+            description={copy.appearance.description}
           >
             <div className="grid gap-3 md:grid-cols-2">
-              <Field label="Theme">
+              <Field label={copy.appearance.theme}>
                 <select
                   value={draft.theme}
                   onChange={(event) =>
@@ -1153,15 +1692,15 @@ export function SettingsPanel({
                   }
                   className={inputClassName}
                 >
-                  <option value="system">System</option>
-                  <option value="light">Light</option>
-                  <option value="dark">Dark</option>
+                  <option value="system">{copy.appearance.system}</option>
+                  <option value="light">{copy.appearance.light}</option>
+                  <option value="dark">{copy.appearance.dark}</option>
                 </select>
               </Field>
 
               <div className="space-y-3">
                 <ToggleRow
-                  label="Dense mode"
+                  label={copy.appearance.denseMode}
                   checked={draft.appearance.denseMode}
                   onChange={(checked) =>
                     setDraft({
@@ -1174,7 +1713,7 @@ export function SettingsPanel({
                   }
                 />
                 <ToggleRow
-                  label="Reduce motion"
+                  label={copy.appearance.reduceMotion}
                   checked={draft.appearance.reduceMotion}
                   onChange={(checked) =>
                     setDraft({
@@ -1189,8 +1728,7 @@ export function SettingsPanel({
               </div>
             </div>
             <p className="mt-3 text-sm text-slate-400">
-              TODO: add a broader theming system once the visual language stabilizes
-              across desktop platforms.
+              {copy.appearance.todo}
             </p>
           </SectionCard>
         );
@@ -1198,27 +1736,29 @@ export function SettingsPanel({
       case "workflow":
         return (
           <SectionCard
-            title="Workflow"
-            description="Command-driven configuration entry for future workflow automation."
+            title={copy.workflow.title}
+            description={copy.workflow.description}
           >
             <div className="space-y-3 text-sm text-slate-300">
-              <p>
-                This section is the placeholder for workflow authoring and automation
-                rules that should be reachable from the launcher via{" "}
-                <code>/config workflow</code>.
-              </p>
-              <p>
-                Today, the closest extension points are snippets, plugin commands, and
-                action composition. A dedicated workflow editor still needs a separate
-                model and execution layer.
-              </p>
+              <p>{copy.workflow.intro}</p>
+              <p>{copy.workflow.today}</p>
               <div className="rounded-2xl border border-white/8 bg-black/20 p-4 text-slate-400">
-                TODO: add workflow definitions, ordering, triggers, and per-workflow
-                permissions without turning the launcher shell into a full-page settings
-                app.
+                {copy.workflow.todo}
               </div>
             </div>
           </SectionCard>
+        );
+
+      case "marketplace":
+        return (
+          <MarketplacePanel
+            installedPluginIds={plugins.map((p) => p.pluginId)}
+            useChineseCopy={useChineseCopy}
+            onPluginsChanged={() => {
+              // Trigger a re-bootstrap to refresh plugin list
+              // The parent component handles this via onClose + re-open
+            }}
+          />
         );
     }
   }

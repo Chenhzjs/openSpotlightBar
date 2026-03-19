@@ -1,4 +1,4 @@
-use std::{path::Path, process::Command as StdCommand, time::Duration};
+use std::{net::ToSocketAddrs, path::Path, process::Command as StdCommand, time::Duration};
 
 use arboard::Clipboard;
 use chrono::Local;
@@ -7,7 +7,7 @@ use reqwest::{
     Client, Method,
 };
 use serde_json::Value;
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, Manager, PhysicalPosition, State, WebviewWindow};
 use tokio::process::Command as TokioCommand;
 use uuid::Uuid;
 
@@ -15,8 +15,9 @@ use crate::{
     error::{AppError, AppResult},
     models::{
         ActionItem, ActionResponse, AppRecord, BootstrapPayload, ClipboardItem, FileIndexStatus,
-        FileRecord, LauncherSettings, ResultItem, ShellCommandResult, SnippetInput, SnippetRecord,
-        WorkflowHttpRequest, WorkflowHttpResponse, WorkflowRecord,
+        FileRecord, LauncherSettings, MarketplaceEntry, MarketplaceRegistry, ResultItem,
+        ShellCommandResult, SnippetInput, SnippetRecord, WorkflowHttpRequest,
+        WorkflowHttpResponse, WorkflowRecord,
     },
     services::{file_index, plugins},
     state::AppState,
@@ -46,8 +47,34 @@ pub async fn resize_window(app: AppHandle, width: f64, height: f64) -> Result<()
     window
         .set_size(tauri::Size::Logical(LogicalSize { width, height }))
         .map_err(|e| e.to_string())?;
-    window.center().map_err(|e| e.to_string())?;
+    center_window_for_size(&window, width, height)?;
     Ok(())
+}
+
+fn center_window_for_size(
+    window: &WebviewWindow,
+    logical_width: f64,
+    logical_height: f64,
+) -> Result<(), String> {
+    let monitor = window
+        .current_monitor()
+        .map_err(|error| error.to_string())?
+        .or(window.primary_monitor().map_err(|error| error.to_string())?);
+
+    let Some(monitor) = monitor else {
+        return window.center().map_err(|error| error.to_string());
+    };
+
+    let work_area = monitor.work_area();
+    let scale = monitor.scale_factor();
+    let width = (logical_width * scale).round() as i32;
+    let height = (logical_height * scale).round() as i32;
+    let x = work_area.position.x + ((work_area.size.width as i32 - width) / 2);
+    let y = work_area.position.y + ((work_area.size.height as i32 - height) / 2);
+
+    window
+        .set_position(PhysicalPosition::new(x, y))
+        .map_err(|error| error.to_string())
 }
 
 #[tauri::command]
@@ -269,6 +296,52 @@ pub async fn workflow_exec_shell(
     Ok(output)
 }
 
+const MAX_RESPONSE_BODY_BYTES: usize = 5 * 1024 * 1024; // 5 MB
+
+fn validate_workflow_url(url: &reqwest::Url) -> Result<(), String> {
+    match url.scheme() {
+        "http" | "https" => {}
+        other => return Err(format!("Unsupported URL scheme: {other}")),
+    }
+
+    let host = url
+        .host_str()
+        .ok_or_else(|| "URL has no host".to_string())?;
+
+    let blocked_hosts = [
+        "localhost",
+        "metadata.google.internal",
+        "169.254.169.254",
+    ];
+    if blocked_hosts.iter().any(|&h| host.eq_ignore_ascii_case(h)) {
+        return Err(format!("Blocked internal host: {host}"));
+    }
+
+    let port = url.port_or_known_default().unwrap_or(80);
+    let addr_str = format!("{host}:{port}");
+    if let Ok(addrs) = addr_str.to_socket_addrs() {
+        for addr in addrs {
+            if is_private_ip(&addr.ip()) {
+                return Err(format!("Blocked private/internal IP: {}", addr.ip()));
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn is_private_ip(ip: &std::net::IpAddr) -> bool {
+    match ip {
+        std::net::IpAddr::V4(v4) => {
+            v4.is_loopback()
+                || v4.is_private()
+                || v4.is_link_local()
+                || v4.octets()[0] == 169 && v4.octets()[1] == 254
+        }
+        std::net::IpAddr::V6(v6) => v6.is_loopback(),
+    }
+}
+
 #[tauri::command]
 pub async fn workflow_http_request(
     request: WorkflowHttpRequest,
@@ -285,6 +358,7 @@ pub async fn workflow_http_request(
     let timeout_ms = request.timeout_ms.unwrap_or(settings_timeout_ms).max(200);
     let client = Client::builder()
         .timeout(Duration::from_millis(timeout_ms))
+        .redirect(reqwest::redirect::Policy::limited(5))
         .build()
         .map_err(|error| error.to_string())?;
 
@@ -299,6 +373,8 @@ pub async fn workflow_http_request(
     for (key, value) in &request.query_params {
         url.query_pairs_mut().append_pair(key, value);
     }
+
+    validate_workflow_url(&url)?;
 
     let mut headers = HeaderMap::new();
     for (key, value) in &request.headers {
@@ -333,7 +409,17 @@ pub async fn workflow_http_request(
                 .map(|header_value| (name.to_string(), header_value.to_string()))
         })
         .collect::<std::collections::HashMap<_, _>>();
-    let text = response.text().await.map_err(|error| error.to_string())?;
+    let body_bytes = response
+        .bytes()
+        .await
+        .map_err(|error| error.to_string())?;
+    if body_bytes.len() > MAX_RESPONSE_BODY_BYTES {
+        return Err(format!(
+            "Response body exceeds {}MB limit",
+            MAX_RESPONSE_BODY_BYTES / (1024 * 1024)
+        ));
+    }
+    let text = String::from_utf8_lossy(&body_bytes).to_string();
     let json = if content_type
         .as_deref()
         .map(|value| value.to_ascii_lowercase().contains("json"))
@@ -433,6 +519,117 @@ pub async fn hide_window(app: AppHandle) -> Result<(), String> {
         .get_webview_window("main")
         .ok_or_else(|| "Main window was not found".to_string())?;
     window.hide().map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+pub async fn open_devtools(app: AppHandle) -> Result<(), String> {
+    let window = app
+        .get_webview_window("main")
+        .ok_or_else(|| "Main window was not found".to_string())?;
+    window.open_devtools();
+    Ok(())
+}
+
+const DEFAULT_REGISTRY_URL: &str =
+    "https://raw.githubusercontent.com/pulseLauncher/plugin-registry/main/registry.json";
+
+#[tauri::command]
+pub async fn fetch_plugin_registry() -> Result<Vec<MarketplaceEntry>, String> {
+    let client = Client::builder()
+        .timeout(Duration::from_secs(15))
+        .build()
+        .map_err(|error| error.to_string())?;
+
+    let response = client
+        .get(DEFAULT_REGISTRY_URL)
+        .send()
+        .await
+        .map_err(|error| format!("Failed to fetch plugin registry: {error}"))?;
+
+    if !response.status().is_success() {
+        return Err(format!(
+            "Registry returned status {}",
+            response.status()
+        ));
+    }
+
+    let registry: MarketplaceRegistry = response
+        .json()
+        .await
+        .map_err(|error| format!("Failed to parse registry JSON: {error}"))?;
+
+    Ok(registry.plugins)
+}
+
+#[tauri::command]
+pub async fn install_marketplace_plugin(
+    app: AppHandle,
+    repo_url: String,
+    plugin_id: String,
+) -> Result<(), String> {
+    let app_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|error| error.to_string())?;
+    let target_path = app_dir.join("plugins").join(&plugin_id);
+
+    if target_path.exists() {
+        return Err(format!("Plugin {plugin_id} is already installed."));
+    }
+
+    if let Some(parent) = target_path.parent() {
+        std::fs::create_dir_all(parent).map_err(|error| {
+            format!("Failed to create plugins directory: {error}")
+        })?;
+    }
+
+    let output = TokioCommand::new("git")
+        .args([
+            "clone",
+            "--depth",
+            "1",
+            &repo_url,
+            &target_path.to_string_lossy(),
+        ])
+        .output()
+        .await
+        .map_err(|error| format!("Failed to run git clone: {error}"))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let _ = std::fs::remove_dir_all(&target_path);
+        return Err(format!("git clone failed: {stderr}"));
+    }
+
+    let manifest_path = target_path.join("manifest.json");
+    if !manifest_path.exists() {
+        let _ = std::fs::remove_dir_all(&target_path);
+        return Err("Cloned repository does not contain a manifest.json.".to_string());
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn uninstall_marketplace_plugin(
+    app: AppHandle,
+    plugin_id: String,
+) -> Result<(), String> {
+    let app_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|error| error.to_string())?;
+    let target_path = app_dir.join("plugins").join(&plugin_id);
+
+    if !target_path.exists() {
+        return Err(format!("Plugin {plugin_id} is not installed."));
+    }
+
+    std::fs::remove_dir_all(&target_path).map_err(|error| {
+        format!("Failed to remove plugin directory: {error}")
+    })?;
+
+    Ok(())
 }
 
 pub(crate) fn execute_action(
@@ -600,18 +797,31 @@ fn expand_snippet_content(content: &str) -> AppResult<String> {
 }
 
 fn open_command_target(command: &str) -> AppResult<()> {
-    #[cfg(target_os = "windows")]
-    {
-        StdCommand::new("cmd").args(["/C", command]).spawn()?;
+    let parts: Vec<&str> = command.split_whitespace().collect();
+    let program = parts
+        .first()
+        .ok_or_else(|| AppError::Message("Empty command target".to_string()))?;
+    let args = &parts[1..];
+
+    StdCommand::new(program).args(args).spawn()?;
+    Ok(())
+}
+
+fn validate_fs_path(path: &str) -> AppResult<()> {
+    if path.trim().is_empty() {
+        return Err(AppError::Message("Path must not be empty".to_string()));
     }
-    #[cfg(not(target_os = "windows"))]
-    {
-        StdCommand::new("sh").args(["-lc", command]).spawn()?;
+    if path.contains('\0') {
+        return Err(AppError::Message("Path contains null bytes".to_string()));
+    }
+    if !Path::new(path).exists() {
+        return Err(AppError::Message(format!("Path does not exist: {path}")));
     }
     Ok(())
 }
 
 fn reveal_in_folder(path: &str) -> AppResult<()> {
+    validate_fs_path(path)?;
     #[cfg(target_os = "macos")]
     {
         StdCommand::new("open").args(["-R", path]).spawn()?;
@@ -637,6 +847,12 @@ fn reveal_in_folder(path: &str) -> AppResult<()> {
 }
 
 fn open_in_terminal(path: &str) -> AppResult<()> {
+    validate_fs_path(path)?;
+    if !Path::new(path).is_dir() {
+        return Err(AppError::Message(format!(
+            "Path is not a directory: {path}"
+        )));
+    }
     #[cfg(target_os = "macos")]
     {
         StdCommand::new("open")
@@ -686,7 +902,22 @@ fn ensure_plugin_permission(state: &AppState, plugin_id: &str, permission: &str)
     }
 }
 
+fn validate_shell_command(command: &str) -> AppResult<()> {
+    let trimmed = command.trim();
+    if trimmed.is_empty() {
+        return Err(AppError::Message("Shell command must not be empty".to_string()));
+    }
+    if trimmed.len() > 2048 {
+        return Err(AppError::Message(
+            "Shell command exceeds maximum length of 2048 characters".to_string(),
+        ));
+    }
+    Ok(())
+}
+
 async fn run_shell_command(command: &str) -> AppResult<ShellCommandResult> {
+    validate_shell_command(command)?;
+
     // TODO: Replace shell passthrough with a stricter command policy and argument model.
     #[cfg(target_os = "windows")]
     let output = TokioCommand::new("cmd")

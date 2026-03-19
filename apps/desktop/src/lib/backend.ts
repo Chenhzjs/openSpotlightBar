@@ -9,6 +9,7 @@ import type {
   FileIndexStatus,
   FileRecord,
   LauncherSettings,
+  MarketplaceEntry,
   ResultItem,
   SnippetInput,
   SnippetRecord,
@@ -51,8 +52,8 @@ let mockClipboardItems: ClipboardItem[] = [
   {
     id: "clip-1",
     contentType: "text",
-    text: "pnpm --filter @pulse/desktop tauri dev",
-    preview: "pnpm --filter @pulse/desktop tauri dev",
+    text: "pnpm --dir apps/desktop exec tauri dev",
+    preview: "pnpm --dir apps/desktop exec tauri dev",
     pinned: true,
     createdAt: Date.now() - 90_000,
     sourceApp: "Terminal",
@@ -110,7 +111,8 @@ const plugin = {
       return [];
     }
     try {
-      const value = Function(\`"use strict"; return (\${expression.replaceAll("%", "/100")});\`)();
+      const value = safeEval(expression.replaceAll("%", "/100"));
+      if (!Number.isFinite(value)) return [];
       return [{
         id: \`calculator:\${expression}\`,
         title: \`\${expression} = \${value}\`,
@@ -132,6 +134,60 @@ const plugin = {
     }
   }
 };
+
+function safeEval(expr) {
+  let pos = 0;
+  const ch = () => expr[pos] || "";
+  const skip = () => { while (expr[pos] === " ") pos++; };
+
+  function parseExpr() {
+    let left = parseTerm();
+    skip();
+    while (ch() === "+" || ch() === "-") {
+      const op = ch(); pos++;
+      const right = parseTerm();
+      left = op === "+" ? left + right : left - right;
+      skip();
+    }
+    return left;
+  }
+
+  function parseTerm() {
+    let left = parseFactor();
+    skip();
+    while (ch() === "*" || ch() === "/") {
+      const op = ch(); pos++;
+      const right = parseFactor();
+      left = op === "*" ? left * right : left / right;
+      skip();
+    }
+    return left;
+  }
+
+  function parseFactor() {
+    skip();
+    if (ch() === "(") {
+      pos++;
+      const val = parseExpr();
+      if (ch() === ")") pos++;
+      return val;
+    }
+    if (ch() === "-") {
+      pos++;
+      return -parseFactor();
+    }
+    const start = pos;
+    while (/[0-9.]/.test(ch())) pos++;
+    if (pos === start) throw new Error("Unexpected token");
+    return parseFloat(expr.slice(start, pos));
+  }
+
+  const result = parseExpr();
+  skip();
+  if (pos < expr.length) throw new Error("Unexpected trailing input");
+  return result;
+}
+
 export default plugin;
 `.trim(),
     validationErrors: []
@@ -589,6 +645,77 @@ export async function hideWindow(): Promise<void> {
   }
 
   await invokeCommand("hide_window");
+}
+
+export async function openDevtools(): Promise<void> {
+  if (!isTauriEnvironment()) {
+    return;
+  }
+
+  await invokeCommand("open_devtools");
+}
+
+const MOCK_MARKETPLACE_ENTRIES: MarketplaceEntry[] = [
+  {
+    id: "com.pulse.color-picker",
+    name: "Color Picker",
+    description: "Pick colors from anywhere on screen and convert between formats.",
+    version: "1.0.0",
+    repoUrl: "https://github.com/pulseLauncher/plugin-color-picker",
+    author: "Pulse Team",
+    stars: 1240,
+    tags: ["utility", "design"],
+    updatedAt: "2026-02-15"
+  },
+  {
+    id: "com.pulse.emoji-search",
+    name: "Emoji Search",
+    description: "Search and copy emojis by name or keyword.",
+    version: "0.3.0",
+    repoUrl: "https://github.com/pulseLauncher/plugin-emoji-search",
+    author: "community",
+    stars: 890,
+    tags: ["utility", "search"],
+    updatedAt: "2026-01-20"
+  },
+  {
+    id: "com.pulse.devdocs",
+    name: "DevDocs Lookup",
+    description: "Search DevDocs.io documentation directly from the launcher.",
+    version: "0.5.0",
+    repoUrl: "https://github.com/pulseLauncher/plugin-devdocs",
+    author: "community",
+    stars: 670,
+    tags: ["dev-tools", "search"],
+    updatedAt: "2026-03-01"
+  }
+];
+
+export async function fetchPluginRegistry(): Promise<MarketplaceEntry[]> {
+  if (!isTauriEnvironment()) {
+    return [...MOCK_MARKETPLACE_ENTRIES];
+  }
+
+  return invokeCommand<MarketplaceEntry[]>("fetch_plugin_registry");
+}
+
+export async function installMarketplacePlugin(
+  repoUrl: string,
+  pluginId: string
+): Promise<void> {
+  if (!isTauriEnvironment()) {
+    return;
+  }
+
+  await invokeCommand("install_marketplace_plugin", { repoUrl, pluginId });
+}
+
+export async function uninstallMarketplacePlugin(pluginId: string): Promise<void> {
+  if (!isTauriEnvironment()) {
+    return;
+  }
+
+  await invokeCommand("uninstall_marketplace_plugin", { pluginId });
 }
 
 export async function resizeWindow(width: number, height: number): Promise<void> {
