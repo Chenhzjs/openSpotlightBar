@@ -614,10 +614,18 @@ pub async fn hide_window(app: AppHandle) -> Result<(), String> {
 
 #[tauri::command]
 pub async fn open_devtools(app: AppHandle) -> Result<(), String> {
-    let window = app
-        .get_webview_window("main")
-        .ok_or_else(|| "Main window was not found".to_string())?;
-    window.open_devtools();
+    #[cfg(debug_assertions)]
+    {
+        let window = app
+            .get_webview_window("main")
+            .ok_or_else(|| "Main window was not found".to_string())?;
+        window.open_devtools();
+    }
+    #[cfg(not(debug_assertions))]
+    {
+        let _ = app;
+        return Err("DevTools is only available in debug builds".to_string());
+    }
     Ok(())
 }
 
