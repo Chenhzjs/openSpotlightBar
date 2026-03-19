@@ -190,15 +190,15 @@ function createSystemProvider(): SearchProvider {
         shouldOfferSystemResult(context.scope, "system") &&
         matchesKeywordGroup(
           normalized,
-          ["settings", "preferences", "prefs", "config", "/config"],
+          ["settings", "setting", "preferences", "prefs", "config", "/config"],
           true
         )
       ) {
         const isExactConfig = normalized === "config" || normalized === "/config";
         results.push({
           id: "system:settings",
-          title: "Open settings",
-          subtitle: "General, search, clipboard, snippets, plugins, appearance",
+          title: "Settings",
+          subtitle: "config · General, search, clipboard, snippets, plugins, appearance",
           type: "system",
           source: "system",
           score: isExactConfig ? 2.0 : 0.78,

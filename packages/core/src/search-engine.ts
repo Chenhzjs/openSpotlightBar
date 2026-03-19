@@ -130,8 +130,10 @@ function getQueryPriority(result: ResultItem, query: string): number {
 
   if (
     result.source === "system" &&
-    (normalizedQuery === "config" || normalizedQuery === "/config" ||
-     normalizedQuery === "settings" || normalizedQuery === "preferences")
+    result.id === "system:settings" &&
+    ["config", "/config", "settings", "setting", "preferences", "prefs"].some(
+      (kw) => kw.startsWith(normalizedQuery) || normalizedQuery === kw
+    )
   ) {
     return 2;
   }
