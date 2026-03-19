@@ -3,14 +3,10 @@
 </p>
 
 <p align="center">
-  <strong>A keyboard-first, cross-platform desktop launcher.</strong><br/>
-  Fast local search · Clipboard history · Snippets · Workflows · Plugins
-</p>
-
-<p align="center">
   <a href="#features">Features</a> ·
   <a href="#getting-started">Getting Started</a> ·
   <a href="#architecture">Architecture</a> ·
+  <a href="#built-in-plugins">Built-in Plugins</a> ·
   <a href="#plugin-authoring">Plugin Authoring</a> ·
   <a href="#workflows">Workflows</a> ·
   <a href="#contributing">Contributing</a>
@@ -27,12 +23,14 @@ Open Spotlight Bar is an open-source alternative to Alfred, Raycast, and PowerTo
 | Category | Highlights |
 |----------|-----------|
 | **Search** | Apps, files, clipboard, snippets, web shortcuts — all from one bar |
+| **Live File Search** | `dir <query>` for real-time system-wide file search (mdfind / locate / find) |
+| **Calculator** | `= 2**10`, `= 0xFF & 0x0F` — arithmetic, bitwise ops, hex/binary display |
 | **Clipboard History** | Automatic capture with pin, delete, privacy exclusions |
 | **Snippets** | Text expansion with `{{date}}`, `{{time}}`, `{{clipboard}}`, `{{uuid}}` variables |
-| **Workflows** | Visual node editor with slash-command & keyword triggers, HTTP requests, JSON transforms, reusable subflows |
-| **Plugins** | Worker-isolated JS plugins with permission-gated APIs (network, filesystem, clipboard, shell) |
+| **Workflows** | Visual node editor with command & keyword triggers, HTTP requests, JSON transforms, reusable subflows |
+| **Plugins** | 8 built-in plugins, Worker-isolated with permission-gated APIs |
 | **Plugin Marketplace** | Browse, install & uninstall built-in plugins from Settings |
-| **Settings Hub** | Unified `/config` surface for every subsystem |
+| **Settings Hub** | Type `config` to open the unified settings surface |
 | **Cross-platform** | macOS, Windows, Linux via Tauri |
 
 ### Keyboard Shortcuts
@@ -93,7 +91,7 @@ open-spotlight-bar/
 │   ├── core/                    # Query parsing, ranking, search engine, workflow runtime
 │   ├── shared-types/            # Domain models shared across frontend & backend
 │   └── plugin-sdk/              # Plugin contracts & host API surface
-├── plugins/                     # Example plugins (calculator, github, shell)
+├── plugins/                     # Built-in plugins (calculator, base64, color-picker, hash, etc.)
 ├── scripts/                     # Build & release helpers
 └── docs/                        # Architecture, roadmap, release notes
 ```
@@ -116,6 +114,19 @@ Results flow through a provider-based pipeline where each provider (Apps, Files,
 - Per-source weight configuration
 - File recency and usage history boost
 - Timeout-protected fan-out across all providers
+
+## Built-in Plugins
+
+| Plugin | Trigger | Description |
+|--------|---------|-------------|
+| Calculator | `= 1+2`, `= 2**10` | Arithmetic, exponentiation, bitwise ops (`&`, `\|`, `^`, `>>`, `<<`), hex/binary display |
+| Encode / Decode | `b64`, `url`, `html`, `hex`, `encode` | Base64, URL encoding, HTML entities, hex encode/decode |
+| Color Picker | `color #ff6600`, `color rgb(255,0,0)` | HEX / RGB / HSL color format conversion |
+| Hash | `hash hello` | SHA-256 hash computation |
+| Timestamp | `ts 1700000000`, `timestamp 2024-01-01` | Unix timestamp ↔ date conversion |
+| IP Lookup | `ip` | Public IP, geolocation, and ISP info |
+| GitHub Search | `ghrepo tauri` | Search GitHub repositories |
+| Shell Command | `shell ls -la` | Run shell commands (prefers iTerm2 on macOS) |
 
 ## Plugin Authoring
 
@@ -188,14 +199,13 @@ Workflows are a visual, node-based automation system triggered from the launcher
 
 | Type | Example |
 |------|---------|
-| Slash command | `/google open spotlight bar` |
+| Command | `google open spotlight bar` or `/google open spotlight bar` |
 | Keyword | `g open spotlight bar`, `weather Shanghai` |
 | Manual | Run from the workflow editor |
-| Hotkey | *(scaffold — coming soon)* |
 
 ### Built-in Workflows
 
-`/google` · `/jira` · `/clip-clean` · `/echo` · `/json-pretty` · `/url-encode` · `/reindex-now` · `/ghrepo` · `/gh-search` · `/weather` · `/http-get`
+`google` · `jira` · `clip-clean` · `echo` · `json-pretty` · `url-encode` · `reindex-now` · `ghrepo` · `gh-search` · `weather` · `http-get`
 
 Keyword triggers: `g`, `jira`, `gh`, `weather`
 

@@ -336,7 +336,7 @@ export function SettingsPanel({
           indexedFilesDirectories: (directoryCount: number) =>
             `已纳入 ${directoryCount} 个目录。`,
           lastRebuild: "最近重建",
-          lastRebuildDetail: "用 /config indexing 查看根目录、排除项和重建状态。",
+          lastRebuildDetail: "用 config indexing 查看根目录、排除项和重建状态。",
           fileRanking: "文件排序",
           fileRankingValue: "模糊 + 时效",
           fileRankingDetail:
@@ -365,7 +365,7 @@ export function SettingsPanel({
             `已触达当前 ${maxIndexedFiles} 条的轻量索引上限。`,
           indexedEntriesBelowCap: "仍低于当前轻量索引上限。",
           directories: "目录数",
-          directoriesDetail: "为空时会使用默认的 Desktop、Documents 和 Downloads 根目录。",
+          directoriesDetail: "为空时会使用主目录作为默认根目录。",
           lastRebuild: "最近重建",
           lastRebuildPaused: "索引已暂停，恢复后才会继续。",
           lastRebuildReady: "修改根目录或排除项后请重建。",
@@ -441,7 +441,7 @@ export function SettingsPanel({
           title: "工作流",
           description: "面向未来工作流自动化的命令式配置入口。",
           intro:
-            "这里是工作流编排和自动化规则的占位入口，后续会通过 /config workflow 从启动器进入。",
+            "这里是工作流编排和自动化规则的占位入口，后续会通过 config workflow 从启动器进入。",
           today:
             "当前最接近的扩展点还是 snippets、plugin commands 和 action composition。专用工作流编辑器仍需要独立模型和执行层。",
           todo:
@@ -449,7 +449,7 @@ export function SettingsPanel({
         },
         marketplace: {
           title: "插件市场",
-          description: "浏览、安装和管理来自在线注册表的社区插件。"
+          description: "浏览、安装和管理内置插件。"
         }
       }
     : {
@@ -504,7 +504,7 @@ export function SettingsPanel({
           indexedFilesDirectories: (directoryCount: number) =>
             `${directoryCount} directories included.`,
           lastRebuild: "Last rebuild",
-          lastRebuildDetail: "Use /config indexing to review roots, exclusions, and rebuild health.",
+          lastRebuildDetail: "Type config indexing to review roots, exclusions, and rebuild health.",
           fileRanking: "File ranking",
           fileRankingValue: "Fuzzy + recency",
           fileRankingDetail:
@@ -536,7 +536,7 @@ export function SettingsPanel({
           indexedEntriesBelowCap: "Below the current lightweight index cap.",
           directories: "Directories",
           directoriesDetail:
-            "Empty means the default Desktop, Documents, and Downloads roots.",
+            "Empty means the home directory is used as the default root.",
           lastRebuild: "Last rebuild",
           lastRebuildPaused: "Indexing is paused until you resume it.",
           lastRebuildReady: "Rebuild after changing roots or exclusions.",
@@ -616,7 +616,7 @@ export function SettingsPanel({
           title: "Workflow",
           description: "Command-driven configuration entry for future workflow automation.",
           intro:
-            "This section is the placeholder for workflow authoring and automation rules that should be reachable from the launcher via /config workflow.",
+            "This section is the placeholder for workflow authoring and automation rules that should be reachable from the launcher via config workflow.",
           today:
             "Today, the closest extension points are snippets, plugin commands, and action composition. A dedicated workflow editor still needs a separate model and execution layer.",
           todo:
@@ -624,7 +624,7 @@ export function SettingsPanel({
         },
         marketplace: {
           title: "Marketplace",
-          description: "Browse, install, and manage community plugins from the online registry."
+          description: "Browse, install, and manage built-in plugins."
         }
       };
   const [draft, setDraft] = useState(() => cloneSettings(settings));
