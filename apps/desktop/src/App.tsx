@@ -730,6 +730,9 @@ export default function App() {
           if (!options?.preserveMode) {
             setMode("search");
           }
+          if (!hasResultItems) {
+            await hideWindow();
+          }
         } else {
           throw new Error(summary ?? "Workflow execution failed.");
         }
@@ -773,6 +776,8 @@ export default function App() {
       if (!options?.preserveMode) {
         setMode("search");
       }
+
+      await hideWindow();
     } catch (error) {
       logger.warn("Action execution failed.", {
         actionKind: action.kind,

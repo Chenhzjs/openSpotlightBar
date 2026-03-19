@@ -145,15 +145,25 @@ pub async fn search_files(
 }
 
 #[tauri::command]
-pub async fn live_search_files(query: String) -> Result<Vec<FileRecord>, String> {
+pub async fn live_search_files(
+    query: String,
+    state: State<'_, AppState>,
+) -> Result<Vec<FileRecord>, String> {
     let trimmed = query.trim().to_string();
     if trimmed.is_empty() {
         return Ok(Vec::new());
     }
 
-    tokio::task::spawn_blocking(move || live_search_impl(&trimmed))
+    let results = tokio::task::spawn_blocking(move || live_search_impl(&trimmed))
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|e| e.to_string())??;
+
+    // Merge live results into the file index so future searches find them without "dir"
+    if !results.is_empty() {
+        let _ = state.db.upsert_indexed_files(&results);
+    }
+
+    Ok(results)
 }
 
 fn live_search_impl(query: &str) -> Result<Vec<FileRecord>, String> {

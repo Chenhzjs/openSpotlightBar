@@ -583,6 +583,24 @@ impl Database {
         transaction.commit()?;
         Ok(())
     }
+
+    pub fn upsert_indexed_files(&self, files: &[FileRecord]) -> AppResult<()> {
+        let connection = self.conn()?;
+        let mut statement = connection.prepare(
+            "INSERT OR REPLACE INTO indexed_files (path, name, kind, extension, mtime_ms)
+             VALUES (?1, ?2, ?3, ?4, ?5)",
+        )?;
+        for file in files {
+            statement.execute(params![
+                file.path,
+                file.name,
+                file.kind,
+                file.extension,
+                file.mtime_ms
+            ])?;
+        }
+        Ok(())
+    }
 }
 
 fn now_ms() -> i64 {

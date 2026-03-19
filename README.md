@@ -37,7 +37,7 @@ Open Spotlight Bar is an open-source alternative to Alfred, Raycast, and PowerTo
 
 | Key | Action |
 |-----|--------|
-| `Enter` | Execute default action |
+| `Enter` | Execute default action & dismiss launcher |
 | `Tab` | Open action panel |
 | `Ctrl + ,` | Open settings |
 | `Escape` | Close panel / dismiss launcher |
