@@ -37,7 +37,8 @@
       "icons/icon.png",
       "icons/128x128.png",
       "icons/256x256.png",
-      "icons/icon-512.png"
+      "icons/icon-512.png",
+      "icons/icon.ico"
     ],
     "category": "Productivity",
     "shortDescription": "Keyboard-first cross-platform desktop launcher",
