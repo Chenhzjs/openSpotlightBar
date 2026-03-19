@@ -79,7 +79,8 @@ export function ConfigHub({
           clipboard: "Local clipboard items available to search and actions.",
           snippets: "Saved snippets ready for search and expansion actions.",
           plugins: "Discovered plugin runtimes or manifests in the current workspace.",
-          workflow: "Workflow opens as its own surface instead of bloating the launcher bar.",
+          workflow:
+            "Workflow opens as its own surface instead of bloating the launcher bar.",
           permPrompts: "Pending plugin permission approvals waiting for attention."
         }
       };
@@ -96,7 +97,9 @@ export function ConfigHub({
             return (
               <button
                 key={section}
-                ref={(el) => { itemRefs.current[section] = el; }}
+                ref={(el) => {
+                  itemRefs.current[section] = el;
+                }}
                 type="button"
                 className={clsx(
                   "w-full rounded-[22px] border px-4 py-3 text-left transition",

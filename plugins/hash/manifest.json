@@ -4,8 +4,6 @@
   "version": "0.2.0",
   "entry": "src/index.js",
   "description": "Compute MD5 / SHA-1 / SHA-256 / SHA-512 hashes for text or files.",
-  "commands": [
-    { "name": "hash", "title": "Hash text" }
-  ],
+  "commands": [{ "name": "hash", "title": "Hash text" }],
   "permissions": []
 }

@@ -1,7 +1,4 @@
-import type {
-  WorkflowRecord,
-  WorkflowRunContext
-} from "@osb/shared-types";
+import type { WorkflowRecord, WorkflowRunContext } from "@osb/shared-types";
 
 import {
   getWorkflowKeywordTrigger,
@@ -33,11 +30,11 @@ export function buildWorkflowRunContext(
   const keywordTrigger = getWorkflowKeywordTrigger(workflow);
   const matchesKeyword = Boolean(
     keywordInvocation &&
-      keywordTrigger &&
-      new Set([
-        normalizeKeywordTrigger(keywordTrigger.keyword),
-        ...(keywordTrigger.aliases ?? []).map(normalizeKeywordTrigger)
-      ]).has(keywordInvocation.keyword)
+    keywordTrigger &&
+    new Set([
+      normalizeKeywordTrigger(keywordTrigger.keyword),
+      ...(keywordTrigger.aliases ?? []).map(normalizeKeywordTrigger)
+    ]).has(keywordInvocation.keyword)
   );
   const argsText =
     trigger.type === "slash-command"
@@ -46,7 +43,7 @@ export function buildWorkflowRunContext(
         : trimmed
       : trigger.type === "keyword"
         ? matchesKeyword
-          ? keywordInvocation?.argsText ?? ""
+          ? (keywordInvocation?.argsText ?? "")
           : trimmed
         : trimmed;
 
@@ -76,10 +73,7 @@ export function buildWorkflowRunContext(
 export function buildReusableWorkflowRunContext(
   workflow: WorkflowRecord,
   inputs: Record<string, unknown>,
-  parentContext: Pick<
-    WorkflowRunContext,
-    "clipboardText" | "files" | "launcherQuery"
-  >
+  parentContext: Pick<WorkflowRunContext, "clipboardText" | "files" | "launcherQuery">
 ): WorkflowRunContext {
   const inputEntries = Object.entries(inputs);
   const firstScalar = inputEntries.find(([, value]) => typeof value === "string")?.[1];

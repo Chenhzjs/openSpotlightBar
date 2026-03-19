@@ -65,7 +65,9 @@ describe("workflow trigger registry", () => {
 
     const registry = createWorkflowTriggerRegistry([builtIn, custom]);
     const match = matchWorkflowTriggerInvocation("g pulse", registry);
-    const shadowed = registry.registrations.find((entry) => entry.workflowId === "built-in");
+    const shadowed = registry.registrations.find(
+      (entry) => entry.workflowId === "built-in"
+    );
 
     expect(match?.workflow.id).toBe("custom");
     expect(shadowed?.state).toBe("shadowed");

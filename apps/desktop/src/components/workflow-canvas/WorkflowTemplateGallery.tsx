@@ -11,10 +11,14 @@ const CATEGORY_COLORS: Record<WorkflowTemplate["category"], string> = {
   "web-search": "#3b82f6",
   "api-integration": "#8b5cf6",
   "text-processing": "#f59e0b",
-  "launcher-results": "#10b981",
+  "launcher-results": "#10b981"
 };
 
-export function WorkflowTemplateGallery({ onSelect, onBlank, onClose }: WorkflowTemplateGalleryProps) {
+export function WorkflowTemplateGallery({
+  onSelect,
+  onBlank,
+  onClose
+}: WorkflowTemplateGalleryProps) {
   return (
     <div className="absolute inset-0 z-10 flex items-center justify-center bg-[color:var(--shell-fill-muted)]/90 backdrop-blur-sm rounded-[24px]">
       <div className="w-full max-w-2xl p-6">

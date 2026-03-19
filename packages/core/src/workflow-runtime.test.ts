@@ -53,7 +53,9 @@ describe("runWorkflow", () => {
     );
     expect(result.actionResponse?.ok).toBe(true);
     expect(result.logs).toHaveLength(5);
-    expect(result.logs.find((entry) => entry.nodeId === "build")?.nestedLogs?.length).toBeGreaterThan(0);
+    expect(
+      result.logs.find((entry) => entry.nodeId === "build")?.nestedLogs?.length
+    ).toBeGreaterThan(0);
   });
 
   it("supports explicit true/false branching without running both sides", async () => {
@@ -72,7 +74,13 @@ describe("runWorkflow", () => {
         argumentName: "query"
       },
       nodes: [
-        { id: "query", type: "query-input", title: "Query", status: "supported", config: {} },
+        {
+          id: "query",
+          type: "query-input",
+          title: "Query",
+          status: "supported",
+          config: {}
+        },
         {
           id: "branch",
           type: "conditional-branch",
@@ -144,7 +152,11 @@ describe("runWorkflow", () => {
 
     expect(result.ok).toBe(true);
     expect(result.returnedText).toBe("open branch");
-    expect(result.logs.some((entry) => entry.nodeId === "closedText" && entry.status === "skipped")).toBe(true);
+    expect(
+      result.logs.some(
+        (entry) => entry.nodeId === "closedText" && entry.status === "skipped"
+      )
+    ).toBe(true);
   });
 
   it("parses structured JSON and supports pretty rendering through template filters", async () => {
@@ -194,7 +206,13 @@ describe("runWorkflow", () => {
         argumentName: "query"
       },
       nodes: [
-        { id: "query", type: "query-input", title: "Query", status: "supported", config: {} },
+        {
+          id: "query",
+          type: "query-input",
+          title: "Query",
+          status: "supported",
+          config: {}
+        },
         {
           id: "search",
           type: "show-launcher-results",
@@ -318,7 +336,13 @@ describe("runWorkflow", () => {
         argumentName: "query"
       },
       nodes: [
-        { id: "query", type: "query-input", title: "Query", status: "supported", config: {} },
+        {
+          id: "query",
+          type: "query-input",
+          title: "Query",
+          status: "supported",
+          config: {}
+        },
         {
           id: "request",
           type: "http-request",
@@ -390,7 +414,9 @@ describe("runWorkflow", () => {
     );
 
     expect(result.ok).toBe(true);
-    expect(result.logs.find((entry) => entry.nodeId === "build")?.nestedLogs?.length).toBeGreaterThan(0);
+    expect(
+      result.logs.find((entry) => entry.nodeId === "build")?.nestedLogs?.length
+    ).toBeGreaterThan(0);
     expect(result.logs.find((entry) => entry.nodeId === "build")?.status).toBe("success");
   });
 
@@ -404,7 +430,9 @@ describe("runWorkflow", () => {
       reusable: {
         description: "",
         inputs: [{ name: "payload", valueType: "object", required: true }],
-        outputs: [{ name: "result", valueType: "text", valueTemplate: "{{args.payload.name}}" }]
+        outputs: [
+          { name: "result", valueType: "text", valueTemplate: "{{args.payload.name}}" }
+        ]
       },
       tags: [],
       trigger: {
@@ -442,7 +470,13 @@ describe("runWorkflow", () => {
         argumentName: "query"
       },
       nodes: [
-        { id: "query", type: "query-input", title: "Query", status: "supported", config: {} },
+        {
+          id: "query",
+          type: "query-input",
+          title: "Query",
+          status: "supported",
+          config: {}
+        },
         {
           id: "invoke",
           type: "invoke-workflow",

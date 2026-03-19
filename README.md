@@ -20,28 +20,28 @@ Open Spotlight Bar is an open-source alternative to Alfred, Raycast, and PowerTo
 
 ## Features
 
-| Category | Highlights |
-|----------|-----------|
-| **Search** | Apps, files, clipboard, snippets, web shortcuts — all from one bar |
-| **Live File Search** | `dir <query>` for real-time system-wide file search (mdfind / locate / find) |
-| **Calculator** | `= 2**10`, `= 0xFF & 0x0F` — arithmetic, bitwise ops, hex/binary display |
-| **Clipboard History** | Automatic capture with pin, delete, privacy exclusions |
-| **Snippets** | Text expansion with `{{date}}`, `{{time}}`, `{{clipboard}}`, `{{uuid}}` variables |
-| **Workflows** | Visual node editor with command & keyword triggers, HTTP requests, JSON transforms, reusable subflows |
-| **Plugins** | 8 built-in plugins, Worker-isolated with permission-gated APIs |
-| **Plugin Marketplace** | Browse, install & uninstall built-in plugins from Settings |
-| **Settings Hub** | Type `config` to open the unified settings surface |
-| **Cross-platform** | macOS, Windows, Linux via Tauri |
+| Category               | Highlights                                                                                            |
+| ---------------------- | ----------------------------------------------------------------------------------------------------- |
+| **Search**             | Apps, files, clipboard, snippets, web shortcuts — all from one bar                                    |
+| **Live File Search**   | `dir <query>` for real-time system-wide file search (mdfind / locate / find)                          |
+| **Calculator**         | `= 2**10`, `= 0xFF & 0x0F` — arithmetic, bitwise ops, hex/binary display                              |
+| **Clipboard History**  | Automatic capture with pin, delete, privacy exclusions                                                |
+| **Snippets**           | Text expansion with `{{date}}`, `{{time}}`, `{{clipboard}}`, `{{uuid}}` variables                     |
+| **Workflows**          | Visual node editor with command & keyword triggers, HTTP requests, JSON transforms, reusable subflows |
+| **Plugins**            | 8 built-in plugins, Worker-isolated with permission-gated APIs                                        |
+| **Plugin Marketplace** | Browse, install & uninstall built-in plugins from Settings                                            |
+| **Settings Hub**       | Type `config` to open the unified settings surface                                                    |
+| **Cross-platform**     | macOS, Windows, Linux via Tauri                                                                       |
 
 ### Keyboard Shortcuts
 
-| Key | Action |
-|-----|--------|
-| `Enter` | Execute default action & dismiss launcher |
-| `Tab` | Open action panel |
-| `Ctrl + ,` | Open settings |
-| `Escape` | Close panel / dismiss launcher |
-| `↑ ↓` | Navigate results |
+| Key        | Action                                    |
+| ---------- | ----------------------------------------- |
+| `Enter`    | Execute default action & dismiss launcher |
+| `Tab`      | Open action panel                         |
+| `Ctrl + ,` | Open settings                             |
+| `Escape`   | Close panel / dismiss launcher            |
+| `↑ ↓`      | Navigate results                          |
 
 ## Getting Started
 
@@ -98,13 +98,13 @@ open-spotlight-bar/
 
 ### Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Desktop shell | [Tauri 2](https://v2.tauri.app/) |
-| Frontend | React 19, TypeScript, Tailwind CSS, Vite |
-| Backend | Rust, SQLite (via rusqlite), reqwest, tokio |
-| Monorepo | pnpm workspaces |
-| Testing | Vitest, ESLint, Prettier |
+| Layer         | Technology                                  |
+| ------------- | ------------------------------------------- |
+| Desktop shell | [Tauri 2](https://v2.tauri.app/)            |
+| Frontend      | React 19, TypeScript, Tailwind CSS, Vite    |
+| Backend       | Rust, SQLite (via rusqlite), reqwest, tokio |
+| Monorepo      | pnpm workspaces                             |
+| Testing       | Vitest, ESLint, Prettier                    |
 
 ### Search Pipeline
 
@@ -117,16 +117,16 @@ Results flow through a provider-based pipeline where each provider (Apps, Files,
 
 ## Built-in Plugins
 
-| Plugin | Trigger | Description |
-|--------|---------|-------------|
-| Calculator | `= 1+2`, `= 2**10` | Arithmetic, exponentiation, bitwise ops (`&`, `\|`, `^`, `>>`, `<<`), hex/binary display |
-| Encode / Decode | `b64`, `url`, `html`, `hex`, `encode` | Base64, URL encoding, HTML entities, hex encode/decode |
-| Color Picker | `color #ff6600`, `color rgb(255,0,0)` | HEX / RGB / HSL color format conversion |
-| Hash | `hash hello` | SHA-256 hash computation |
-| Timestamp | `ts 1700000000`, `timestamp 2024-01-01` | Unix timestamp ↔ date conversion |
-| IP Lookup | `ip` | Public IP, geolocation, and ISP info |
-| GitHub Search | `ghrepo tauri` | Search GitHub repositories |
-| Shell Command | `shell ls -la` | Run shell commands (prefers iTerm2 on macOS) |
+| Plugin          | Trigger                                 | Description                                                                              |
+| --------------- | --------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Calculator      | `= 1+2`, `= 2**10`                      | Arithmetic, exponentiation, bitwise ops (`&`, `\|`, `^`, `>>`, `<<`), hex/binary display |
+| Encode / Decode | `b64`, `url`, `html`, `hex`, `encode`   | Base64, URL encoding, HTML entities, hex encode/decode                                   |
+| Color Picker    | `color #ff6600`, `color rgb(255,0,0)`   | HEX / RGB / HSL color format conversion                                                  |
+| Hash            | `hash hello`                            | SHA-256 hash computation                                                                 |
+| Timestamp       | `ts 1700000000`, `timestamp 2024-01-01` | Unix timestamp ↔ date conversion                                                         |
+| IP Lookup       | `ip`                                    | Public IP, geolocation, and ISP info                                                     |
+| GitHub Search   | `ghrepo tauri`                          | Search GitHub repositories                                                               |
+| Shell Command   | `shell ls -la`                          | Run shell commands (prefers iTerm2 on macOS)                                             |
 
 ## Plugin Authoring
 
@@ -158,17 +158,21 @@ my-plugin/
 const plugin = {
   async search(context) {
     if (!context.query.startsWith("demo ")) return [];
-    return [{
-      id: "demo:hello",
-      title: "Hello from plugin",
-      type: "plugin",
-      actions: [{
-        id: "copy",
-        title: "Copy text",
-        kind: "copy-text",
-        payload: { text: "hello" }
-      }]
-    }];
+    return [
+      {
+        id: "demo:hello",
+        title: "Hello from plugin",
+        type: "plugin",
+        actions: [
+          {
+            id: "copy",
+            title: "Copy text",
+            kind: "copy-text",
+            payload: { text: "hello" }
+          }
+        ]
+      }
+    ];
   }
 };
 export default plugin;
@@ -197,11 +201,11 @@ Workflows are a visual, node-based automation system triggered from the launcher
 
 ### Trigger Types
 
-| Type | Example |
-|------|---------|
+| Type    | Example                                                     |
+| ------- | ----------------------------------------------------------- |
 | Command | `google open spotlight bar` or `/google open spotlight bar` |
-| Keyword | `g open spotlight bar`, `weather Shanghai` |
-| Manual | Run from the workflow editor |
+| Keyword | `g open spotlight bar`, `weather Shanghai`                  |
+| Manual  | Run from the workflow editor                                |
 
 ### Built-in Workflows
 
@@ -227,11 +231,11 @@ Keyword triggers: `g`, `jira`, `gh`, `weather`
 
 ## Platform Status
 
-| Platform | Status |
-|----------|--------|
-| **macOS** | Tauri shell — demo-ready |
+| Platform    | Status                   |
+| ----------- | ------------------------ |
+| **macOS**   | Tauri shell — demo-ready |
 | **Windows** | Tauri shell — demo-ready |
-| **Linux** | Tauri shell — demo-ready |
+| **Linux**   | Tauri shell — demo-ready |
 
 ## Contributing
 
@@ -244,6 +248,3 @@ See [docs/architecture.md](docs/architecture.md) for deeper technical context an
 ## License
 
 This project is open source. See the repository for license details.
-
-
-

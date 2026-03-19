@@ -21,9 +21,7 @@ export function ActionPanel({
     <section className="shell-panel rounded-[24px] p-4">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
-          <div className="shell-kicker">
-            Actions
-          </div>
+          <div className="shell-kicker">Actions</div>
           <div className="mt-1 text-xl font-semibold text-[color:var(--shell-text-primary)]">
             {result.title}
           </div>

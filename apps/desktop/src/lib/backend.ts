@@ -442,7 +442,10 @@ export async function saveWorkflow(workflow: WorkflowRecord): Promise<WorkflowRe
     mockWorkflows = [
       saved,
       ...mockWorkflows.filter((entry) => entry.id !== saved.id)
-    ].sort((left, right) => Number(right.builtIn) - Number(left.builtIn) || right.updatedAt - left.updatedAt);
+    ].sort(
+      (left, right) =>
+        Number(right.builtIn) - Number(left.builtIn) || right.updatedAt - left.updatedAt
+    );
     return cloneWorkflow(saved);
   }
 
@@ -542,9 +545,7 @@ export async function pluginExecShell(
   });
 }
 
-export async function workflowExecShell(
-  command: string
-): Promise<PluginShellResult> {
+export async function workflowExecShell(command: string): Promise<PluginShellResult> {
   if (!isTauriEnvironment()) {
     return {
       exitCode: 0,
@@ -579,13 +580,18 @@ export async function workflowHttpRequest(
       const response = await fetch(url, {
         method: request.method,
         headers,
-        body: request.jsonBody === undefined ? undefined : JSON.stringify(request.jsonBody),
+        body:
+          request.jsonBody === undefined ? undefined : JSON.stringify(request.jsonBody),
         signal: controller.signal
       });
       const text = await response.text();
       const contentType = response.headers.get("content-type");
       let json: unknown = undefined;
-      if (contentType?.includes("json") || text.trim().startsWith("{") || text.trim().startsWith("[")) {
+      if (
+        contentType?.includes("json") ||
+        text.trim().startsWith("{") ||
+        text.trim().startsWith("[")
+      ) {
         try {
           json = JSON.parse(text);
         } catch {
@@ -686,7 +692,8 @@ const MOCK_MARKETPLACE_ENTRIES: MarketplaceEntry[] = [
   {
     id: "com.osb.color-picker",
     name: "Color Picker",
-    description: "Pick colors from anywhere on screen, convert between HEX / RGB / HSL formats.",
+    description:
+      "Pick colors from anywhere on screen, convert between HEX / RGB / HSL formats.",
     version: "1.0.0",
     author: "OSB",
     stars: 0,
@@ -716,7 +723,8 @@ const MOCK_MARKETPLACE_ENTRIES: MarketplaceEntry[] = [
   {
     id: "com.osb.ip-lookup",
     name: "IP Lookup",
-    description: "Show your public IP, geolocation, and ISP info. Also look up any IP or domain.",
+    description:
+      "Show your public IP, geolocation, and ISP info. Also look up any IP or domain.",
     version: "0.3.1",
     author: "OSB",
     stars: 0,
@@ -736,7 +744,8 @@ const MOCK_MARKETPLACE_ENTRIES: MarketplaceEntry[] = [
   {
     id: "com.osb.timestamp",
     name: "Timestamp Converter",
-    description: "Convert between Unix timestamps, ISO 8601, and human-readable date formats.",
+    description:
+      "Convert between Unix timestamps, ISO 8601, and human-readable date formats.",
     version: "0.2.0",
     author: "OSB",
     stars: 0,
@@ -753,9 +762,7 @@ export async function fetchPluginRegistry(): Promise<MarketplaceEntry[]> {
   return invokeCommand<MarketplaceEntry[]>("fetch_plugin_registry");
 }
 
-export async function installMarketplacePlugin(
-  pluginId: string
-): Promise<void> {
+export async function installMarketplacePlugin(pluginId: string): Promise<void> {
   if (!isTauriEnvironment()) {
     return;
   }

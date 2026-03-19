@@ -19,8 +19,14 @@ export function autoLayout(
   const outgoing = new Map<string, string[]>();
   const incoming = new Map<string, string[]>();
   for (const edge of workflow.edges) {
-    outgoing.set(edge.fromNodeId, [...(outgoing.get(edge.fromNodeId) ?? []), edge.toNodeId]);
-    incoming.set(edge.toNodeId, [...(incoming.get(edge.toNodeId) ?? []), edge.fromNodeId]);
+    outgoing.set(edge.fromNodeId, [
+      ...(outgoing.get(edge.fromNodeId) ?? []),
+      edge.toNodeId
+    ]);
+    incoming.set(edge.toNodeId, [
+      ...(incoming.get(edge.toNodeId) ?? []),
+      edge.fromNodeId
+    ]);
   }
 
   // Longest-path layering

@@ -444,8 +444,7 @@ export function SettingsPanel({
             "这里是工作流编排和自动化规则的占位入口，后续会通过 config workflow 从启动器进入。",
           today:
             "当前最接近的扩展点还是 snippets、plugin commands 和 action composition。专用工作流编辑器仍需要独立模型和执行层。",
-          todo:
-            "后续将补上工作流定义、排序、触发器和逐条权限控制。"
+          todo: "后续将补上工作流定义、排序、触发器和逐条权限控制。"
         },
         marketplace: {
           title: "插件市场",
@@ -474,12 +473,14 @@ export function SettingsPanel({
           clipboard: "Local clipboard items available to search and actions.",
           snippets: "Saved snippets ready for search and expansion actions.",
           plugins: "Discovered plugin runtimes or manifests in the current workspace.",
-          workflow: "Workflow opens as its own surface instead of bloating the launcher bar.",
+          workflow:
+            "Workflow opens as its own surface instead of bloating the launcher bar.",
           permPrompts: "Pending plugin permission approvals waiting for attention."
         },
         general: {
           title: "General",
-          description: "Launcher-wide preferences, language, and baseline search defaults.",
+          description:
+            "Launcher-wide preferences, language, and baseline search defaults.",
           hotkeyTitle: "Hotkey",
           hotkeyDescription:
             "Global hotkey customization. Native key capture and conflict detection coming soon.",
@@ -495,7 +496,8 @@ export function SettingsPanel({
         },
         search: {
           title: "Search",
-          description: "Provider weights and scope shortcuts that drive the ranking pipeline.",
+          description:
+            "Provider weights and scope shortcuts that drive the ranking pipeline.",
           fileIndex: "File index",
           fileIndexFallback: "Lightweight filename and path indexing powers file search.",
           indexedFiles: "Indexed files",
@@ -504,7 +506,8 @@ export function SettingsPanel({
           indexedFilesDirectories: (directoryCount: number) =>
             `${directoryCount} directories included.`,
           lastRebuild: "Last rebuild",
-          lastRebuildDetail: "Type config indexing to review roots, exclusions, and rebuild health.",
+          lastRebuildDetail:
+            "Type config indexing to review roots, exclusions, and rebuild health.",
           fileRanking: "File ranking",
           fileRankingValue: "Fuzzy + recency",
           fileRankingDetail:
@@ -609,18 +612,17 @@ export function SettingsPanel({
           dark: "Dark",
           denseMode: "Dense mode",
           reduceMotion: "Reduce motion",
-          todo:
-            "A broader theming system will land once the visual language stabilizes across desktop platforms."
+          todo: "A broader theming system will land once the visual language stabilizes across desktop platforms."
         },
         workflow: {
           title: "Workflow",
-          description: "Command-driven configuration entry for future workflow automation.",
+          description:
+            "Command-driven configuration entry for future workflow automation.",
           intro:
             "This section is the placeholder for workflow authoring and automation rules that should be reachable from the launcher via config workflow.",
           today:
             "Today, the closest extension points are snippets, plugin commands, and action composition. A dedicated workflow editor still needs a separate model and execution layer.",
-          todo:
-            "Workflow definitions, ordering, triggers, and per-workflow permissions are planned for a future release."
+          todo: "Workflow definitions, ordering, triggers, and per-workflow permissions are planned for a future release."
         },
         marketplace: {
           title: "Marketplace",
@@ -712,7 +714,8 @@ export function SettingsPanel({
     }
   }
 
-  const sectionMeta = sections.find((section) => section.id === activeSection) ?? sections[0];
+  const sectionMeta =
+    sections.find((section) => section.id === activeSection) ?? sections[0];
 
   return (
     <section className="shell-panel rounded-[28px] p-4 md:p-5">
@@ -763,10 +766,7 @@ export function SettingsPanel({
     switch (activeSection) {
       case "overview":
         return (
-          <SectionCard
-            title={copy.overviewTitle}
-            description={copy.overviewDescription}
-          >
+          <SectionCard title={copy.overviewTitle} description={copy.overviewDescription}>
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               <StatusMetricCard
                 title={copy.metricTitles.indexedFiles}
@@ -881,26 +881,19 @@ export function SettingsPanel({
                   className={inputClassName}
                 />
               </Field>
-              <p className="mt-2 text-sm text-slate-400">
-                {copy.general.hotkeyTodo}
-              </p>
+              <p className="mt-2 text-sm text-slate-400">{copy.general.hotkeyTodo}</p>
             </SectionCard>
           </div>
         );
 
       case "search":
         return (
-          <SectionCard
-            title={copy.search.title}
-            description={copy.search.description}
-          >
+          <SectionCard title={copy.search.title} description={copy.search.description}>
             <div className="mb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               <StatusMetricCard
                 title={copy.search.fileIndex}
                 value={formatIndexStateLabel(fileIndexStatus?.state, useChineseCopy)}
-                detail={
-                  fileIndexStatus?.message ?? copy.search.fileIndexFallback
-                }
+                detail={fileIndexStatus?.message ?? copy.search.fileIndexFallback}
               />
               <StatusMetricCard
                 title={copy.search.indexedFiles}
@@ -1033,9 +1026,7 @@ export function SettingsPanel({
               >
                 {copy.clipboard.clearHistory}
               </button>
-              <span className="text-sm text-slate-400">
-                {copy.clipboard.privacyTodo}
-              </span>
+              <span className="text-sm text-slate-400">{copy.clipboard.privacyTodo}</span>
             </div>
           </SectionCard>
         );
@@ -1067,7 +1058,9 @@ export function SettingsPanel({
               />
               <StatusMetricCard
                 title={copy.indexing.directories}
-                value={String(draft.indexPaths.length || fileIndexStatus?.indexedPaths.length || 0)}
+                value={String(
+                  draft.indexPaths.length || fileIndexStatus?.indexedPaths.length || 0
+                )}
                 detail={copy.indexing.directoriesDetail}
               />
               <StatusMetricCard
@@ -1101,7 +1094,7 @@ export function SettingsPanel({
               <div className="flex flex-wrap gap-2">
                 {(draft.indexPaths.length > 0
                   ? draft.indexPaths
-                  : fileIndexStatus?.indexedPaths ?? []
+                  : (fileIndexStatus?.indexedPaths ?? [])
                 ).map((path) => (
                   <div
                     key={path}
@@ -1220,8 +1213,9 @@ export function SettingsPanel({
                 {copy.indexing.rebuildIndex}
               </button>
               <div className="text-sm text-[color:var(--shell-text-secondary)]">
-                {copy.indexing.implicitIgnores}: <code>.git</code>, <code>node_modules</code>,{" "}
-                <code>target</code>, <code>Library</code>, <code>.cache</code>.
+                {copy.indexing.implicitIgnores}: <code>.git</code>,{" "}
+                <code>node_modules</code>, <code>target</code>, <code>Library</code>,{" "}
+                <code>.cache</code>.
               </div>
             </div>
 
@@ -1277,9 +1271,7 @@ export function SettingsPanel({
               />
             </div>
 
-            <p className="mb-3 text-sm text-slate-400">
-              {copy.snippets.variablesNote}
-            </p>
+            <p className="mb-3 text-sm text-slate-400">{copy.snippets.variablesNote}</p>
 
             <div className="grid gap-3 xl:grid-cols-[220px_minmax(0,1fr)]">
               <div className="space-y-2">
@@ -1418,10 +1410,7 @@ export function SettingsPanel({
 
       case "plugins":
         return (
-          <SectionCard
-            title={copy.plugins.title}
-            description={copy.plugins.description}
-          >
+          <SectionCard title={copy.plugins.title} description={copy.plugins.description}>
             <div className="space-y-3">
               <ToggleRow
                 label={copy.plugins.enableHost}
@@ -1480,9 +1469,7 @@ export function SettingsPanel({
                         className="rounded-2xl border border-white/8 bg-black/20 p-3"
                       >
                         <div className="text-sm text-white">
-                          {copy.plugins.requestsPermission(
-                            request.pluginName
-                          )}{" "}
+                          {copy.plugins.requestsPermission(request.pluginName)}{" "}
                           <code>{request.permission}</code>
                         </div>
                         <div className="mt-1 text-sm text-slate-400">
@@ -1594,7 +1581,9 @@ export function SettingsPanel({
                                   </div>
                                   <div className="flex flex-wrap gap-2">
                                     <div className="rounded-full border border-white/8 px-3 py-1 text-xs text-slate-300">
-                                      {granted ? copy.plugins.granted : copy.plugins.notGranted}
+                                      {granted
+                                        ? copy.plugins.granted
+                                        : copy.plugins.notGranted}
                                     </div>
                                     {granted ? (
                                       <button
@@ -1651,9 +1640,7 @@ export function SettingsPanel({
                 })}
               </div>
 
-              <p className="text-sm text-slate-400">
-                {copy.plugins.sandboxTodo}
-              </p>
+              <p className="text-sm text-slate-400">{copy.plugins.sandboxTodo}</p>
             </div>
           </SectionCard>
         );
@@ -1711,9 +1698,7 @@ export function SettingsPanel({
                 />
               </div>
             </div>
-            <p className="mt-3 text-sm text-slate-400">
-              {copy.appearance.todo}
-            </p>
+            <p className="mt-3 text-sm text-slate-400">{copy.appearance.todo}</p>
           </SectionCard>
         );
 
@@ -1800,7 +1785,9 @@ function StatusMetricCard({
       <div className="mt-2 text-base font-semibold text-[color:var(--shell-text-primary)]">
         {value}
       </div>
-      <div className="mt-1 text-sm text-[color:var(--shell-text-secondary)]">{detail}</div>
+      <div className="mt-1 text-sm text-[color:var(--shell-text-secondary)]">
+        {detail}
+      </div>
     </div>
   );
 }
@@ -1964,5 +1951,4 @@ const staticFieldClassName =
 const primaryButtonClassName =
   "button-primary disabled:cursor-not-allowed disabled:opacity-70";
 
-const secondaryButtonClassName =
-  "button-secondary";
+const secondaryButtonClassName = "button-secondary";

@@ -13,7 +13,7 @@ const plugin = {
     const encoded = new TextEncoder().encode(input);
     const hashBuffer = await crypto.subtle.digest("SHA-256", encoded);
     const hashHex = Array.from(new Uint8Array(hashBuffer))
-      .map(b => b.toString(16).padStart(2, "0"))
+      .map((b) => b.toString(16).padStart(2, "0"))
       .join("");
 
     return [
@@ -25,7 +25,13 @@ const plugin = {
         score: 1.0,
         payload: { text: hashHex },
         actions: [
-          { id: "copy", title: "Copy hash", kind: /** @type {const} */ ("copy-text"), shortcut: "Enter", payload: { text: hashHex } }
+          {
+            id: "copy",
+            title: "Copy hash",
+            kind: /** @type {const} */ ("copy-text"),
+            shortcut: "Enter",
+            payload: { text: hashHex }
+          }
         ]
       }
     ];

@@ -142,7 +142,10 @@ async function runWorkflowInternal(
 
     const missingInputs = definition.inputs
       .filter((input) => input.required)
-      .filter((input) => !providedInputs[input.name] && !configValueForInput(node.config, input.name))
+      .filter(
+        (input) =>
+          !providedInputs[input.name] && !configValueForInput(node.config, input.name)
+      )
       .map((input) => input.name);
 
     if (missingInputs.length > 0) {
@@ -267,13 +270,17 @@ async function executeNode(
     }
     case "http-request": {
       if (!services.requestHttp) {
-        throw new Error(`${node.title} requires HTTP request support in the workflow host.`);
+        throw new Error(
+          `${node.title} requires HTTP request support in the workflow host.`
+        );
       }
 
       const request = buildHttpRequest(node, referenceEnvironment);
       const response = await services.requestHttp(request);
       const parsedJson =
-        response.json === undefined ? tryParseHttpJson(response.text, response.contentType) : response.json;
+        response.json === undefined
+          ? tryParseHttpJson(response.text, response.contentType)
+          : response.json;
       const normalizedResponse: WorkflowHttpResponse = {
         ...response,
         headers: response.headers ?? {},
@@ -299,9 +306,13 @@ async function executeNode(
       }
 
       const workflowCatalog = options.workflowCatalog ?? [];
-      const targetWorkflow = workflowCatalog.find((entry) => entry.id === targetWorkflowId);
+      const targetWorkflow = workflowCatalog.find(
+        (entry) => entry.id === targetWorkflowId
+      );
       if (!targetWorkflow) {
-        throw new Error(`${node.title} references missing workflow '${targetWorkflowId}'.`);
+        throw new Error(
+          `${node.title} references missing workflow '${targetWorkflowId}'.`
+        );
       }
 
       if (!targetWorkflow.reusable) {
@@ -321,11 +332,15 @@ async function executeNode(
         inputs,
         referenceEnvironment
       );
-      const childContext = buildReusableWorkflowRunContext(targetWorkflow, reusableInputs, {
-        clipboardText: context.clipboardText,
-        files: context.files,
-        launcherQuery: context.launcherQuery
-      });
+      const childContext = buildReusableWorkflowRunContext(
+        targetWorkflow,
+        reusableInputs,
+        {
+          clipboardText: context.clipboardText,
+          files: context.files,
+          launcherQuery: context.launcherQuery
+        }
+      );
       const childRun = await runWorkflowInternal(targetWorkflow, childContext, services, {
         ...options,
         executionStack: [...executionStack, targetWorkflowId]
@@ -339,7 +354,11 @@ async function executeNode(
         );
       }
 
-      const reusableOutputs = resolveReusableWorkflowOutputs(targetWorkflow, childContext, childRun);
+      const reusableOutputs = resolveReusableWorkflowOutputs(
+        targetWorkflow,
+        childContext,
+        childRun
+      );
       return {
         outputs: {
           default: createRuntimeValue(reusableOutputs, "object")
@@ -365,7 +384,10 @@ async function executeNode(
       const input = readRuntimeTextInput(node, inputs, "input");
       const pattern = resolveConfigText(node.config.pattern, referenceEnvironment);
       const flags = resolveConfigText(node.config.flags, referenceEnvironment);
-      const replacement = resolveConfigText(node.config.replacement, referenceEnvironment);
+      const replacement = resolveConfigText(
+        node.config.replacement,
+        referenceEnvironment
+      );
       let regex: RegExp;
 
       try {
@@ -416,9 +438,15 @@ async function executeNode(
       };
     }
     case "json-extract": {
-      const input = readRuntimeValue(node, inputs, "input", ["object", "http-response", "text"]);
+      const input = readRuntimeValue(node, inputs, "input", [
+        "object",
+        "http-response",
+        "text"
+      ]);
       const sourceObject =
-        input.type === "text" ? parseJsonValue(String(input.value ?? ""), node.title) : input.value;
+        input.type === "text"
+          ? parseJsonValue(String(input.value ?? ""), node.title)
+          : input.value;
       const path = resolveConfigText(node.config.path, referenceEnvironment);
       let extracted = path ? getPathValue(sourceObject, path) : sourceObject;
 
@@ -435,7 +463,8 @@ async function executeNode(
         );
       }
 
-      const outputType = normalizeValueType(node.config.outputType) ?? inferRuntimeValueType(extracted);
+      const outputType =
+        normalizeValueType(node.config.outputType) ?? inferRuntimeValueType(extracted);
       return {
         outputs: {
           default: createRuntimeValue(
@@ -471,8 +500,7 @@ async function executeNode(
           "object",
           "http-response",
           "boolean"
-        ]) ??
-        resolveConfigText(node.config.textTemplate, referenceEnvironment);
+        ]) ?? resolveConfigText(node.config.textTemplate, referenceEnvironment);
       const response = await services.performSharedAction({
         id: `${node.id}:copy-text`,
         title: "Copy to clipboard",
@@ -540,7 +568,9 @@ async function executeNode(
         title: String(node.config.title ?? "Workflow action"),
         kind: node.config.actionKind as ActionItem["kind"],
         description:
-          typeof node.config.description === "string" ? node.config.description : undefined,
+          typeof node.config.description === "string"
+            ? node.config.description
+            : undefined,
         payload
       });
       return {
@@ -559,8 +589,7 @@ async function executeNode(
           "number",
           "object",
           "http-response"
-        ]) ??
-        resolveConfigText(node.config.argumentTemplate, referenceEnvironment);
+        ]) ?? resolveConfigText(node.config.argumentTemplate, referenceEnvironment);
       const response = await services.invokePluginCommand(command, textInput, context);
       return {
         outputs: {
@@ -574,7 +603,12 @@ async function executeNode(
       const results =
         mode === "items"
           ? buildLauncherResultsFromWorkflow(node, inputs, referenceEnvironment)
-          : await searchLauncherFromWorkflow(node, inputs, referenceEnvironment, services);
+          : await searchLauncherFromWorkflow(
+              node,
+              inputs,
+              referenceEnvironment,
+              services
+            );
       return {
         outputs: {
           default: createRuntimeValue(results, "result-list")
@@ -594,7 +628,10 @@ async function executeNode(
           "action-result"
         ]) ??
         createRuntimeValue(
-          resolveWorkflowTemplateValue(String(node.config.template ?? ""), referenceEnvironment),
+          resolveWorkflowTemplateValue(
+            String(node.config.template ?? ""),
+            referenceEnvironment
+          ),
           "text"
         );
       const text = stringifyValueForDisplay(value);
@@ -623,8 +660,7 @@ async function executeNode(
           "object",
           "http-response",
           "boolean"
-        ]) ??
-        resolveConfigText(node.config.textTemplate, referenceEnvironment);
+        ]) ?? resolveConfigText(node.config.textTemplate, referenceEnvironment);
       if (!services.emitToast) {
         throw new Error(`${node.title} requires host toast or notification support.`);
       }
@@ -642,7 +678,9 @@ async function executeNode(
     }
     case "file-input":
     case "return-files":
-      throw new Error(`${WORKFLOW_NODE_LIBRARY_BY_TYPE[node.type].label} is planned only.`);
+      throw new Error(
+        `${WORKFLOW_NODE_LIBRARY_BY_TYPE[node.type].label} is planned only.`
+      );
     default:
       throw new Error(`Unsupported node type: ${(node as { type: string }).type}`);
   }
@@ -668,12 +706,19 @@ function buildLauncherResultsFromWorkflow(
   inputs: Record<string, RuntimeValue>,
   referenceEnvironment: WorkflowReferenceEnvironment
 ): ResultItem[] {
-  const sourceInput = readRuntimeValue(node, inputs, "items", ["object", "http-response", "result-list"]);
+  const sourceInput = readRuntimeValue(node, inputs, "items", [
+    "object",
+    "http-response",
+    "result-list"
+  ]);
   if (sourceInput.type === "result-list") {
     return sourceInput.value as ResultItem[];
   }
 
-  const collection = selectWorkflowResultCollection(sourceInput.value, node.config.itemsPath);
+  const collection = selectWorkflowResultCollection(
+    sourceInput.value,
+    node.config.itemsPath
+  );
   if (!Array.isArray(collection)) {
     throw new Error(
       `${node.title} expected an array of items${node.config.itemsPath ? ` at path '${String(node.config.itemsPath)}'` : ""}.`
@@ -684,9 +729,11 @@ function buildLauncherResultsFromWorkflow(
   const resultType = normalizeResultItemType(node.config.resultType);
   const resultSource = normalizeResultSource(node.config.resultSource);
   const score = normalizeScore(node.config.score);
-  const actionKind = typeof node.config.actionKind === "string" ? node.config.actionKind : "noop";
+  const actionKind =
+    typeof node.config.actionKind === "string" ? node.config.actionKind : "noop";
   const actionTitle =
-    typeof node.config.actionTitle === "string" && node.config.actionTitle.trim().length > 0
+    typeof node.config.actionTitle === "string" &&
+    node.config.actionTitle.trim().length > 0
       ? node.config.actionTitle
       : "Open result";
 
@@ -695,7 +742,10 @@ function buildLauncherResultsFromWorkflow(
       item: { type: inferRuntimeValueType(item), value: item },
       index: { type: "number", value: index }
     });
-    const title = renderWorkflowTemplate(String(node.config.titleTemplate ?? "{{item}}"), itemEnvironment).trim();
+    const title = renderWorkflowTemplate(
+      String(node.config.titleTemplate ?? "{{item}}"),
+      itemEnvironment
+    ).trim();
     if (!title) {
       throw new Error(`${node.title} produced a launcher result without a title.`);
     }
@@ -752,7 +802,11 @@ function buildHttpRequest(
   }
 
   const headers = normalizeStringRecord(
-    resolveTemplateObjectConfig(node.config.headersTemplate, referenceEnvironment, `${node.title} headers`)
+    resolveTemplateObjectConfig(
+      node.config.headersTemplate,
+      referenceEnvironment,
+      `${node.title} headers`
+    )
   );
   const queryParams = normalizeStringRecord(
     resolveTemplateObjectConfig(
@@ -806,7 +860,11 @@ function buildReusableWorkflowInputs(
       resolved = passThroughInput.value;
     }
 
-    if (resolved === undefined || resolved === null || (typeof resolved === "string" && !resolved.trim())) {
+    if (
+      resolved === undefined ||
+      resolved === null ||
+      (typeof resolved === "string" && !resolved.trim())
+    ) {
       if (input.required !== false) {
         throw new Error(
           `${node.title} is missing required reusable input '${input.name}' for '${targetWorkflow.name}'.`
@@ -841,7 +899,11 @@ function resolveReusableWorkflowOutputs(
       const resolved = resolveWorkflowTemplateValue(output.valueTemplate, environment);
       return [
         output.name,
-        coerceRuntimeValue(resolved, output.valueType, `${workflow.name} output '${output.name}'`)
+        coerceRuntimeValue(
+          resolved,
+          output.valueType,
+          `${workflow.name} output '${output.name}'`
+        )
       ];
     })
   );
@@ -997,7 +1059,10 @@ function topologicalSort(workflow: WorkflowRecord): WorkflowRecord["nodes"] {
       continue;
     }
     indegree.set(edge.toNodeId, (indegree.get(edge.toNodeId) ?? 0) + 1);
-    outgoing.set(edge.fromNodeId, [...(outgoing.get(edge.fromNodeId) ?? []), edge.toNodeId]);
+    outgoing.set(edge.fromNodeId, [
+      ...(outgoing.get(edge.fromNodeId) ?? []),
+      edge.toNodeId
+    ]);
   }
 
   const queue = workflow.nodes
@@ -1319,7 +1384,9 @@ function previewInputs(inputs: Record<string, RuntimeValue>): WorkflowLogValuePr
   }));
 }
 
-function previewOutputs(outputs: Record<string, RuntimeValue>): WorkflowLogValuePreview | undefined {
+function previewOutputs(
+  outputs: Record<string, RuntimeValue>
+): WorkflowLogValuePreview | undefined {
   const entries = Object.entries(outputs);
   if (entries.length === 0) {
     return undefined;
@@ -1535,7 +1602,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
 }
 
-function configValueForInput(config: Record<string, unknown>, inputName: string): unknown {
+function configValueForInput(
+  config: Record<string, unknown>,
+  inputName: string
+): unknown {
   const direct = config[inputName];
   if (direct !== undefined && direct !== null) {
     return direct;
@@ -1559,9 +1629,10 @@ function configValueForInput(config: Record<string, unknown>, inputName: string)
   }
 }
 
-export function isWorkflowExecutable(
-  workflow: WorkflowRecord
-): { ok: boolean; issues: WorkflowValidationIssue[] } {
+export function isWorkflowExecutable(workflow: WorkflowRecord): {
+  ok: boolean;
+  issues: WorkflowValidationIssue[];
+} {
   const issues = validateWorkflow(workflow);
   return {
     ok: !issues.some((issue) => issue.level === "error"),

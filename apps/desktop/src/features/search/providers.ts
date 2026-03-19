@@ -111,7 +111,8 @@ function createWorkflowProvider(): SearchProvider {
             matchKind: "invocation"
           });
         } else {
-          const normalizedCommand = parseSlashCommandInvocation(effectiveQuery)?.command ?? "/";
+          const normalizedCommand =
+            parseSlashCommandInvocation(effectiveQuery)?.command ?? "/";
           for (const registration of registry.activeRegistrations) {
             if (
               registration.triggerType !== "slash-command" ||
@@ -546,7 +547,11 @@ function toWorkflowResult(
         : registration.triggerType === "keyword"
           ? 1.02
           : 0.94,
-    tags: [...workflow.tags, registration.triggerType, registration.isAlias ? "alias" : "primary"],
+    tags: [
+      ...workflow.tags,
+      registration.triggerType,
+      registration.isAlias ? "alias" : "primary"
+    ],
     payload: {
       workflowId: workflow.id,
       rawQuery,

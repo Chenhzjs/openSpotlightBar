@@ -114,7 +114,7 @@ export function WorkflowStudioPanel({
         noRuns: "暂无运行记录",
         noRunsDetail: "从此界面或启动器搜索中运行工作流，以捕获逐节点执行日志。",
         templateApplied: "模板已应用。保存后可在启动器中发现。",
-        newDraftCreated: "新工作流草稿已创建。保存后可在启动器中发现。",
+        newDraftCreated: "新工作流草稿已创建。保存后可在启动器中发现。"
       }
     : {
         back: "Back",
@@ -138,13 +138,16 @@ export function WorkflowStudioPanel({
         newWorkflow: "+ New workflow",
         noCustom: "No custom workflows yet.",
         emptyTitle: "Workflow Studio is empty",
-        emptyDetail: "Create a workflow draft to start wiring slash commands and shared actions together.",
+        emptyDetail:
+          "Create a workflow draft to start wiring slash commands and shared actions together.",
         readyToRun: "Ready to run",
         readyDetail: "This workflow passes runtime v1 validation.",
         noRuns: "No runs yet",
-        noRunsDetail: "Run the workflow from this surface or from launcher search to capture per-node execution logs.",
+        noRunsDetail:
+          "Run the workflow from this surface or from launcher search to capture per-node execution logs.",
         templateApplied: "Template applied. Save to add it to launcher discovery.",
-        newDraftCreated: "New workflow draft created. Save to add it to launcher discovery.",
+        newDraftCreated:
+          "New workflow draft created. Save to add it to launcher discovery."
       };
 
   const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(
@@ -164,7 +167,9 @@ export function WorkflowStudioPanel({
   const [dirty, setDirty] = useState(false);
   const [showGallery, setShowGallery] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [drawerTab, setDrawerTab] = useState<"inspector" | "validation" | "debug">("inspector");
+  const [drawerTab, setDrawerTab] = useState<"inspector" | "validation" | "debug">(
+    "inspector"
+  );
   const [nodeLibraryOpen, setNodeLibraryOpen] = useState(false);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
 
@@ -202,7 +207,7 @@ export function WorkflowStudioPanel({
   const selectedWorkflow =
     draft ??
     (selectedWorkflowId
-      ? workflows.find((workflow) => workflow.id === selectedWorkflowId) ?? null
+      ? (workflows.find((workflow) => workflow.id === selectedWorkflowId) ?? null)
       : null);
   const selectedNode =
     selectedWorkflow?.nodes.find((node) => node.id === selectedNodeId) ?? null;
@@ -256,7 +261,9 @@ export function WorkflowStudioPanel({
       loadWorkflow(saved);
       setLocalNotice("Workflow saved.");
     } catch {
-      setLocalNotice("Workflow save failed. Review the launcher error banner for details.");
+      setLocalNotice(
+        "Workflow save failed. Review the launcher error banner for details."
+      );
     } finally {
       setSaving(false);
       setBusyMessage(null);
@@ -275,7 +282,9 @@ export function WorkflowStudioPanel({
       loadWorkflow(duplicated);
       setLocalNotice("Workflow duplicated. Edit the new copy freely.");
     } catch {
-      setLocalNotice("Workflow duplication failed. Review the launcher error banner for details.");
+      setLocalNotice(
+        "Workflow duplication failed. Review the launcher error banner for details."
+      );
     } finally {
       setSaving(false);
       setBusyMessage(null);
@@ -298,7 +307,9 @@ export function WorkflowStudioPanel({
         createNewWorkflow();
       }
     } catch {
-      setLocalNotice("Workflow deletion failed. Review the launcher error banner for details.");
+      setLocalNotice(
+        "Workflow deletion failed. Review the launcher error banner for details."
+      );
     } finally {
       setSaving(false);
       setBusyMessage(null);
@@ -314,7 +325,9 @@ export function WorkflowStudioPanel({
     let effectiveInput = runInput;
     if (!effectiveInput.trim()) {
       const queryInputNode = selectedWorkflow.nodes.find(
-        (n) => (n.type === "query-input" || n.type === "clipboard-input") && (n.config?.debugValue as string | undefined)
+        (n) =>
+          (n.type === "query-input" || n.type === "clipboard-input") &&
+          (n.config?.debugValue as string | undefined)
       );
       if (queryInputNode) {
         effectiveInput = (queryInputNode.config!.debugValue as string) ?? "";
@@ -324,7 +337,10 @@ export function WorkflowStudioPanel({
     setRunning(true);
     setBusyMessage("Running workflow...");
     try {
-      await onRunWorkflow(selectedWorkflow, buildWorkflowInvocation(selectedWorkflow, effectiveInput));
+      await onRunWorkflow(
+        selectedWorkflow,
+        buildWorkflowInvocation(selectedWorkflow, effectiveInput)
+      );
       setLocalNotice("Workflow run finished. See the debug panel for per-node logs.");
     } catch {
       setLocalNotice("Workflow run failed. Review logs and the launcher error banner.");
@@ -406,7 +422,9 @@ export function WorkflowStudioPanel({
     const nextEdges = [...selectedWorkflow.edges];
 
     if (previousNode && WORKFLOW_NODE_LIBRARY_BY_TYPE[type].inputs.length > 0) {
-      const currentOutgoing = nextEdges.filter((edge) => edge.fromNodeId === previousNode.id);
+      const currentOutgoing = nextEdges.filter(
+        (edge) => edge.fromNodeId === previousNode.id
+      );
       if (
         previousNode.type === "conditional-branch"
           ? currentOutgoing.length < 2
@@ -414,8 +432,9 @@ export function WorkflowStudioPanel({
       ) {
         const nextEdge = createEdgeDraft(selectedWorkflow, previousNode.id, nextNode.id);
         if (previousNode.type === "conditional-branch") {
-          nextEdge.fromPort =
-            currentOutgoing.some((edge) => edge.fromPort === "true") ? "false" : "true";
+          nextEdge.fromPort = currentOutgoing.some((edge) => edge.fromPort === "true")
+            ? "false"
+            : "true";
         }
         nextEdges.push(nextEdge);
       }
@@ -470,7 +489,9 @@ export function WorkflowStudioPanel({
           value={runInput}
           onChange={(event) => setRunInput(event.target.value)}
           className="w-[180px] shrink-0 rounded-full border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-muted)] px-3 py-1.5 text-xs text-[color:var(--shell-text-primary)] outline-none placeholder:text-[color:var(--shell-text-muted)] focus:border-[color:var(--shell-border-strong)]"
-          placeholder={selectedWorkflow ? getRunInputPlaceholder(selectedWorkflow) : t.runPlaceholder}
+          placeholder={
+            selectedWorkflow ? getRunInputPlaceholder(selectedWorkflow) : t.runPlaceholder
+          }
         />
         <button
           type="button"
@@ -488,11 +509,19 @@ export function WorkflowStudioPanel({
         >
           {saving ? t.saving : selectedWorkflow?.builtIn ? t.builtIn : t.save}
         </button>
-        <button type="button" className={secondaryButtonClassName} onClick={() => setShowGallery(true)}>
+        <button
+          type="button"
+          className={secondaryButtonClassName}
+          onClick={() => setShowGallery(true)}
+        >
           {t.new}
         </button>
         <div className="relative">
-          <button type="button" className={secondaryButtonClassName} onClick={() => setMoreMenuOpen((v) => !v)}>
+          <button
+            type="button"
+            className={secondaryButtonClassName}
+            onClick={() => setMoreMenuOpen((v) => !v)}
+          >
             {t.more}
           </button>
           {moreMenuOpen && (
@@ -500,7 +529,10 @@ export function WorkflowStudioPanel({
               <button
                 type="button"
                 className="w-full px-3 py-2 text-left text-sm text-[color:var(--shell-text-secondary)] hover:bg-[color:var(--shell-fill-muted)]"
-                onClick={() => { setMoreMenuOpen(false); if (selectedWorkflow) void duplicateDraft(); }}
+                onClick={() => {
+                  setMoreMenuOpen(false);
+                  if (selectedWorkflow) void duplicateDraft();
+                }}
                 disabled={!selectedWorkflow || saving}
               >
                 {t.duplicate}
@@ -508,7 +540,10 @@ export function WorkflowStudioPanel({
               <button
                 type="button"
                 className="w-full px-3 py-2 text-left text-sm text-[color:var(--shell-text-secondary)] hover:bg-[color:var(--shell-fill-muted)]"
-                onClick={() => { setMoreMenuOpen(false); if (selectedWorkflow && !selectedWorkflow.builtIn) void deleteDraft(); }}
+                onClick={() => {
+                  setMoreMenuOpen(false);
+                  if (selectedWorkflow && !selectedWorkflow.builtIn) void deleteDraft();
+                }}
                 disabled={!selectedWorkflow || selectedWorkflow?.builtIn || saving}
               >
                 {t.delete}
@@ -567,14 +602,20 @@ export function WorkflowStudioPanel({
                 <button
                   type="button"
                   className={clsx(secondaryButtonClassName, "text-xs py-1.5 px-3")}
-                  onClick={() => { setDrawerOpen(true); setDrawerTab("validation"); }}
+                  onClick={() => {
+                    setDrawerOpen(true);
+                    setDrawerTab("validation");
+                  }}
                 >
                   {t.validation} ({validationIssues.length})
                 </button>
                 <button
                   type="button"
                   className={clsx(secondaryButtonClassName, "text-xs py-1.5 px-3")}
-                  onClick={() => { setDrawerOpen(true); setDrawerTab("debug"); }}
+                  onClick={() => {
+                    setDrawerOpen(true);
+                    setDrawerTab("debug");
+                  }}
                 >
                   {t.debug}
                 </button>
@@ -583,13 +624,18 @@ export function WorkflowStudioPanel({
               {/* Floating Node Library */}
               {nodeLibraryOpen && (
                 <>
-                  <div className="fixed inset-0 z-15" onClick={() => setNodeLibraryOpen(false)} />
+                  <div
+                    className="fixed inset-0 z-15"
+                    onClick={() => setNodeLibraryOpen(false)}
+                  />
                   <div className="absolute top-12 left-3 z-20 w-[240px] max-h-[60vh] overflow-y-auto rounded-[20px] border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-soft)] p-3 shadow-lg backdrop-blur-xl space-y-3">
                     <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--shell-text-tertiary)]">
                       {t.nodeLibrary}
                     </div>
                     {["input", "transform", "action", "output"].map((category) => {
-                      const nodes = WORKFLOW_NODE_LIBRARY.filter((node) => node.category === category);
+                      const nodes = WORKFLOW_NODE_LIBRARY.filter(
+                        (node) => node.category === category
+                      );
                       return (
                         <div key={category} className="space-y-2">
                           <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--shell-text-tertiary)]">
@@ -601,7 +647,10 @@ export function WorkflowStudioPanel({
                               type="button"
                               draggable
                               onDragStart={(event) => {
-                                event.dataTransfer.setData("application/workflow-node-type", node.type);
+                                event.dataTransfer.setData(
+                                  "application/workflow-node-type",
+                                  node.type
+                                );
                                 event.dataTransfer.effectAllowed = "move";
                               }}
                               className="w-full rounded-[14px] border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-soft)] px-3 py-2 text-left transition hover:border-[color:var(--shell-border-strong)] cursor-grab active:cursor-grabbing"
@@ -655,10 +704,7 @@ export function WorkflowStudioPanel({
             </>
           ) : (
             <div className="flex items-center justify-center h-full">
-              <EmptyPanel
-                title={t.emptyTitle}
-                detail={t.emptyDetail}
-              />
+              <EmptyPanel title={t.emptyTitle} detail={t.emptyDetail} />
             </div>
           )}
         </div>
@@ -687,7 +733,11 @@ export function WorkflowStudioPanel({
                       )}
                       onClick={() => setDrawerTab(tab)}
                     >
-                      {tab === "inspector" ? t.inspector : tab === "validation" ? `${t.validation} (${validationIssues.length})` : t.debug}
+                      {tab === "inspector"
+                        ? t.inspector
+                        : tab === "validation"
+                          ? `${t.validation} (${validationIssues.length})`
+                          : t.debug}
                     </button>
                   ))}
                 </div>
@@ -697,7 +747,15 @@ export function WorkflowStudioPanel({
                   onClick={() => setDrawerOpen(false)}
                   aria-label="Close drawer"
                 >
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                  >
                     <path d="M4 4l8 8M12 4l-8 8" />
                   </svg>
                 </button>
@@ -717,30 +775,25 @@ export function WorkflowStudioPanel({
                     onDeleteNode={removeNode}
                   />
                 )}
-                {drawerTab === "validation" && (
-                  validationIssues.length === 0 ? (
-                    <EmptyPanel
-                      title={t.readyToRun}
-                      detail={t.readyDetail}
-                    />
+                {drawerTab === "validation" &&
+                  (validationIssues.length === 0 ? (
+                    <EmptyPanel title={t.readyToRun} detail={t.readyDetail} />
                   ) : (
                     validationIssues.map((issue, index) => (
-                      <IssueCard key={`${issue.nodeId ?? "workflow"}:${index}`} issue={issue} />
+                      <IssueCard
+                        key={`${issue.nodeId ?? "workflow"}:${index}`}
+                        issue={issue}
+                      />
                     ))
-                  )
-                )}
-                {drawerTab === "debug" && (
-                  (workflowRuns[selectedWorkflow.id] ?? []).length === 0 ? (
-                    <EmptyPanel
-                      title={t.noRuns}
-                      detail={t.noRunsDetail}
-                    />
+                  ))}
+                {drawerTab === "debug" &&
+                  ((workflowRuns[selectedWorkflow.id] ?? []).length === 0 ? (
+                    <EmptyPanel title={t.noRuns} detail={t.noRunsDetail} />
                   ) : (
                     (workflowRuns[selectedWorkflow.id] ?? []).map((run, index) => (
                       <RunCard key={`${run.workflowId}:${index}`} run={run} />
                     ))
-                  )
-                )}
+                  ))}
               </div>
             </div>
           </div>
@@ -881,7 +934,8 @@ function WorkflowInspector({
           Workflow metadata
         </div>
         <div className="mt-1 text-sm text-[color:var(--shell-text-secondary)]">
-          Configure launcher discovery, trigger behavior, and the saved identity for this workflow.
+          Configure launcher discovery, trigger behavior, and the saved identity for this
+          workflow.
         </div>
       </div>
 
@@ -915,7 +969,12 @@ function WorkflowInspector({
           <select
             value={workflow.trigger.type}
             onChange={(event) =>
-              onTriggerChange(createTriggerDraft(event.target.value as WorkflowTrigger["type"], workflow.trigger))
+              onTriggerChange(
+                createTriggerDraft(
+                  event.target.value as WorkflowTrigger["type"],
+                  workflow.trigger
+                )
+              )
             }
             className={selectClassName}
           >
@@ -1035,10 +1094,16 @@ function WorkflowInspector({
       </div>
 
       <div className="rounded-[18px] border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-soft)] px-4 py-3 text-sm text-[color:var(--shell-text-secondary)]">
-        Select a node in the canvas to edit node-level configuration such as templates, regex rules, shared actions, or plugin command routing.
+        Select a node in the canvas to edit node-level configuration such as templates,
+        regex rules, shared actions, or plugin command routing.
       </div>
       <ConfigNote>
-        Reference syntax is shared across templates and string config fields: <code>{"{{args.query}}"}</code>, <code>{"{{context.clipboard}}"}</code>, <code>{"{{inputs.input}}"}</code>, <code>{"{{nodes.parse.default.user.name}}"}</code>. Filters supported now: <code>trim</code>, <code>lower</code>, <code>upper</code>, <code>urlencode</code>, <code>json</code>, <code>prettyjson</code>.
+        Reference syntax is shared across templates and string config fields:{" "}
+        <code>{"{{args.query}}"}</code>, <code>{"{{context.clipboard}}"}</code>,{" "}
+        <code>{"{{inputs.input}}"}</code>,{" "}
+        <code>{"{{nodes.parse.default.user.name}}"}</code>. Filters supported now:{" "}
+        <code>trim</code>, <code>lower</code>, <code>upper</code>, <code>urlencode</code>,{" "}
+        <code>json</code>, <code>prettyjson</code>.
       </ConfigNote>
     </>
   );
@@ -1162,9 +1227,10 @@ function TriggerFields({
             />
           </Field>
           <ConfigNote>
-            Keyword triggers run from launcher input such as <code>{trigger.keyword || "jira"}</code>{" "}
-            <code>{"ABC-123"}</code>. The first token selects the workflow and the
-            remaining text becomes the primary argument payload.
+            Keyword triggers run from launcher input such as{" "}
+            <code>{trigger.keyword || "jira"}</code> <code>{"ABC-123"}</code>. The first
+            token selects the workflow and the remaining text becomes the primary argument
+            payload.
           </ConfigNote>
         </>
       );
@@ -1188,7 +1254,8 @@ function TriggerFields({
     case "manual":
       return (
         <div className="rounded-[18px] border border-dashed border-[color:var(--shell-border)] px-4 py-3 text-sm text-[color:var(--shell-text-secondary)]">
-          Manual workflows run from this editor or as reusable subflows. They stay out of launcher discovery until you attach a slash or keyword trigger.
+          Manual workflows run from this editor or as reusable subflows. They stay out of
+          launcher discovery until you attach a slash or keyword trigger.
         </div>
       );
   }
@@ -1255,12 +1322,17 @@ function ReusableContractEditor({
             />
           ) : (
             reusable.inputs.map((input, index) => (
-              <div key={`${input.name}:${index}`} className="rounded-[16px] border border-[color:var(--shell-border)] p-3">
+              <div
+                key={`${input.name}:${index}`}
+                className="rounded-[16px] border border-[color:var(--shell-border)] p-3"
+              >
                 <div className="grid gap-3 md:grid-cols-2">
                   <Field label="Name">
                     <input
                       value={input.name}
-                      onChange={(event) => updateInput(index, { name: event.target.value })}
+                      onChange={(event) =>
+                        updateInput(index, { name: event.target.value })
+                      }
                       className={inputClassName}
                     />
                   </Field>
@@ -1285,7 +1357,9 @@ function ReusableContractEditor({
                 <Field label="Description">
                   <input
                     value={input.description ?? ""}
-                    onChange={(event) => updateInput(index, { description: event.target.value })}
+                    onChange={(event) =>
+                      updateInput(index, { description: event.target.value })
+                    }
                     className={inputClassName}
                   />
                 </Field>
@@ -1341,12 +1415,17 @@ function ReusableContractEditor({
             />
           ) : (
             reusable.outputs.map((output, index) => (
-              <div key={`${output.name}:${index}`} className="rounded-[16px] border border-[color:var(--shell-border)] p-3">
+              <div
+                key={`${output.name}:${index}`}
+                className="rounded-[16px] border border-[color:var(--shell-border)] p-3"
+              >
                 <div className="grid gap-3 md:grid-cols-2">
                   <Field label="Name">
                     <input
                       value={output.name}
-                      onChange={(event) => updateOutput(index, { name: event.target.value })}
+                      onChange={(event) =>
+                        updateOutput(index, { name: event.target.value })
+                      }
                       className={inputClassName}
                     />
                   </Field>
@@ -1371,7 +1450,9 @@ function ReusableContractEditor({
                 <Field label="Description">
                   <input
                     value={output.description ?? ""}
-                    onChange={(event) => updateOutput(index, { description: event.target.value })}
+                    onChange={(event) =>
+                      updateOutput(index, { description: event.target.value })
+                    }
                     className={inputClassName}
                   />
                 </Field>
@@ -1392,9 +1473,10 @@ function ReusableContractEditor({
       </div>
 
       <ConfigNote>
-        Reusable outputs should point at stable values such as <code>{"{{nodes.template.default}}"}</code>
-        or <code>{"{{nodes.request.default.json.items}}"}</code>. Invoke Workflow returns these as
-        a structured object on its default output.
+        Reusable outputs should point at stable values such as{" "}
+        <code>{"{{nodes.template.default}}"}</code>
+        or <code>{"{{nodes.request.default.json.items}}"}</code>. Invoke Workflow returns
+        these as a structured object on its default output.
       </ConfigNote>
     </div>
   );
@@ -1426,7 +1508,8 @@ function NodeConfigEditor({
       return (
         <ConfigNote>
           This node type is intentionally marked as planned. You can keep it in a draft to
-          sketch future flows, but runtime v1 will reject execution until it is implemented.
+          sketch future flows, but runtime v1 will reject execution until it is
+          implemented.
         </ConfigNote>
       );
     case "static-value":
@@ -1462,7 +1545,10 @@ function NodeConfigEditor({
             </select>
           </Field>
           <ConfigNote>
-            Static values can also use references. For example, <code>{"{{args.query}}"}</code> stores the current trigger argument, and <code>{"{{nodes.parse.default | prettyjson}}"}</code> captures upstream structured output as text.
+            Static values can also use references. For example,{" "}
+            <code>{"{{args.query}}"}</code> stores the current trigger argument, and{" "}
+            <code>{"{{nodes.parse.default | prettyjson}}"}</code> captures upstream
+            structured output as text.
           </ConfigNote>
         </>
       );
@@ -1550,8 +1636,9 @@ function NodeConfigEditor({
             />
           </Field>
           <ConfigNote>
-            HTTP Request runs through the workflow host, not the browser search layer. String
-            fields support workflow references, and JSON blocks may resolve to objects such as
+            HTTP Request runs through the workflow host, not the browser search layer.
+            String fields support workflow references, and JSON blocks may resolve to
+            objects such as
             <code>{"{{nodes.compose.default}}"}</code>.
           </ConfigNote>
         </>
@@ -1595,7 +1682,10 @@ function NodeConfigEditor({
               </div>
               <div className="space-y-3">
                 {target.reusable.inputs.map((input) => (
-                  <div key={input.name} className="rounded-[18px] border border-[color:var(--shell-border)] p-3">
+                  <div
+                    key={input.name}
+                    className="rounded-[18px] border border-[color:var(--shell-border)] p-3"
+                  >
                     <div className="flex items-center justify-between gap-3">
                       <div className="text-sm font-medium text-[color:var(--shell-text-primary)]">
                         {input.name}
@@ -1622,7 +1712,9 @@ function NodeConfigEditor({
                       }
                       className={`${inputClassName} mt-3`}
                       placeholder={
-                        target.reusable?.inputs.length === 1 ? "{{input}}" : `{{args.${input.name}}}`
+                        target.reusable?.inputs.length === 1
+                          ? "{{input}}"
+                          : `{{args.${input.name}}}`
                       }
                     />
                   </div>
@@ -1647,8 +1739,9 @@ function NodeConfigEditor({
             </>
           ) : (
             <ConfigNote>
-              Select a reusable workflow target. Invoked subflows return a structured object on the
-              default output, so downstream templates can read values such as
+              Select a reusable workflow target. Invoked subflows return a structured
+              object on the default output, so downstream templates can read values such
+              as
               <code>{"{{nodes.invoke.default.result}}"}</code>.
             </ConfigNote>
           )}
@@ -1687,7 +1780,11 @@ function NodeConfigEditor({
             </select>
           </Field>
           <ConfigNote>
-            Prefer explicit references such as <code>{"{{args.query}}"}</code>, <code>{"{{context.clipboard}}"}</code>, <code>{"{{inputs.input}}"}</code>, or <code>{"{{nodes.parse.default}}"}</code>. Filters like <code>{"{{args.query | urlencode}}"}</code> and <code>{"{{inputs.input | prettyjson}}"}</code> are supported.
+            Prefer explicit references such as <code>{"{{args.query}}"}</code>,{" "}
+            <code>{"{{context.clipboard}}"}</code>, <code>{"{{inputs.input}}"}</code>, or{" "}
+            <code>{"{{nodes.parse.default}}"}</code>. Filters like{" "}
+            <code>{"{{args.query | urlencode}}"}</code> and{" "}
+            <code>{"{{inputs.input | prettyjson}}"}</code> are supported.
           </ConfigNote>
         </>
       );
@@ -1731,7 +1828,8 @@ function NodeConfigEditor({
             </Field>
           </div>
           <ConfigNote>
-            Regex Replace expects text input. Replacement text can still use workflow references if you need context-aware substitutions.
+            Regex Replace expects text input. Replacement text can still use workflow
+            references if you need context-aware substitutions.
           </ConfigNote>
         </>
       );
@@ -1796,14 +1894,16 @@ function NodeConfigEditor({
             Case sensitive
           </label>
           <ConfigNote>
-            Compare value supports references too. Example: <code>{"{{args.ticket | upper}}"}</code>.
+            Compare value supports references too. Example:{" "}
+            <code>{"{{args.ticket | upper}}"}</code>.
           </ConfigNote>
         </>
       );
     case "json-parse":
       return (
         <ConfigNote>
-          JSON Parse expects text input and outputs a structured object. Pair it with Template, JSON Extract, or Conditional Branch for structured workflows.
+          JSON Parse expects text input and outputs a structured object. Pair it with
+          Template, JSON Extract, or Conditional Branch for structured workflows.
         </ConfigNote>
       );
     case "json-extract":
@@ -1850,7 +1950,8 @@ function NodeConfigEditor({
             />
           </Field>
           <ConfigNote>
-            JSON Extract accepts structured object input, or text that can be parsed as JSON. Leave path empty to forward the whole object.
+            JSON Extract accepts structured object input, or text that can be parsed as
+            JSON. Leave path empty to forward the whole object.
           </ConfigNote>
         </>
       );
@@ -1915,7 +2016,8 @@ function NodeConfigEditor({
             />
           </Field>
           <ConfigNote>
-            Shell execution uses the shared workflow bridge and inherits the same timeout budget as the plugin host.
+            Shell execution uses the shared workflow bridge and inherits the same timeout
+            budget as the plugin host.
           </ConfigNote>
         </>
       );
@@ -1965,11 +2067,16 @@ function NodeConfigEditor({
           </div>
           <Field label="Text payload template">
             <input
-              value={String((node.config.payloadTemplates as Record<string, string> | undefined)?.text ?? "")}
+              value={String(
+                (node.config.payloadTemplates as Record<string, string> | undefined)
+                  ?.text ?? ""
+              )}
               onChange={(event) =>
                 onChange(node.id, {
                   payloadTemplates: {
-                    ...((node.config.payloadTemplates as Record<string, string> | undefined) ?? {}),
+                    ...((node.config.payloadTemplates as
+                      | Record<string, string>
+                      | undefined) ?? {}),
                     text: event.target.value
                   }
                 })
@@ -1980,11 +2087,16 @@ function NodeConfigEditor({
           </Field>
           <Field label="URL payload template">
             <input
-              value={String((node.config.payloadTemplates as Record<string, string> | undefined)?.url ?? "")}
+              value={String(
+                (node.config.payloadTemplates as Record<string, string> | undefined)
+                  ?.url ?? ""
+              )}
               onChange={(event) =>
                 onChange(node.id, {
                   payloadTemplates: {
-                    ...((node.config.payloadTemplates as Record<string, string> | undefined) ?? {}),
+                    ...((node.config.payloadTemplates as
+                      | Record<string, string>
+                      | undefined) ?? {}),
                     url: event.target.value
                   }
                 })
@@ -1995,11 +2107,16 @@ function NodeConfigEditor({
           </Field>
           <Field label="Path payload template">
             <input
-              value={String((node.config.payloadTemplates as Record<string, string> | undefined)?.path ?? "")}
+              value={String(
+                (node.config.payloadTemplates as Record<string, string> | undefined)
+                  ?.path ?? ""
+              )}
               onChange={(event) =>
                 onChange(node.id, {
                   payloadTemplates: {
-                    ...((node.config.payloadTemplates as Record<string, string> | undefined) ?? {}),
+                    ...((node.config.payloadTemplates as
+                      | Record<string, string>
+                      | undefined) ?? {}),
                     path: event.target.value
                   }
                 })
@@ -2215,8 +2332,8 @@ function NodeConfigEditor({
               </Field>
               <ConfigNote>
                 Items mode maps structured input into real launcher results. Use
-                <code>{"{{item.*}}"}</code> for each mapped entry and <code>{"{{index}}"}</code> for
-                the zero-based item index.
+                <code>{"{{item.*}}"}</code> for each mapped entry and{" "}
+                <code>{"{{index}}"}</code> for the zero-based item index.
               </ConfigNote>
             </>
           ) : (
@@ -2235,8 +2352,8 @@ function NodeConfigEditor({
                 />
               </Field>
               <ConfigNote>
-                Query mode asks the launcher host to run another provider search and returns a
-                result list.
+                Query mode asks the launcher host to run another provider search and
+                returns a result list.
               </ConfigNote>
             </>
           )}
@@ -2258,7 +2375,8 @@ function NodeConfigEditor({
             />
           </Field>
           <ConfigNote>
-            Return Text accepts direct text, URLs, booleans, structured objects, or action results and renders them into a final text output for the runtime summary.
+            Return Text accepts direct text, URLs, booleans, structured objects, or action
+            results and renders them into a final text output for the runtime summary.
           </ConfigNote>
         </>
       );
@@ -2279,7 +2397,8 @@ function NodeConfigEditor({
             />
           </Field>
           <ConfigNote>
-            Emit Toast uses the host status or toast surface. It is useful for lightweight confirmation steps, but host presentation still varies by platform.
+            Emit Toast uses the host status or toast surface. It is useful for lightweight
+            confirmation steps, but host presentation still varies by platform.
           </ConfigNote>
         </>
       );
@@ -2315,7 +2434,9 @@ function RunCard({ run }: { run: WorkflowRunResult }) {
           <button
             type="button"
             className="rounded-full px-2 py-0.5 text-[10px] font-medium text-[color:var(--shell-text-secondary)] border border-[color:var(--shell-border)] hover:bg-[color:var(--shell-fill-muted)] transition"
-            onClick={() => { void navigator.clipboard.writeText(buildLogText()); }}
+            onClick={() => {
+              void navigator.clipboard.writeText(buildLogText());
+            }}
           >
             Copy
           </button>
@@ -2332,7 +2453,10 @@ function RunCard({ run }: { run: WorkflowRunResult }) {
       </div>
 
       <div className="mt-2 text-sm text-[color:var(--shell-text-secondary)] break-words">
-        {run.returnedText ?? run.actionResponse?.message ?? run.error ?? "No explicit output."}
+        {run.returnedText ??
+          run.actionResponse?.message ??
+          run.error ??
+          "No explicit output."}
       </div>
 
       {run.validationIssues.length > 0 ? (
@@ -2345,19 +2469,29 @@ function RunCard({ run }: { run: WorkflowRunResult }) {
 
       <div className="mt-3 space-y-2">
         {run.logs.map((log) => (
-          <WorkflowLogEntryCard key={`${log.nodeId}:${log.startedAt}`} log={log} depth={0} />
+          <WorkflowLogEntryCard
+            key={`${log.nodeId}:${log.startedAt}`}
+            log={log}
+            depth={0}
+          />
         ))}
       </div>
     </div>
   );
 }
 
-function appendLogLines(lines: string[], log: WorkflowRunResult["logs"][number], depth: number) {
+function appendLogLines(
+  lines: string[],
+  log: WorkflowRunResult["logs"][number],
+  depth: number
+) {
   const indent = "  ".repeat(depth);
   lines.push(`${indent}[${log.status}] ${log.title} (${log.durationMs ?? 0}ms)`);
   if (log.error) lines.push(`${indent}  Error: ${log.error}`);
   if (log.inputPreview?.length) {
-    lines.push(`${indent}  Inputs: ${log.inputPreview.map((e) => e.summary).join(" · ")}`);
+    lines.push(
+      `${indent}  Inputs: ${log.inputPreview.map((e) => e.summary).join(" · ")}`
+    );
   }
   if (log.outputPreview) {
     lines.push(`${indent}  Output: ${log.outputPreview.summary}`);
@@ -2438,13 +2572,7 @@ function IssueCard({ issue }: { issue: WorkflowValidationIssue }) {
   );
 }
 
-function EmptyPanel({
-  title,
-  detail
-}: {
-  title: string;
-  detail: string;
-}) {
+function EmptyPanel({ title, detail }: { title: string; detail: string }) {
   return (
     <div className="rounded-[20px] border border-dashed border-[color:var(--shell-border)] px-4 py-4 text-sm text-[color:var(--shell-text-secondary)]">
       <div className="font-medium text-[color:var(--shell-text-primary)]">{title}</div>
@@ -2484,13 +2612,7 @@ function ConfigNote({ children }: { children: ReactNode }) {
   );
 }
 
-function Field({
-  label,
-  children
-}: {
-  label: string;
-  children: ReactNode;
-}) {
+function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="block space-y-2">
       <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--shell-text-tertiary)]">
@@ -2515,8 +2637,7 @@ function createTriggerDraft(
           current.type === "slash-command" && current.command.trim().length > 0
             ? current.command
             : "/new-command",
-        argumentName:
-          current.type === "slash-command" ? current.argumentName : "query",
+        argumentName: current.type === "slash-command" ? current.argumentName : "query",
         placeholder: current.type === "slash-command" ? current.placeholder : "Arguments"
       };
     case "keyword":
@@ -2525,7 +2646,7 @@ function createTriggerDraft(
         label: "keyword",
         enabled: current.enabled,
         keyword: current.type === "keyword" ? current.keyword : "keyword",
-        aliases: current.type === "keyword" ? current.aliases ?? [] : [],
+        aliases: current.type === "keyword" ? (current.aliases ?? []) : [],
         argumentName: current.type === "keyword" ? current.argumentName : "query",
         placeholder: current.type === "keyword" ? current.placeholder : "Keyword input"
       };

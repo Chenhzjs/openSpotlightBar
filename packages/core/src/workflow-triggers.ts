@@ -249,8 +249,7 @@ export function matchWorkflowTriggerInvocation(
 
   const registration = registry.activeRegistrations.find(
     (entry) =>
-      entry.triggerType === "keyword" &&
-      entry.normalizedToken === invocation.keyword
+      entry.triggerType === "keyword" && entry.normalizedToken === invocation.keyword
   );
   if (!registration) {
     return null;
@@ -303,11 +302,7 @@ function createWorkflowTriggerRegistrations(
           token: workflow.trigger.command,
           normalizedToken: normalizeSlashCommand(workflow.trigger.command),
           isAlias: false,
-          searchText: buildRegistrationSearchText(
-            workflow,
-            workflow.trigger.command,
-            []
-          )
+          searchText: buildRegistrationSearchText(workflow, workflow.trigger.command, [])
         }
       ];
     case "keyword": {

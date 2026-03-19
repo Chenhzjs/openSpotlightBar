@@ -4,8 +4,6 @@
   "version": "0.3.1",
   "entry": "src/index.js",
   "description": "Show your public IP, geolocation, and ISP info. Also look up any IP or domain.",
-  "commands": [
-    { "name": "ip", "title": "IP lookup" }
-  ],
+  "commands": [{ "name": "ip", "title": "IP lookup" }],
   "permissions": ["network"]
 }

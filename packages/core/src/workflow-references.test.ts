@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { renderWorkflowTemplate, resolveWorkflowTemplateValue, extractImplicitNodeDependencies } from "./workflow-references";
+import {
+  renderWorkflowTemplate,
+  resolveWorkflowTemplateValue,
+  extractImplicitNodeDependencies
+} from "./workflow-references";
 
 describe("workflow references", () => {
   const environment = {
@@ -87,10 +91,22 @@ describe("extractImplicitNodeDependencies", () => {
   it("extracts implicit node references from config templates", () => {
     const workflow = {
       nodes: [
-        { id: "a", type: "query-input" as const, title: "A", status: "supported" as const, config: {} },
-        { id: "b", type: "template" as const, title: "B", status: "supported" as const, config: { template: "{{nodes.a.default}}" } },
+        {
+          id: "a",
+          type: "query-input" as const,
+          title: "A",
+          status: "supported" as const,
+          config: {}
+        },
+        {
+          id: "b",
+          type: "template" as const,
+          title: "B",
+          status: "supported" as const,
+          config: { template: "{{nodes.a.default}}" }
+        }
       ],
-      edges: [],
+      edges: []
     };
     const deps = extractImplicitNodeDependencies(workflow);
     expect(deps).toHaveLength(1);
@@ -98,17 +114,37 @@ describe("extractImplicitNodeDependencies", () => {
       fromNodeId: "a",
       fromPort: "default",
       toNodeId: "b",
-      expression: "nodes.a.default",
+      expression: "nodes.a.default"
     });
   });
 
   it("excludes dependencies already covered by explicit edges", () => {
     const workflow = {
       nodes: [
-        { id: "a", type: "query-input" as const, title: "A", status: "supported" as const, config: {} },
-        { id: "b", type: "template" as const, title: "B", status: "supported" as const, config: { template: "{{nodes.a.default}}" } },
+        {
+          id: "a",
+          type: "query-input" as const,
+          title: "A",
+          status: "supported" as const,
+          config: {}
+        },
+        {
+          id: "b",
+          type: "template" as const,
+          title: "B",
+          status: "supported" as const,
+          config: { template: "{{nodes.a.default}}" }
+        }
       ],
-      edges: [{ id: "e1", fromNodeId: "a", fromPort: "default", toNodeId: "b", toInput: "input" }],
+      edges: [
+        {
+          id: "e1",
+          fromNodeId: "a",
+          fromPort: "default",
+          toNodeId: "b",
+          toInput: "input"
+        }
+      ]
     };
     const deps = extractImplicitNodeDependencies(workflow);
     expect(deps).toHaveLength(0);
@@ -117,9 +153,15 @@ describe("extractImplicitNodeDependencies", () => {
   it("excludes references to non-existent nodes", () => {
     const workflow = {
       nodes: [
-        { id: "b", type: "template" as const, title: "B", status: "supported" as const, config: { template: "{{nodes.missing.default}}" } },
+        {
+          id: "b",
+          type: "template" as const,
+          title: "B",
+          status: "supported" as const,
+          config: { template: "{{nodes.missing.default}}" }
+        }
       ],
-      edges: [],
+      edges: []
     };
     const deps = extractImplicitNodeDependencies(workflow);
     expect(deps).toHaveLength(0);
@@ -128,10 +170,22 @@ describe("extractImplicitNodeDependencies", () => {
   it("deduplicates identical references in the same node", () => {
     const workflow = {
       nodes: [
-        { id: "a", type: "query-input" as const, title: "A", status: "supported" as const, config: {} },
-        { id: "b", type: "template" as const, title: "B", status: "supported" as const, config: { template: "{{nodes.a.default}} and {{nodes.a.default}}" } },
+        {
+          id: "a",
+          type: "query-input" as const,
+          title: "A",
+          status: "supported" as const,
+          config: {}
+        },
+        {
+          id: "b",
+          type: "template" as const,
+          title: "B",
+          status: "supported" as const,
+          config: { template: "{{nodes.a.default}} and {{nodes.a.default}}" }
+        }
       ],
-      edges: [],
+      edges: []
     };
     const deps = extractImplicitNodeDependencies(workflow);
     expect(deps).toHaveLength(1);

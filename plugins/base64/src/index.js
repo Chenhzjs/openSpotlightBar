@@ -21,9 +21,8 @@ const plugin = {
     const input = raw.slice(match.prefix.length).trim();
     if (!input) return [];
 
-    return CODECS
-      .filter((c) => match.mode === "all" || c.mode === match.mode)
-      .flatMap((c) => {
+    return CODECS.filter((c) => match.mode === "all" || c.mode === match.mode).flatMap(
+      (c) => {
         /** @type {import("@osb/plugin-sdk").PluginSearchResult[]} */
         const out = [];
         try {
@@ -31,15 +30,20 @@ const plugin = {
           if (encoded !== input) {
             out.push(makeResult(`${c.id}:enc`, encoded, c.encodeLabel, 1.0));
           }
-        } catch { /* skip */ }
+        } catch {
+          /* skip */
+        }
         try {
           const decoded = c.decode(input);
           if (decoded !== input) {
             out.push(makeResult(`${c.id}:dec`, decoded, c.decodeLabel, 0.99));
           }
-        } catch { /* skip */ }
+        } catch {
+          /* skip */
+        }
         return out;
-      });
+      }
+    );
   }
 };
 
@@ -50,7 +54,10 @@ const HTML_REVERSE = Object.fromEntries(Object.entries(HTML_MAP).map(([k, v]) =>
 
 /** @param {string} s */
 function htmlEncode(s) {
-  return s.replace(/[&<>"']/g, (ch) => HTML_MAP[/** @type {keyof HTML_MAP} */ (ch)] ?? ch);
+  return s.replace(
+    /[&<>"']/g,
+    (ch) => HTML_MAP[/** @type {keyof HTML_MAP} */ (ch)] ?? ch
+  );
 }
 
 /** @param {string} s */
@@ -73,7 +80,15 @@ function makeResult(id, text, subtitle, score) {
     type: /** @type {const} */ ("plugin"),
     score,
     payload: { text },
-    actions: [{ id: `copy-${id}`, title: "Copy", kind: /** @type {const} */ ("copy-text"), shortcut: "Enter", payload: { text } }]
+    actions: [
+      {
+        id: `copy-${id}`,
+        title: "Copy",
+        kind: /** @type {const} */ ("copy-text"),
+        shortcut: "Enter",
+        payload: { text }
+      }
+    ]
   };
 }
 
@@ -83,42 +98,51 @@ const PREFIXES = [
   ["url ", "url"],
   ["html ", "html"],
   ["hex ", "hex"],
-  ["encode ", "all"],
+  ["encode ", "all"]
 ];
 
 const CODECS = [
   {
-    id: "b64", mode: "base64",
+    id: "b64",
+    mode: "base64",
     encodeLabel: "Base64 Encode",
     decodeLabel: "Base64 Decode",
     encode: (/** @type {string} */ s) => btoa(unescape(encodeURIComponent(s))),
-    decode: (/** @type {string} */ s) => decodeURIComponent(escape(atob(s))),
+    decode: (/** @type {string} */ s) => decodeURIComponent(escape(atob(s)))
   },
   {
-    id: "url", mode: "url",
+    id: "url",
+    mode: "url",
     encodeLabel: "URL Encode",
     decodeLabel: "URL Decode",
     encode: (/** @type {string} */ s) => encodeURIComponent(s),
-    decode: (/** @type {string} */ s) => decodeURIComponent(s),
+    decode: (/** @type {string} */ s) => decodeURIComponent(s)
   },
   {
-    id: "html", mode: "html",
+    id: "html",
+    mode: "html",
     encodeLabel: "HTML Entity Encode",
     decodeLabel: "HTML Entity Decode",
     encode: (/** @type {string} */ s) => htmlEncode(s),
-    decode: (/** @type {string} */ s) => htmlDecode(s),
+    decode: (/** @type {string} */ s) => htmlDecode(s)
   },
   {
-    id: "hex", mode: "hex",
+    id: "hex",
+    mode: "hex",
     encodeLabel: "Hex Encode",
     decodeLabel: "Hex Decode",
-    encode: (/** @type {string} */ s) => Array.from(new TextEncoder().encode(s)).map(b => b.toString(16).padStart(2, "0")).join(""),
+    encode: (/** @type {string} */ s) =>
+      Array.from(new TextEncoder().encode(s))
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join(""),
     decode: (/** @type {string} */ s) => {
       const clean = s.replace(/\s+/g, "");
-      if (!/^[0-9a-fA-F]+$/.test(clean) || clean.length % 2 !== 0) throw new Error("invalid hex");
+      if (!/^[0-9a-fA-F]+$/.test(clean) || clean.length % 2 !== 0)
+        throw new Error("invalid hex");
       const bytes = new Uint8Array(clean.length / 2);
-      for (let i = 0; i < clean.length; i += 2) bytes[i / 2] = parseInt(clean.slice(i, i + 2), 16);
+      for (let i = 0; i < clean.length; i += 2)
+        bytes[i / 2] = parseInt(clean.slice(i, i + 2), 16);
       return new TextDecoder().decode(bytes);
-    },
-  },
+    }
+  }
 ];

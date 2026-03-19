@@ -32,11 +32,16 @@ export function extractWorkflowTemplateReferences(
 
   for (const match of template.matchAll(TEMPLATE_REFERENCE_PATTERN)) {
     const rawExpression = String(match[1] ?? "").trim();
-    const [pathExpression, ...filters] = rawExpression.split("|").map((part) => part.trim());
+    const [pathExpression, ...filters] = rawExpression
+      .split("|")
+      .map((part) => part.trim());
     references.push({
       raw: match[0],
       expression: pathExpression,
-      path: pathExpression.split(".").map((part) => part.trim()).filter(Boolean),
+      path: pathExpression
+        .split(".")
+        .map((part) => part.trim())
+        .filter(Boolean),
       filters: filters.filter(Boolean)
     });
   }
@@ -174,12 +179,22 @@ function resolveReferencePath(
   }
 
   if (LEGACY_ALIASES.has(root)) {
-    return resolveLegacyReference(root, rest.length > 0 ? [second, third, ...rest].filter(Boolean) : [], environment);
+    return resolveLegacyReference(
+      root,
+      rest.length > 0 ? [second, third, ...rest].filter(Boolean) : [],
+      environment
+    );
   }
 
   switch (root) {
     case "args":
-      return { type: "text", value: dig(environment.context.argsByName, [second, third, ...rest].filter(Boolean)) };
+      return {
+        type: "text",
+        value: dig(
+          environment.context.argsByName,
+          [second, third, ...rest].filter(Boolean)
+        )
+      };
     case "context":
       return {
         value: dig(
@@ -191,11 +206,15 @@ function resolveReferencePath(
       const target = second ? environment.inputs?.[second] : undefined;
       return {
         type: target?.type,
-        value: rest.length > 0 || third ? dig(target?.value, [third, ...rest].filter(Boolean)) : target?.value
+        value:
+          rest.length > 0 || third
+            ? dig(target?.value, [third, ...rest].filter(Boolean))
+            : target?.value
       };
     }
     case "nodes": {
-      const portValue = second && third ? environment.nodeOutputs?.get(second)?.[third] : undefined;
+      const portValue =
+        second && third ? environment.nodeOutputs?.get(second)?.[third] : undefined;
       return {
         type: portValue?.type,
         value: rest.length > 0 ? dig(portValue?.value, rest) : portValue?.value
@@ -206,7 +225,10 @@ function resolveReferencePath(
         const value = environment.extraValues[root];
         return {
           type: value.type,
-          value: rest.length > 0 || second ? dig(value.value, [second, third, ...rest].filter(Boolean)) : value.value
+          value:
+            rest.length > 0 || second
+              ? dig(value.value, [second, third, ...rest].filter(Boolean))
+              : value.value
         };
       }
       return { value: undefined };
@@ -322,9 +344,10 @@ export interface ImplicitNodeDependency {
  * template references and returns implicit data dependencies that are NOT
  * already covered by explicit edges.
  */
-export function extractImplicitNodeDependencies(
-  workflow: { nodes: WorkflowNode[]; edges: { fromNodeId: string; fromPort: string; toNodeId: string }[] }
-): ImplicitNodeDependency[] {
+export function extractImplicitNodeDependencies(workflow: {
+  nodes: WorkflowNode[];
+  edges: { fromNodeId: string; fromPort: string; toNodeId: string }[];
+}): ImplicitNodeDependency[] {
   const nodeIds = new Set(workflow.nodes.map((n) => n.id));
   const explicitEdgeKeys = new Set(
     workflow.edges.map((e) => `${e.fromNodeId}:${e.fromPort}:${e.toNodeId}`)
@@ -349,7 +372,12 @@ export function extractImplicitNodeDependencies(
         const dedupKey = `${fromNodeId}:${fromPort}:${node.id}:${ref.expression}`;
         if (seen.has(dedupKey)) continue;
         seen.add(dedupKey);
-        results.push({ fromNodeId, fromPort, toNodeId: node.id, expression: ref.expression });
+        results.push({
+          fromNodeId,
+          fromPort,
+          toNodeId: node.id,
+          expression: ref.expression
+        });
       }
     }
   }

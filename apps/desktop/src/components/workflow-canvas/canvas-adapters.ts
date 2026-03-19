@@ -1,10 +1,10 @@
-import { WORKFLOW_NODE_LIBRARY_BY_TYPE, extractImplicitNodeDependencies, extractWorkflowTemplateReferences } from "@osb/core";
+import {
+  WORKFLOW_NODE_LIBRARY_BY_TYPE,
+  extractImplicitNodeDependencies,
+  extractWorkflowTemplateReferences
+} from "@osb/core";
 import type { WorkflowNodeCategory } from "@osb/core";
-import type {
-  WorkflowEdge,
-  WorkflowNode,
-  WorkflowRecord
-} from "@osb/shared-types";
+import type { WorkflowEdge, WorkflowNode, WorkflowRecord } from "@osb/shared-types";
 import type { Edge, Node } from "@xyflow/react";
 
 import { autoLayout } from "./canvas-layout";
@@ -58,7 +58,10 @@ export function toReactFlowElements(
 
   // Extract implicit dependencies
   const implicitDeps = extractImplicitNodeDependencies(workflow);
-  const implicitByNode = new Map<string, { fromNodeId: string; fromPort: string; expression: string }[]>();
+  const implicitByNode = new Map<
+    string,
+    { fromNodeId: string; fromPort: string; expression: string }[]
+  >();
   for (const dep of implicitDeps) {
     const list = implicitByNode.get(dep.toNodeId) ?? [];
     list.push(dep);
@@ -66,7 +69,9 @@ export function toReactFlowElements(
   }
 
   // Compute input sources and subflow names per node
-  function computeInputSources(node: WorkflowNode): { label: string; implicit: boolean }[] {
+  function computeInputSources(
+    node: WorkflowNode
+  ): { label: string; implicit: boolean }[] {
     const sources: { label: string; implicit: boolean }[] = [];
     // Explicit edges
     for (const inc of incomingByNode.get(node.id) ?? []) {
@@ -74,7 +79,10 @@ export function toReactFlowElements(
     }
     // Implicit node refs
     for (const dep of implicitByNode.get(node.id) ?? []) {
-      sources.push({ label: `← ${dep.fromNodeId}.${dep.fromPort} (ref)`, implicit: true });
+      sources.push({
+        label: `← ${dep.fromNodeId}.${dep.fromPort} (ref)`,
+        implicit: true
+      });
     }
     // args.* / context.* refs from config
     if (node.config) {
@@ -126,7 +134,10 @@ export function toReactFlowElements(
         inputSources: computeInputSources(node),
         subflowName: resolveSubflowName(node),
         debugValue: (node.config?.debugValue as string | undefined) ?? undefined,
-        staticValue: node.type === "static-value" ? (node.config?.value as string | undefined) ?? undefined : undefined,
+        staticValue:
+          node.type === "static-value"
+            ? ((node.config?.value as string | undefined) ?? undefined)
+            : undefined,
         onDebugValueChange
       }
     };

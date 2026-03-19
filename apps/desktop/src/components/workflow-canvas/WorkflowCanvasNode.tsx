@@ -24,9 +24,14 @@ export function WorkflowCanvasNode({
         ${isPlanned ? "opacity-60 border-dashed" : ""}
         ${hasSubflow ? "ring-1 ring-offset-1" : ""}
       `}
-      style={hasSubflow
-        ? { width: NODE_WIDTH, "--tw-ring-color": data.colors.bar, "--tw-ring-offset-color": data.colors.bg } as React.CSSProperties
-        : { width: NODE_WIDTH }
+      style={
+        hasSubflow
+          ? ({
+              width: NODE_WIDTH,
+              "--tw-ring-color": data.colors.bar,
+              "--tw-ring-offset-color": data.colors.bg
+            } as React.CSSProperties)
+          : { width: NODE_WIDTH }
       }
     >
       {/* Category color bar */}
@@ -79,17 +84,25 @@ export function WorkflowCanvasNode({
         <div className="flex justify-between gap-2 min-h-[20px]">
           <div className="space-y-0.5">
             {data.inputs.map((port) => (
-              <div key={port.name} className="text-[10px] text-[color:var(--shell-text-tertiary)]">
+              <div
+                key={port.name}
+                className="text-[10px] text-[color:var(--shell-text-tertiary)]"
+              >
                 {port.name}
               </div>
             ))}
             {data.inputs.length === 0 && (
-              <div className="text-[10px] text-[color:var(--shell-text-muted)] italic">no inputs</div>
+              <div className="text-[10px] text-[color:var(--shell-text-muted)] italic">
+                no inputs
+              </div>
             )}
           </div>
           <div className="space-y-0.5 text-right">
             {data.outputs.map((port) => (
-              <div key={port.name} className="flex items-center justify-end gap-1 text-[10px] text-[color:var(--shell-text-tertiary)]">
+              <div
+                key={port.name}
+                className="flex items-center justify-end gap-1 text-[10px] text-[color:var(--shell-text-tertiary)]"
+              >
                 {port.name}
                 <span className="text-[8px] px-1 rounded bg-[color:var(--shell-fill-muted)] text-[color:var(--shell-text-muted)]">
                   {port.valueType}
@@ -134,7 +147,9 @@ export function WorkflowCanvasNode({
                 className="nopan nodrag nowheel w-full rounded border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-muted)] px-1.5 py-1 text-[10px] text-[color:var(--shell-text-primary)] outline-none placeholder:text-[color:var(--shell-text-muted)] focus:border-[color:var(--shell-border-strong)]"
                 value={data.debugValue ?? ""}
                 onChange={(e) => data.onDebugValueChange?.(id, e.target.value)}
-                placeholder={data.nodeType === "query-input" ? "Test input..." : "Clipboard text..."}
+                placeholder={
+                  data.nodeType === "query-input" ? "Test input..." : "Clipboard text..."
+                }
               />
             )}
           </div>

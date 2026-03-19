@@ -13,9 +13,7 @@ const plugin = {
 
     try {
       const normalized = normalizeExpression(expression);
-      const value = Function(
-        `"use strict"; return (${normalized});`
-      )();
+      const value = Function(`"use strict"; return (${normalized});`)();
       if (typeof value !== "number" || Number.isNaN(value)) {
         return [];
       }

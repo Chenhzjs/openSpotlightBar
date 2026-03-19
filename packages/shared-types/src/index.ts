@@ -295,11 +295,7 @@ export interface ActionResponse {
   message?: string;
 }
 
-export type WorkflowTriggerType =
-  | "slash-command"
-  | "keyword"
-  | "hotkey"
-  | "manual";
+export type WorkflowTriggerType = "slash-command" | "keyword" | "hotkey" | "manual";
 
 export type WorkflowNodeType =
   | "query-input"

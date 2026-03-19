@@ -159,7 +159,10 @@ export default function App() {
   const showErrorPanel = mode === "search" && !configCommand && !!errorMessage;
   const canNavigateResults = showSearchResults && results.length > 0;
   const launcherGlyph = getPlatformGlyph(platformShell);
-  const resultListEmptyState = getSearchEmptyState(parsedSearchQuery.scope, fileIndexStatus);
+  const resultListEmptyState = getSearchEmptyState(
+    parsedSearchQuery.scope,
+    fileIndexStatus
+  );
   const hasContentBelow =
     showConfigCommandPreview ||
     isConfigHub ||
@@ -246,7 +249,9 @@ export default function App() {
         });
         if (!cancelled) {
           setErrorMessage(
-            error instanceof Error ? error.message : "Failed to bootstrap Open Spotlight Bar."
+            error instanceof Error
+              ? error.message
+              : "Failed to bootstrap Open Spotlight Bar."
           );
         }
       }
@@ -263,7 +268,9 @@ export default function App() {
     existingWorkflows: WorkflowRecord[]
   ): Promise<WorkflowRecord[]> {
     const builtIns = getBuiltInWorkflows();
-    const existingById = new Map(existingWorkflows.map((workflow) => [workflow.id, workflow]));
+    const existingById = new Map(
+      existingWorkflows.map((workflow) => [workflow.id, workflow])
+    );
     const missing = builtIns.filter((workflow) => !existingById.has(workflow.id));
 
     if (missing.length === 0) {
@@ -291,7 +298,11 @@ export default function App() {
   useEffect(() => {
     function handleGlobalKeyDown(event: globalThis.KeyboardEvent) {
       // Cmd/Ctrl+Shift+D → open DevTools
-      if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === "d") {
+      if (
+        (event.metaKey || event.ctrlKey) &&
+        event.shiftKey &&
+        event.key.toLowerCase() === "d"
+      ) {
         event.preventDefault();
         void openDevtools();
         return;
@@ -380,7 +391,9 @@ export default function App() {
           logger.info("[DEBUG] Slash search results", {
             query: deferredQuery,
             resultCount: nextResults.length,
-            results: nextResults.slice(0, 3).map((r) => ({ id: r.id, title: r.title, type: r.type }))
+            results: nextResults
+              .slice(0, 3)
+              .map((r) => ({ id: r.id, title: r.title, type: r.type }))
           });
         }
 
@@ -528,12 +541,21 @@ export default function App() {
     }
 
     const isWorkflowStudio = isSettingsDetail && settingsSection === "workflow";
-    const MAX_WINDOW_HEIGHT = isWorkflowStudio ? 900 : isSettingsDetail ? 760 : 560;    const nextWidth =
-      isWorkflowStudio ? 1200 : isSettingsDetail ? 1120 : showConfigCommandPreview || mode === "settings" ? 980 : 900;
+    const MAX_WINDOW_HEIGHT = isWorkflowStudio ? 900 : isSettingsDetail ? 760 : 560;
+    const nextWidth = isWorkflowStudio
+      ? 1200
+      : isSettingsDetail
+        ? 1120
+        : showConfigCommandPreview || mode === "settings"
+          ? 980
+          : 900;
 
     // Workflow Studio uses h-full layout — skip dynamic measurement, pin to max size
     if (isWorkflowStudio) {
-      if (lastAppliedSize.current.w === nextWidth && lastAppliedSize.current.h === MAX_WINDOW_HEIGHT) {
+      if (
+        lastAppliedSize.current.w === nextWidth &&
+        lastAppliedSize.current.h === MAX_WINDOW_HEIGHT
+      ) {
         return;
       }
       lastAppliedSize.current = { w: nextWidth, h: MAX_WINDOW_HEIGHT };
@@ -875,7 +897,9 @@ export default function App() {
     try {
       const saved = await persistWorkflow(workflow);
       upsertWorkflow(saved);
-      setStatusMessage(saved.builtIn ? "Built-in workflow refreshed." : "Workflow saved.");
+      setStatusMessage(
+        saved.builtIn ? "Built-in workflow refreshed." : "Workflow saved."
+      );
       return saved;
     } catch (error) {
       logger.warn("Workflow save failed.", {
@@ -998,10 +1022,7 @@ export default function App() {
     pluginHostRef.current!.dismissPermissionRequest(pluginId, permission);
   }
 
-  async function runWorkflowFromStudio(
-    workflow: WorkflowRecord,
-    rawInput: string
-  ) {
+  async function runWorkflowFromStudio(workflow: WorkflowRecord, rawInput: string) {
     setErrorMessage(undefined);
     setStatusMessage(undefined);
 
@@ -1205,36 +1226,36 @@ export default function App() {
         onBack={closeSettingsDetail}
       />
     ) : (
-    <SettingsPanel
-      settings={currentSettings}
-      snippets={snippets}
-      fileIndexStatus={fileIndexStatus}
-      clipboardCount={clipboardItems.length}
-      plugins={pluginRuntime}
-      permissionRequests={pluginPermissionRequests}
-      useChineseCopy={useChineseCopy}
-      initialSection={settingsSection}
-      onSaveSettings={saveSettings}
-      onRebuildIndex={async () => {
-        await executeAction(
-          {
-            id: "settings:rebuild-file-index",
-            title: "Rebuild file index",
-            kind: "rebuild-file-index"
-          },
-          undefined,
-          { preserveMode: true }
-        );
-      }}
-      onSaveSnippet={saveSnippet}
-      onDeleteSnippet={deleteSnippet}
-      onClearClipboard={clearClipboardHistory}
-      onGrantPluginPermission={grantPluginPermission}
-      onRevokePluginPermission={revokePluginPermission}
-      onDismissPluginPermissionRequest={dismissPluginPermissionRequest}
-      onTogglePluginEnabled={togglePluginEnabled}
-      onClose={closeSettingsDetail}
-    />
+      <SettingsPanel
+        settings={currentSettings}
+        snippets={snippets}
+        fileIndexStatus={fileIndexStatus}
+        clipboardCount={clipboardItems.length}
+        plugins={pluginRuntime}
+        permissionRequests={pluginPermissionRequests}
+        useChineseCopy={useChineseCopy}
+        initialSection={settingsSection}
+        onSaveSettings={saveSettings}
+        onRebuildIndex={async () => {
+          await executeAction(
+            {
+              id: "settings:rebuild-file-index",
+              title: "Rebuild file index",
+              kind: "rebuild-file-index"
+            },
+            undefined,
+            { preserveMode: true }
+          );
+        }}
+        onSaveSnippet={saveSnippet}
+        onDeleteSnippet={deleteSnippet}
+        onClearClipboard={clearClipboardHistory}
+        onGrantPluginPermission={grantPluginPermission}
+        onRevokePluginPermission={revokePluginPermission}
+        onDismissPluginPermissionRequest={dismissPluginPermissionRequest}
+        onTogglePluginEnabled={togglePluginEnabled}
+        onClose={closeSettingsDetail}
+      />
     )
   ) : mode === "actions" && selectedResult ? (
     <ActionPanel
@@ -1273,7 +1294,9 @@ export default function App() {
       ref={surfaceRef}
       className={`platform-shell platform-${platformShell} flex ${isWorkflowStudio ? "h-screen" : "max-h-screen"} flex-col bg-transparent p-0 text-[color:var(--shell-text-primary)]`}
     >
-      <div className={`shell-bar shrink-0 rounded-[30px]${isWorkflowStudio ? " hidden" : ""}`}>
+      <div
+        className={`shell-bar shrink-0 rounded-[30px]${isWorkflowStudio ? " hidden" : ""}`}
+      >
         <div className="flex items-center gap-3 px-5 py-4">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-muted)] text-sm text-[color:var(--shell-text-secondary)]">
             {launcherGlyph}

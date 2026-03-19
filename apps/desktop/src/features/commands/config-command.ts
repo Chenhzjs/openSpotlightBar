@@ -42,7 +42,8 @@ export const CONFIG_SECTION_META: Record<ConfigSection, ConfigSectionMeta> = {
     label: "Overview",
     labelZh: "总览",
     command: "config overview",
-    summary: "Launcher-wide snapshot for file index, clipboard, snippets, plugins, workflow, and permission health.",
+    summary:
+      "Launcher-wide snapshot for file index, clipboard, snippets, plugins, workflow, and permission health.",
     summaryZh: "集中查看文件索引、剪贴板、片段、插件、工作流和权限请求的全局状态。",
     intro:
       "Overview centralizes the cross-launcher counts and status cards so the task-specific sections can stay focused on their own controls.",
@@ -53,7 +54,8 @@ export const CONFIG_SECTION_META: Record<ConfigSection, ConfigSectionMeta> = {
     label: "General",
     labelZh: "常规",
     command: "config general",
-    summary: "Launcher defaults, language, shell behavior, and how the bar appears or dismisses.",
+    summary:
+      "Launcher defaults, language, shell behavior, and how the bar appears or dismisses.",
     summaryZh: "启动器默认行为、语言、外壳交互，以及 bar 的展示与收起方式。",
     intro:
       "Use this section for launcher-wide behavior such as language, entry points, dismissal rules, and the baseline shell behavior across platforms.",
@@ -101,8 +103,7 @@ export const CONFIG_SECTION_META: Record<ConfigSection, ConfigSectionMeta> = {
     summaryZh: "查看插件运行状态、权限授予情况以及超时策略。",
     intro:
       "Plugins covers worker runtime state, permission approval, timeout behavior, and enable or disable controls.",
-    introZh:
-      "插件页覆盖 worker 运行状态、权限审批、超时行为，以及启用和禁用控制。"
+    introZh: "插件页覆盖 worker 运行状态、权限审批、超时行为，以及启用和禁用控制。"
   },
   marketplace: {
     label: "Marketplace",
@@ -145,8 +146,7 @@ export const CONFIG_SECTION_META: Record<ConfigSection, ConfigSectionMeta> = {
     summaryZh: "直接进入文件索引控制。",
     intro:
       "Indexing stays reachable as a direct command, but the primary product surface now lives under Search.",
-    introZh:
-      "索引仍可通过独立命令直接进入，不过主要的产品入口现在放在搜索页下。"
+    introZh: "索引仍可通过独立命令直接进入，不过主要的产品入口现在放在搜索页下。"
   }
 };
 

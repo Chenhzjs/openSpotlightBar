@@ -45,8 +45,15 @@ interface WorkflowLauncherRunnerOptions {
 export async function runWorkflowInLauncher(
   options: WorkflowLauncherRunnerOptions
 ): Promise<WorkflowRunResult> {
-  const { workflow, rawQuery, settings, usageByItemId, clipboardItems, snippets, workflows } =
-    options;
+  const {
+    workflow,
+    rawQuery,
+    settings,
+    usageByItemId,
+    clipboardItems,
+    snippets,
+    workflows
+  } = options;
 
   const context = buildWorkflowRunContext(workflow, rawQuery, {
     clipboardText: clipboardItems[0]?.text ?? clipboardItems[0]?.preview ?? "",

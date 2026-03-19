@@ -32,7 +32,8 @@ export function validateWorkflow(
   if (!workflow.trigger.enabled) {
     issues.push({
       level: "warning",
-      message: "Workflow trigger is disabled, so it will not appear in launcher discovery."
+      message:
+        "Workflow trigger is disabled, so it will not appear in launcher discovery."
     });
   }
 
@@ -64,7 +65,9 @@ export function validateWorkflow(
   const nodeOutputPorts = new Map(
     workflow.nodes.map((node) => [
       node.id,
-      new Set(WORKFLOW_NODE_LIBRARY_BY_TYPE[node.type]?.outputs.map((port) => port.name) ?? [])
+      new Set(
+        WORKFLOW_NODE_LIBRARY_BY_TYPE[node.type]?.outputs.map((port) => port.name) ?? []
+      )
     ])
   );
 
@@ -148,7 +151,9 @@ export function validateWorkflow(
     outgoing.set(edge.fromNodeId, [...(outgoing.get(edge.fromNodeId) ?? []), edge]);
   }
 
-  const roots = workflow.nodes.filter((node) => (incoming.get(node.id)?.length ?? 0) === 0);
+  const roots = workflow.nodes.filter(
+    (node) => (incoming.get(node.id)?.length ?? 0) === 0
+  );
   if (roots.length === 0) {
     issues.push({
       level: "error",
@@ -156,7 +161,12 @@ export function validateWorkflow(
     });
   }
 
-  if (hasCycle(workflow.nodes.map((node) => node.id), workflow.edges)) {
+  if (
+    hasCycle(
+      workflow.nodes.map((node) => node.id),
+      workflow.edges
+    )
+  ) {
     issues.push({
       level: "error",
       message: "Workflow graph contains a cycle. Runtime v1 only supports acyclic flows."
@@ -215,7 +225,8 @@ export function validateWorkflow(
           workflowNodeInputNames: nodeInputNames,
           workflowNodeIds: new Set(nodeById.keys()),
           workflowNodeOutputs: nodeOutputPorts,
-          extraRoots: node.type === "show-launcher-results" ? new Set(["item", "index"]) : undefined
+          extraRoots:
+            node.type === "show-launcher-results" ? new Set(["item", "index"]) : undefined
         });
         if (referenceError) {
           issues.push({
@@ -230,7 +241,13 @@ export function validateWorkflow(
     issues.push(...validateNodeConfig(node, workflow, inbound, options.workflowCatalog));
 
     for (const edge of inbound) {
-      const sourceType = resolveEdgeOutputType(workflow, edge, incoming, nodeById, new Map());
+      const sourceType = resolveEdgeOutputType(
+        workflow,
+        edge,
+        incoming,
+        nodeById,
+        new Map()
+      );
       const targetPort = definition.inputs.find((port) => port.name === edge.toInput);
       if (!sourceType || !targetPort) {
         continue;
@@ -284,14 +301,16 @@ function validateKeywordTrigger(workflow: WorkflowRecord): WorkflowValidationIss
   if (keyword.startsWith("/")) {
     issues.push({
       level: "error",
-      message: "Keyword triggers must not start with '/'. Use Slash command for slash-prefixed entrypoints."
+      message:
+        "Keyword triggers must not start with '/'. Use Slash command for slash-prefixed entrypoints."
     });
   }
 
   if (/\s/.test(keyword)) {
     issues.push({
       level: "error",
-      message: "Keyword triggers must use a single fixed prefix token such as 'gh' or 'jira'."
+      message:
+        "Keyword triggers must use a single fixed prefix token such as 'gh' or 'jira'."
     });
   }
 
@@ -364,7 +383,10 @@ function validateWorkflowTriggerConflicts(
   return issues;
 }
 
-function nodeConfigProvidesInput(config: Record<string, unknown>, inputName: string): boolean {
+function nodeConfigProvidesInput(
+  config: Record<string, unknown>,
+  inputName: string
+): boolean {
   const direct = config[inputName];
   if (typeof direct === "string") {
     return direct.trim().length > 0;
@@ -374,9 +396,13 @@ function nodeConfigProvidesInput(config: Record<string, unknown>, inputName: str
     case "input":
       return hasStringConfig(config, "template");
     case "text":
-      return hasStringConfig(config, "template") || hasStringConfig(config, "textTemplate");
+      return (
+        hasStringConfig(config, "template") || hasStringConfig(config, "textTemplate")
+      );
     case "url":
-      return hasStringConfig(config, "template") || hasStringConfig(config, "urlTemplate");
+      return (
+        hasStringConfig(config, "template") || hasStringConfig(config, "urlTemplate")
+      );
     case "path":
       return hasStringConfig(config, "pathTemplate");
     case "command":
@@ -403,7 +429,9 @@ function collectStringConfigEntries(
       continue;
     }
     if (value && typeof value === "object" && !Array.isArray(value)) {
-      entries.push(...collectStringConfigEntries(value as Record<string, unknown>, nextPath));
+      entries.push(
+        ...collectStringConfigEntries(value as Record<string, unknown>, nextPath)
+      );
     }
   }
 
@@ -432,7 +460,14 @@ function resolveEdgeOutputType(
     return null;
   }
 
-  const type = resolveNodeOutputType(workflow, node, edge.fromPort, incoming, nodeById, memo);
+  const type = resolveNodeOutputType(
+    workflow,
+    node,
+    edge.fromPort,
+    incoming,
+    nodeById,
+    memo
+  );
   memo.set(cacheKey, type);
   return type;
 }
@@ -472,7 +507,9 @@ function resolveNodeOutputType(
     case "template":
       return normalizeValueType(node.config.outputType) ?? "text";
     case "conditional-branch": {
-      const sourceEdge = (incoming.get(node.id) ?? []).find((edge) => edge.toInput === "input");
+      const sourceEdge = (incoming.get(node.id) ?? []).find(
+        (edge) => edge.toInput === "input"
+      );
       return sourceEdge
         ? resolveEdgeOutputType(_workflow, sourceEdge, incoming, nodeById, memo)
         : "text";
@@ -631,16 +668,15 @@ function validateShowLauncherResultsNode(
     issues.push({
       level: "error",
       nodeId: node.id,
-      message: "Show Launcher Results query mode requires a query input or query template."
+      message:
+        "Show Launcher Results query mode requires a query input or query template."
     });
   }
 
   return issues;
 }
 
-function validateReusableDefinition(
-  workflow: WorkflowRecord
-): WorkflowValidationIssue[] {
+function validateReusableDefinition(workflow: WorkflowRecord): WorkflowValidationIssue[] {
   const issues: WorkflowValidationIssue[] = [];
   const reusable = workflow.reusable;
   if (!reusable) {
@@ -724,7 +760,8 @@ function validateInvokeWorkflowNode(
     issues.push({
       level: "warning",
       nodeId: node.id,
-      message: "Invoke Workflow validation needs the workflow catalog to verify targets and contracts."
+      message:
+        "Invoke Workflow validation needs the workflow catalog to verify targets and contracts."
     });
     return issues;
   }
@@ -748,7 +785,14 @@ function validateInvokeWorkflowNode(
     return issues;
   }
 
-  if (workflowDependencyReaches(target.id, workflow.id, workflowCatalog, new Set([workflow.id]))) {
+  if (
+    workflowDependencyReaches(
+      target.id,
+      workflow.id,
+      workflowCatalog,
+      new Set([workflow.id])
+    )
+  ) {
     issues.push({
       level: "error",
       nodeId: node.id,
@@ -818,7 +862,14 @@ function workflowDependencyReaches(
     .filter(Boolean);
 
   for (const dependency of dependencies) {
-    if (workflowDependencyReaches(dependency, targetWorkflowId, workflowCatalog, new Set(visiting))) {
+    if (
+      workflowDependencyReaches(
+        dependency,
+        targetWorkflowId,
+        workflowCatalog,
+        new Set(visiting)
+      )
+    ) {
       return true;
     }
   }
@@ -847,7 +898,10 @@ function hasCycle(nodeIds: string[], edges: WorkflowEdge[]): boolean {
     }
 
     indegree.set(edge.toNodeId, (indegree.get(edge.toNodeId) ?? 0) + 1);
-    outgoing.set(edge.fromNodeId, [...(outgoing.get(edge.fromNodeId) ?? []), edge.toNodeId]);
+    outgoing.set(edge.fromNodeId, [
+      ...(outgoing.get(edge.fromNodeId) ?? []),
+      edge.toNodeId
+    ]);
   }
 
   const queue = [...indegree.entries()]

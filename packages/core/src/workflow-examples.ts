@@ -16,7 +16,8 @@ export function getBuiltInWorkflows(): WorkflowRecord[] {
     createKeywordWorkflowVariant(googleWorkflow, {
       id: "builtin-google-keyword",
       name: "Google Search Keyword",
-      description: "Run g {query} to launch a Google search directly from launcher input.",
+      description:
+        "Run g {query} to launch a Google search directly from launcher input.",
       keyword: "g",
       aliases: ["google"],
       tags: ["keyword", "web", "demo"]
@@ -41,7 +42,8 @@ export function getBuiltInWorkflows(): WorkflowRecord[] {
     createKeywordWorkflowVariant(githubHttpWorkflow, {
       id: "builtin-gh-keyword",
       name: "GitHub Search Keyword",
-      description: "Run gh {query} to search GitHub repositories and return launcher-native results.",
+      description:
+        "Run gh {query} to search GitHub repositories and return launcher-native results.",
       keyword: "gh",
       aliases: ["github"],
       tags: ["keyword", "http", "demo", "launcher-results"]
@@ -50,7 +52,8 @@ export function getBuiltInWorkflows(): WorkflowRecord[] {
     createKeywordWorkflowVariant(weatherWorkflow, {
       id: "builtin-weather-keyword",
       name: "Weather Keyword",
-      description: "Run weather {location} to fetch a lightweight weather snapshot from launcher input.",
+      description:
+        "Run weather {location} to fetch a lightweight weather snapshot from launcher input.",
       keyword: "weather",
       argumentName: "location",
       placeholder: "Shanghai",
@@ -115,19 +118,37 @@ function createGoogleWorkflow(): WorkflowRecord {
     },
     nodes: [
       node("query", "query-input", "Query Input", {}, { x: 0, y: 0 }),
-      node("build", "invoke-workflow", "Build Search URL", {
-        workflowId: "builtin-reusable-build-search-url",
-        inputTemplates: {
-          baseUrl: "https://www.google.com/search",
-          query: "{{input}}"
-        }
-      }, { x: 500, y: 0 }),
-      node("template", "template", "Select URL", {
-        template: "{{inputs.input.url}}",
-        outputType: "url"
-      }, { x: 1000, y: 0 }),
+      node(
+        "build",
+        "invoke-workflow",
+        "Build Search URL",
+        {
+          workflowId: "builtin-reusable-build-search-url",
+          inputTemplates: {
+            baseUrl: "https://www.google.com/search",
+            query: "{{input}}"
+          }
+        },
+        { x: 500, y: 0 }
+      ),
+      node(
+        "template",
+        "template",
+        "Select URL",
+        {
+          template: "{{inputs.input.url}}",
+          outputType: "url"
+        },
+        { x: 1000, y: 0 }
+      ),
       node("open", "open-url", "Open URL", {}, { x: 1500, y: 0 }),
-      node("return", "return-action-result", "Return Action Result", {}, { x: 2000, y: 0 })
+      node(
+        "return",
+        "return-action-result",
+        "Return Action Result",
+        {},
+        { x: 2000, y: 0 }
+      )
     ],
     edges: [
       edge("query", "default", "build", "input"),
@@ -158,12 +179,24 @@ function createJiraWorkflow(): WorkflowRecord {
     },
     nodes: [
       node("query", "query-input", "Ticket Input", {}, { x: 0, y: 0 }),
-      node("template", "template", "Build Jira URL", {
-        template: "https://jira.example.com/browse/{{args.ticket | upper}}",
-        outputType: "url"
-      }, { x: 500, y: 0 }),
+      node(
+        "template",
+        "template",
+        "Build Jira URL",
+        {
+          template: "https://jira.example.com/browse/{{args.ticket | upper}}",
+          outputType: "url"
+        },
+        { x: 500, y: 0 }
+      ),
       node("open", "open-url", "Open URL", {}, { x: 1000, y: 0 }),
-      node("return", "return-action-result", "Return Action Result", {}, { x: 1500, y: 0 })
+      node(
+        "return",
+        "return-action-result",
+        "Return Action Result",
+        {},
+        { x: 1500, y: 0 }
+      )
     ],
     edges: [
       edge("query", "default", "template", "input"),
@@ -179,7 +212,8 @@ function createClipCleanWorkflow(): WorkflowRecord {
   return {
     id: "builtin-clip-clean",
     name: "Clipboard Clean",
-    description: "Run /clip-clean to normalize whitespace and copy the cleaned text back.",
+    description:
+      "Run /clip-clean to normalize whitespace and copy the cleaned text back.",
     enabled: true,
     builtIn: true,
     tags: ["slash-command", "clipboard", "demo"],
@@ -193,12 +227,24 @@ function createClipCleanWorkflow(): WorkflowRecord {
     },
     nodes: [
       node("clipboard", "clipboard-input", "Clipboard Input", {}, { x: 0, y: 0 }),
-      node("clean", "regex-replace", "Collapse Whitespace", {
-        pattern: "\\s+",
-        replacement: " "
-      }, { x: 500, y: 0 }),
+      node(
+        "clean",
+        "regex-replace",
+        "Collapse Whitespace",
+        {
+          pattern: "\\s+",
+          replacement: " "
+        },
+        { x: 500, y: 0 }
+      ),
       node("copy", "copy-to-clipboard", "Copy Clean Text", {}, { x: 1000, y: 0 }),
-      node("return", "return-action-result", "Return Action Result", {}, { x: 1500, y: 0 })
+      node(
+        "return",
+        "return-action-result",
+        "Return Action Result",
+        {},
+        { x: 1500, y: 0 }
+      )
     ],
     edges: [
       edge("clipboard", "default", "clean", "input"),
@@ -250,15 +296,21 @@ function createJsonPrettyWorkflow(): WorkflowRecord {
       enabled: true,
       command: "/json-pretty",
       argumentName: "json",
-      placeholder: "{\"hello\": \"world\"}"
+      placeholder: '{"hello": "world"}'
     },
     nodes: [
       node("query", "query-input", "JSON Input", {}, { x: 0, y: 0 }),
       node("parse", "json-parse", "Parse JSON", {}, { x: 500, y: 0 }),
-      node("template", "template", "Pretty JSON", {
-        template: "{{inputs.input | prettyjson}}",
-        outputType: "text"
-      }, { x: 1000, y: 0 }),
+      node(
+        "template",
+        "template",
+        "Pretty JSON",
+        {
+          template: "{{inputs.input | prettyjson}}",
+          outputType: "text"
+        },
+        { x: 1000, y: 0 }
+      ),
       node("return", "return-text", "Return Text", {}, { x: 1500, y: 0 })
     ],
     edges: [
@@ -289,10 +341,16 @@ function createUrlEncodeWorkflow(): WorkflowRecord {
     },
     nodes: [
       node("query", "query-input", "Text Input", {}, { x: 0, y: 0 }),
-      node("template", "template", "Encode", {
-        template: "{{args.text | urlencode}}",
-        outputType: "text"
-      }, { x: 500, y: 0 }),
+      node(
+        "template",
+        "template",
+        "Encode",
+        {
+          template: "{{args.text | urlencode}}",
+          outputType: "text"
+        },
+        { x: 500, y: 0 }
+      ),
       node("return", "return-text", "Return Text", {}, { x: 1000, y: 0 })
     ],
     edges: [
@@ -308,7 +366,8 @@ function createReindexWorkflow(): WorkflowRecord {
   return {
     id: "builtin-reindex-now",
     name: "Rebuild File Index",
-    description: "Run /reindex-now to invoke the existing shared file index rebuild action.",
+    description:
+      "Run /reindex-now to invoke the existing shared file index rebuild action.",
     enabled: true,
     builtIn: true,
     tags: ["slash-command", "indexing", "shared-action"],
@@ -319,10 +378,16 @@ function createReindexWorkflow(): WorkflowRecord {
       command: "/reindex-now"
     },
     nodes: [
-      node("action", "invoke-shared-action", "Rebuild Index", {
-        actionKind: "rebuild-file-index",
-        title: "Rebuild file index"
-      }, { x: 0, y: 0 }),
+      node(
+        "action",
+        "invoke-shared-action",
+        "Rebuild Index",
+        {
+          actionKind: "rebuild-file-index",
+          title: "Rebuild file index"
+        },
+        { x: 0, y: 0 }
+      ),
       node("return", "return-action-result", "Return Action Result", {}, { x: 500, y: 0 })
     ],
     edges: [edge("action", "default", "return", "result")],
@@ -350,10 +415,22 @@ function createGitHubWorkflow(): WorkflowRecord {
     },
     nodes: [
       node("query", "query-input", "Query Input", {}, { x: 0, y: 0 }),
-      node("plugin", "invoke-plugin-command", "Invoke gh Command", {
-        command: "gh"
-      }, { x: 500, y: 0 }),
-      node("return", "return-action-result", "Return Action Result", {}, { x: 1000, y: 0 })
+      node(
+        "plugin",
+        "invoke-plugin-command",
+        "Invoke gh Command",
+        {
+          command: "gh"
+        },
+        { x: 500, y: 0 }
+      ),
+      node(
+        "return",
+        "return-action-result",
+        "Return Action Result",
+        {},
+        { x: 1000, y: 0 }
+      )
     ],
     edges: [
       edge("query", "default", "plugin", "input"),
@@ -383,36 +460,53 @@ function createGitHubHttpWorkflow(): WorkflowRecord {
     },
     nodes: [
       node("query", "query-input", "Query Input", {}, { x: 0, y: 0 }),
-      node("request", "http-request", "GitHub Request", {
-        method: "GET",
-        urlTemplate: "https://api.github.com/search/repositories",
-        headersTemplate:
-          '{\n  "Accept": "application/vnd.github+json",\n  "User-Agent": "Open Spotlight Bar"\n}',
-        queryParamsTemplate:
-          '{\n  "q": "{{args.query}}",\n  "per_page": "5"\n}',
-        timeoutMs: 5000
-      }, { x: 500, y: 0 }),
-      node("items", "invoke-workflow", "Map Repo Items", {
-        workflowId: "builtin-reusable-github-items",
-        inputTemplates: {
-          response: "{{nodes.request.default}}"
-        }
-      }, { x: 1000, y: 0 }),
-      node("results", "show-launcher-results", "Show Repository Results", {
-        mode: "items",
-        itemsPath: "items",
-        titleTemplate: "{{item.full_name}}",
-        subtitleTemplate: "{{item.description}}",
-        iconTemplate: "github",
-        resultType: "url",
-        resultSource: "workflows",
-        maxItems: 5,
-        actionKind: "open-url",
-        actionTitle: "Open repository",
-        actionPayloadTemplate: '{\n  "url": "{{item.html_url}}"\n}',
-        payloadTemplate:
-          '{\n  "url": "{{item.html_url}}",\n  "stars": "{{item.stargazers_count}}",\n  "language": "{{item.language}}"\n}'
-      }, { x: 1500, y: 0 })
+      node(
+        "request",
+        "http-request",
+        "GitHub Request",
+        {
+          method: "GET",
+          urlTemplate: "https://api.github.com/search/repositories",
+          headersTemplate:
+            '{\n  "Accept": "application/vnd.github+json",\n  "User-Agent": "Open Spotlight Bar"\n}',
+          queryParamsTemplate: '{\n  "q": "{{args.query}}",\n  "per_page": "5"\n}',
+          timeoutMs: 5000
+        },
+        { x: 500, y: 0 }
+      ),
+      node(
+        "items",
+        "invoke-workflow",
+        "Map Repo Items",
+        {
+          workflowId: "builtin-reusable-github-items",
+          inputTemplates: {
+            response: "{{nodes.request.default}}"
+          }
+        },
+        { x: 1000, y: 0 }
+      ),
+      node(
+        "results",
+        "show-launcher-results",
+        "Show Repository Results",
+        {
+          mode: "items",
+          itemsPath: "items",
+          titleTemplate: "{{item.full_name}}",
+          subtitleTemplate: "{{item.description}}",
+          iconTemplate: "github",
+          resultType: "url",
+          resultSource: "workflows",
+          maxItems: 5,
+          actionKind: "open-url",
+          actionTitle: "Open repository",
+          actionPayloadTemplate: '{\n  "url": "{{item.html_url}}"\n}',
+          payloadTemplate:
+            '{\n  "url": "{{item.html_url}}",\n  "stars": "{{item.stargazers_count}}",\n  "language": "{{item.language}}"\n}'
+        },
+        { x: 1500, y: 0 }
+      )
     ],
     edges: [
       edge("query", "default", "request", "input"),
@@ -428,7 +522,8 @@ function createReusableNormalizeQueryWorkflow(): WorkflowRecord {
   return {
     id: "builtin-reusable-normalize-query",
     name: "Normalize Query",
-    description: "Reusable helper that trims and collapses whitespace for downstream search workflows.",
+    description:
+      "Reusable helper that trims and collapses whitespace for downstream search workflows.",
     enabled: true,
     builtIn: true,
     reusable: {
@@ -457,15 +552,27 @@ function createReusableNormalizeQueryWorkflow(): WorkflowRecord {
       enabled: true
     },
     nodes: [
-      node("query", "template", "Forward Query", {
-        template: "{{args.query}}",
-        outputType: "text"
-      }, { x: 0, y: 0 }),
-      node("clean", "regex-replace", "Collapse Whitespace", {
-        pattern: "\\s+",
-        replacement: " ",
-        flags: "g"
-      }, { x: 500, y: 0 }),
+      node(
+        "query",
+        "template",
+        "Forward Query",
+        {
+          template: "{{args.query}}",
+          outputType: "text"
+        },
+        { x: 0, y: 0 }
+      ),
+      node(
+        "clean",
+        "regex-replace",
+        "Collapse Whitespace",
+        {
+          pattern: "\\s+",
+          replacement: " ",
+          flags: "g"
+        },
+        { x: 500, y: 0 }
+      ),
       node("return", "return-text", "Return Text", {}, { x: 1000, y: 0 })
     ],
     edges: [
@@ -481,7 +588,8 @@ function createReusableBuildSearchUrlWorkflow(): WorkflowRecord {
   return {
     id: "builtin-reusable-build-search-url",
     name: "Build Search URL",
-    description: "Reusable helper that builds a search URL from a base URL and normalized query.",
+    description:
+      "Reusable helper that builds a search URL from a base URL and normalized query.",
     enabled: true,
     builtIn: true,
     reusable: {
@@ -516,16 +624,29 @@ function createReusableBuildSearchUrlWorkflow(): WorkflowRecord {
       enabled: true
     },
     nodes: [
-      node("normalize", "invoke-workflow", "Normalize Query", {
-        workflowId: "builtin-reusable-normalize-query",
-        inputTemplates: {
-          query: "{{args.query}}"
-        }
-      }, { x: 0, y: 0 }),
-      node("url", "template", "Compose URL", {
-        template: "{{args.baseUrl}}?q={{nodes.normalize.default.normalized | urlencode}}",
-        outputType: "url"
-      }, { x: 500, y: 0 }),
+      node(
+        "normalize",
+        "invoke-workflow",
+        "Normalize Query",
+        {
+          workflowId: "builtin-reusable-normalize-query",
+          inputTemplates: {
+            query: "{{args.query}}"
+          }
+        },
+        { x: 0, y: 0 }
+      ),
+      node(
+        "url",
+        "template",
+        "Compose URL",
+        {
+          template:
+            "{{args.baseUrl}}?q={{nodes.normalize.default.normalized | urlencode}}",
+          outputType: "url"
+        },
+        { x: 500, y: 0 }
+      ),
       node("return", "return-text", "Return Text", {}, { x: 1000, y: 0 })
     ],
     edges: [
@@ -541,11 +662,13 @@ function createReusableGitHubItemsWorkflow(): WorkflowRecord {
   return {
     id: "builtin-reusable-github-items",
     name: "GitHub Response Items",
-    description: "Reusable helper that extracts the items array from a GitHub repository search response.",
+    description:
+      "Reusable helper that extracts the items array from a GitHub repository search response.",
     enabled: true,
     builtIn: true,
     reusable: {
-      description: "Returns the repository items array for workflow-produced launcher results.",
+      description:
+        "Returns the repository items array for workflow-produced launcher results.",
       inputs: [
         {
           name: "response",
@@ -570,17 +693,35 @@ function createReusableGitHubItemsWorkflow(): WorkflowRecord {
       enabled: true
     },
     nodes: [
-      node("response", "template", "Forward Response", {
-        template: "{{args.response}}",
-        outputType: "object"
-      }, { x: 0, y: 0 }),
-      node("items", "json-extract", "Extract Items", {
-        path: "json.items",
-        outputType: "object"
-      }, { x: 500, y: 0 }),
-      node("return", "return-text", "Return Text", {
-        template: "{{nodes.items.default | json}}"
-      }, { x: 1000, y: 0 })
+      node(
+        "response",
+        "template",
+        "Forward Response",
+        {
+          template: "{{args.response}}",
+          outputType: "object"
+        },
+        { x: 0, y: 0 }
+      ),
+      node(
+        "items",
+        "json-extract",
+        "Extract Items",
+        {
+          path: "json.items",
+          outputType: "object"
+        },
+        { x: 500, y: 0 }
+      ),
+      node(
+        "return",
+        "return-text",
+        "Return Text",
+        {
+          template: "{{nodes.items.default | json}}"
+        },
+        { x: 1000, y: 0 }
+      )
     ],
     edges: [
       edge("response", "default", "items", "input"),
@@ -610,17 +751,29 @@ function createWeatherWorkflow(): WorkflowRecord {
     },
     nodes: [
       node("query", "query-input", "Location Input", {}, { x: 0, y: 0 }),
-      node("request", "http-request", "Weather Request", {
-        method: "GET",
-        urlTemplate: "https://wttr.in/{{args.location | urlencode}}",
-        queryParamsTemplate: '{\n  "format": "j1"\n}',
-        timeoutMs: 5000
-      }, { x: 500, y: 0 }),
-      node("summary", "template", "Build Weather Summary", {
-        template:
-          "{{nodes.request.default.json.current_condition.0.temp_C}}°C · {{nodes.request.default.json.current_condition.0.weatherDesc.0.value}} · feels like {{nodes.request.default.json.current_condition.0.FeelsLikeC}}°C",
-        outputType: "text"
-      }, { x: 1000, y: 0 }),
+      node(
+        "request",
+        "http-request",
+        "Weather Request",
+        {
+          method: "GET",
+          urlTemplate: "https://wttr.in/{{args.location | urlencode}}",
+          queryParamsTemplate: '{\n  "format": "j1"\n}',
+          timeoutMs: 5000
+        },
+        { x: 500, y: 0 }
+      ),
+      node(
+        "summary",
+        "template",
+        "Build Weather Summary",
+        {
+          template:
+            "{{nodes.request.default.json.current_condition.0.temp_C}}°C · {{nodes.request.default.json.current_condition.0.weatherDesc.0.value}} · feels like {{nodes.request.default.json.current_condition.0.FeelsLikeC}}°C",
+          outputType: "text"
+        },
+        { x: 1000, y: 0 }
+      ),
       node("return", "return-text", "Return Text", {}, { x: 1500, y: 0 })
     ],
     edges: [
@@ -652,16 +805,28 @@ function createHttpGetWorkflow(): WorkflowRecord {
     },
     nodes: [
       node("query", "query-input", "URL Input", {}, { x: 0, y: 0 }),
-      node("request", "http-request", "HTTP Request", {
-        method: "GET",
-        urlTemplate: "{{args.url}}",
-        headersTemplate: '{\n  "Accept": "application/json"\n}',
-        timeoutMs: 5000
-      }, { x: 500, y: 0 }),
-      node("preview", "template", "Preview Response", {
-        template: "{{nodes.request.default.json | prettyjson}}",
-        outputType: "text"
-      }, { x: 1000, y: 0 }),
+      node(
+        "request",
+        "http-request",
+        "HTTP Request",
+        {
+          method: "GET",
+          urlTemplate: "{{args.url}}",
+          headersTemplate: '{\n  "Accept": "application/json"\n}',
+          timeoutMs: 5000
+        },
+        { x: 500, y: 0 }
+      ),
+      node(
+        "preview",
+        "template",
+        "Preview Response",
+        {
+          template: "{{nodes.request.default.json | prettyjson}}",
+          outputType: "text"
+        },
+        { x: 1000, y: 0 }
+      ),
       node("return", "return-text", "Return Text", {}, { x: 1500, y: 0 })
     ],
     edges: [
@@ -685,10 +850,7 @@ function node(
     id,
     type,
     title,
-    status:
-      type === "file-input" || type === "return-files"
-        ? "planned"
-        : "supported",
+    status: type === "file-input" || type === "return-files" ? "planned" : "supported",
     config,
     ...(position ? { position } : {})
   };

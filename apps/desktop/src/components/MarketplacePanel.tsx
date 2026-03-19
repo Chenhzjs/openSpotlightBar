@@ -123,9 +123,7 @@ export function MarketplacePanel({
           {zh ? "内置插件" : "Built-in Plugins"}
         </div>
         <div className="mt-1 text-sm text-[color:var(--shell-text-secondary)]">
-          {zh
-            ? "浏览和安装内置插件"
-            : "Browse and install built-in plugins"}
+          {zh ? "浏览和安装内置插件" : "Browse and install built-in plugins"}
         </div>
       </div>
 
@@ -178,10 +176,7 @@ export function MarketplacePanel({
                     <div className="mt-2 flex items-center gap-2 text-[10px] text-[color:var(--shell-text-tertiary)]">
                       <span>v{entry.version}</span>
                       {entry.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="rounded-md bg-white/5 px-1.5 py-0.5"
-                        >
+                        <span key={tag} className="rounded-md bg-white/5 px-1.5 py-0.5">
                           {tag}
                         </span>
                       ))}
@@ -197,8 +192,12 @@ export function MarketplacePanel({
                       >
                         <span className="group-hover:hidden">
                           {isUninstallingThis
-                            ? zh ? "卸载中..." : "Removing..."
-                            : zh ? "已安装 ✓" : "Installed ✓"}
+                            ? zh
+                              ? "卸载中..."
+                              : "Removing..."
+                            : zh
+                              ? "已安装 ✓"
+                              : "Installed ✓"}
                         </span>
                         <span className="hidden group-hover:inline">
                           {zh ? "卸载" : "Uninstall"}
@@ -212,8 +211,12 @@ export function MarketplacePanel({
                         className="rounded-lg bg-white/10 px-3 py-1.5 text-xs font-medium text-[color:var(--shell-text-primary)] transition-colors hover:bg-white/15 disabled:opacity-50"
                       >
                         {isInstallingThis
-                          ? zh ? "安装中..." : "Installing..."
-                          : zh ? "安装" : "Install"}
+                          ? zh
+                            ? "安装中..."
+                            : "Installing..."
+                          : zh
+                            ? "安装"
+                            : "Install"}
                       </button>
                     )}
                   </div>

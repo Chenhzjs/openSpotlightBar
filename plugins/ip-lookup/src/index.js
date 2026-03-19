@@ -30,8 +30,19 @@ const plugin = {
         score: 1.0,
         payload: { text: data.ip },
         actions: [
-          { id: "copy-ip", title: "Copy IP", kind: /** @type {const} */ ("copy-text"), shortcut: "Enter", payload: { text: data.ip } },
-          { id: "copy-all", title: "Copy full info", kind: /** @type {const} */ ("copy-text"), payload: { text: `${title}\n${subtitle}` } }
+          {
+            id: "copy-ip",
+            title: "Copy IP",
+            kind: /** @type {const} */ ("copy-text"),
+            shortcut: "Enter",
+            payload: { text: data.ip }
+          },
+          {
+            id: "copy-all",
+            title: "Copy full info",
+            kind: /** @type {const} */ ("copy-text"),
+            payload: { text: `${title}\n${subtitle}` }
+          }
         ]
       }
     ];

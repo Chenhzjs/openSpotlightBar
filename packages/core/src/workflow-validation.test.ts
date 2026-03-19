@@ -133,12 +133,12 @@ describe("validateWorkflow", () => {
 
     const issues = validateWorkflow(workflow);
 
-    expect(
-      issues.some((issue) => issue.message.includes("invalid reference"))
-    ).toBe(true);
-    expect(
-      issues.some((issue) => issue.message.includes("expects action-result"))
-    ).toBe(true);
+    expect(issues.some((issue) => issue.message.includes("invalid reference"))).toBe(
+      true
+    );
+    expect(issues.some((issue) => issue.message.includes("expects action-result"))).toBe(
+      true
+    );
   });
 
   it("validates launcher-result item mode and HTTP request config requirements", () => {
@@ -185,11 +185,15 @@ describe("validateWorkflow", () => {
 
     const issues = validateWorkflow(workflow);
 
-    expect(issues.some((issue) => issue.message.includes("only supports GET and POST"))).toBe(
+    expect(
+      issues.some((issue) => issue.message.includes("only supports GET and POST"))
+    ).toBe(true);
+    expect(
+      issues.some((issue) => issue.message.includes("requires a URL template"))
+    ).toBe(true);
+    expect(issues.some((issue) => issue.message.includes("incoming 'items' edge"))).toBe(
       true
     );
-    expect(issues.some((issue) => issue.message.includes("requires a URL template"))).toBe(true);
-    expect(issues.some((issue) => issue.message.includes("incoming 'items' edge"))).toBe(true);
     expect(issues.some((issue) => issue.message.includes("title template"))).toBe(true);
   });
 
@@ -203,7 +207,9 @@ describe("validateWorkflow", () => {
       reusable: {
         description: "",
         inputs: [{ name: "query", valueType: "text", required: true }],
-        outputs: [{ name: "result", valueType: "text", valueTemplate: "{{nodes.echo.default}}" }]
+        outputs: [
+          { name: "result", valueType: "text", valueTemplate: "{{nodes.echo.default}}" }
+        ]
       },
       tags: [],
       trigger: {
@@ -263,7 +269,13 @@ describe("validateWorkflow", () => {
         argumentName: "query"
       },
       nodes: [
-        { id: "query", type: "query-input", title: "Query", status: "supported", config: {} },
+        {
+          id: "query",
+          type: "query-input",
+          title: "Query",
+          status: "supported",
+          config: {}
+        },
         {
           id: "invokeMissing",
           type: "invoke-workflow",
@@ -276,7 +288,10 @@ describe("validateWorkflow", () => {
           type: "invoke-workflow",
           title: "Non Reusable",
           status: "supported",
-          config: { workflowId: "non-reusable-target", inputTemplates: { query: "{{input}}" } }
+          config: {
+            workflowId: "non-reusable-target",
+            inputTemplates: { query: "{{input}}" }
+          }
         },
         {
           id: "invokeChild",
@@ -337,7 +352,10 @@ describe("validateWorkflow", () => {
           type: "invoke-workflow",
           title: "Invoke Parent",
           status: "supported",
-          config: { workflowId: "cyclic-parent", inputTemplates: { query: "{{args.query}}" } }
+          config: {
+            workflowId: "cyclic-parent",
+            inputTemplates: { query: "{{args.query}}" }
+          }
         },
         {
           id: "return",
@@ -364,10 +382,18 @@ describe("validateWorkflow", () => {
       reusable: {
         description: "",
         inputs: [{ name: "query", valueType: "text", required: true }],
-        outputs: [{ name: "result", valueType: "text", valueTemplate: "{{nodes.return.default}}" }]
+        outputs: [
+          { name: "result", valueType: "text", valueTemplate: "{{nodes.return.default}}" }
+        ]
       },
       nodes: [
-        { id: "query", type: "query-input", title: "Query", status: "supported", config: {} },
+        {
+          id: "query",
+          type: "query-input",
+          title: "Query",
+          status: "supported",
+          config: {}
+        },
         {
           id: "invokeChild",
           type: "invoke-workflow",
@@ -409,8 +435,12 @@ describe("validateWorkflow", () => {
     });
 
     expect(issues.some((issue) => issue.message.includes("missing workflow"))).toBe(true);
-    expect(issues.some((issue) => issue.message.includes("not marked reusable"))).toBe(true);
-    expect(cycleIssues.some((issue) => issue.message.includes("dependency cycle"))).toBe(true);
+    expect(issues.some((issue) => issue.message.includes("not marked reusable"))).toBe(
+      true
+    );
+    expect(cycleIssues.some((issue) => issue.message.includes("dependency cycle"))).toBe(
+      true
+    );
   });
 
   it("warns when a keyword trigger is shadowed by a higher-priority workflow", () => {

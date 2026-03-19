@@ -96,28 +96,27 @@ function WorkflowCanvasInner({
     setInitialized(true);
   }, []);
 
-  const onNodesChange: OnNodesChange<CanvasNode> = useCallback(
-    (changes) => {
-      // Apply position/selection changes locally for smooth dragging
-      setNodes((nds) => applyNodeChanges(changes, nds));
-    },
-    []
-  );
+  const onNodesChange: OnNodesChange<CanvasNode> = useCallback((changes) => {
+    // Apply position/selection changes locally for smooth dragging
+    setNodes((nds) => applyNodeChanges(changes, nds));
+  }, []);
 
-  const onEdgesChange: OnEdgesChange<CanvasEdge> = useCallback(
-    (changes) => {
-      setEdges((eds) => applyEdgeChanges(changes, eds));
-    },
-    []
-  );
+  const onEdgesChange: OnEdgesChange<CanvasEdge> = useCallback((changes) => {
+    setEdges((eds) => applyEdgeChanges(changes, eds));
+  }, []);
 
   const onConnect: OnConnect = useCallback(
     (connection: Connection) => {
-      setEdges((eds) =>
-        addEdge(
-          { ...connection, type: "workflowEdge", data: { fromPort: connection.sourceHandle ?? "default" } },
-          eds
-        ) as CanvasEdge[]
+      setEdges(
+        (eds) =>
+          addEdge(
+            {
+              ...connection,
+              type: "workflowEdge",
+              data: { fromPort: connection.sourceHandle ?? "default" }
+            },
+            eds
+          ) as CanvasEdge[]
       );
       const newEdge = connectionToEdge(connection);
       onUpdateDraft({
@@ -181,8 +180,10 @@ function WorkflowCanvasInner({
 
   const isValidConnection = useCallback(
     (connection: Connection | CanvasEdge) => {
-      const source = connection.source ?? ("source" in connection ? connection.source : null);
-      const target = connection.target ?? ("target" in connection ? connection.target : null);
+      const source =
+        connection.source ?? ("source" in connection ? connection.source : null);
+      const target =
+        connection.target ?? ("target" in connection ? connection.target : null);
       if (!source || !target || source === target) return false;
       const sourceNode = workflow.nodes.find((n) => n.id === source);
       const targetNode = workflow.nodes.find((n) => n.id === target);
@@ -195,7 +196,10 @@ function WorkflowCanvasInner({
       const targetPort = targetDef.inputs.find((p) => p.name === targetHandle);
       if (!sourcePort || !targetPort) return false;
       const accepted = targetPort.acceptedValueTypes ?? [targetPort.valueType];
-      return accepted.includes(sourcePort.valueType) || sourcePort.valueType === targetPort.valueType;
+      return (
+        accepted.includes(sourcePort.valueType) ||
+        sourcePort.valueType === targetPort.valueType
+      );
     },
     [workflow]
   );
@@ -208,7 +212,9 @@ function WorkflowCanvasInner({
   const onDrop = useCallback(
     (event: React.DragEvent) => {
       event.preventDefault();
-      const nodeType = event.dataTransfer.getData("application/workflow-node-type") as WorkflowNodeType;
+      const nodeType = event.dataTransfer.getData(
+        "application/workflow-node-type"
+      ) as WorkflowNodeType;
       if (!nodeType) return;
 
       const position = screenToFlowPosition({
@@ -228,7 +234,10 @@ function WorkflowCanvasInner({
   );
 
   return (
-    <div ref={reactFlowWrapper} className="absolute inset-0 rounded-[24px] border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-muted)] overflow-hidden">
+    <div
+      ref={reactFlowWrapper}
+      className="absolute inset-0 rounded-[24px] border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-muted)] overflow-hidden"
+    >
       <ReactFlow
         nodes={nodes}
         edges={edges}

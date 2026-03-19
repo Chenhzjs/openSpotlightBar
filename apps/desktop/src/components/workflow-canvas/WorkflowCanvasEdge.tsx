@@ -1,7 +1,9 @@
 import { BezierEdge } from "@xyflow/react";
 import type { EdgeProps } from "@xyflow/react";
 
-export function WorkflowCanvasEdge(props: EdgeProps & { data?: { fromPort: string; implicit?: boolean } }) {
+export function WorkflowCanvasEdge(
+  props: EdgeProps & { data?: { fromPort: string; implicit?: boolean } }
+) {
   const fromPort = props.data?.fromPort;
   const isImplicit = props.data?.implicit === true;
 

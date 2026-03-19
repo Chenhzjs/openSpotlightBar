@@ -82,7 +82,8 @@ export class SearchEngine {
 
     return dedupeResults(merged)
       .sort((left, right) => {
-        const priorityDiff = getQueryPriority(right, query) - getQueryPriority(left, query);
+        const priorityDiff =
+          getQueryPriority(right, query) - getQueryPriority(left, query);
         if (priorityDiff !== 0) {
           return priorityDiff;
         }

@@ -72,7 +72,14 @@ export const WORKFLOW_NODE_LIBRARY: WorkflowNodeDefinition[] = [
       {
         name: "input",
         valueType: "text",
-        acceptedValueTypes: ["text", "url", "object", "number", "boolean", "http-response"]
+        acceptedValueTypes: [
+          "text",
+          "url",
+          "object",
+          "number",
+          "boolean",
+          "http-response"
+        ]
       }
     ],
     outputs: [
@@ -147,12 +154,20 @@ export const WORKFLOW_NODE_LIBRARY: WorkflowNodeDefinition[] = [
     label: "Conditional Branch",
     category: "transform",
     status: "supported",
-    description: "Routes execution through the true or false branch using a simple condition.",
+    description:
+      "Routes execution through the true or false branch using a simple condition.",
     inputs: [
       {
         name: "input",
         valueType: "text",
-        acceptedValueTypes: ["text", "url", "number", "object", "http-response", "boolean"],
+        acceptedValueTypes: [
+          "text",
+          "url",
+          "number",
+          "object",
+          "http-response",
+          "boolean"
+        ],
         required: true
       }
     ],
@@ -166,7 +181,8 @@ export const WORKFLOW_NODE_LIBRARY: WorkflowNodeDefinition[] = [
     label: "JSON Parse",
     category: "transform",
     status: "supported",
-    description: "Parses incoming text into a structured object for downstream extraction or templating.",
+    description:
+      "Parses incoming text into a structured object for downstream extraction or templating.",
     inputs: [{ name: "input", valueType: "text", required: true }],
     outputs: [{ name: "default", valueType: "object" }]
   },
@@ -175,7 +191,8 @@ export const WORKFLOW_NODE_LIBRARY: WorkflowNodeDefinition[] = [
     label: "JSON Extract",
     category: "transform",
     status: "supported",
-    description: "Extracts a nested value from a structured object or parseable JSON text using a simple path.",
+    description:
+      "Extracts a nested value from a structured object or parseable JSON text using a simple path.",
     inputs: [
       {
         name: "input",
@@ -218,7 +235,8 @@ export const WORKFLOW_NODE_LIBRARY: WorkflowNodeDefinition[] = [
     label: "Run Shell Command",
     category: "action",
     status: "supported",
-    description: "Runs a shell command through the workflow runtime service with explicit logging.",
+    description:
+      "Runs a shell command through the workflow runtime service with explicit logging.",
     inputs: [{ name: "command", valueType: "text", required: true }],
     outputs: [{ name: "default", valueType: "action-result" }]
   },
@@ -227,7 +245,8 @@ export const WORKFLOW_NODE_LIBRARY: WorkflowNodeDefinition[] = [
     label: "Invoke Shared Action",
     category: "action",
     status: "supported",
-    description: "Builds and dispatches an existing launcher action without duplicating action logic.",
+    description:
+      "Builds and dispatches an existing launcher action without duplicating action logic.",
     inputs: [{ name: "input", valueType: "text" }],
     outputs: [{ name: "default", valueType: "action-result" }]
   },
@@ -308,7 +327,8 @@ export const WORKFLOW_NODE_LIBRARY: WorkflowNodeDefinition[] = [
     label: "Emit Toast",
     category: "output",
     status: "supported",
-    description: "Emits a lightweight status message through the workflow runtime service.",
+    description:
+      "Emits a lightweight status message through the workflow runtime service.",
     inputs: [{ name: "text", valueType: "text", required: true }],
     outputs: [{ name: "default", valueType: "action-result" }]
   }

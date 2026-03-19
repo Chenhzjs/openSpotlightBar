@@ -32,13 +32,12 @@ export function createWorkflowDraft(): WorkflowRecord {
       argumentName: "query",
       placeholder: "Arguments"
     },
-    nodes: [
-      createNodeDraft("query-input"),
-      createNodeDraft("return-text")
-    ].map((node, index) => ({
-      ...node,
-      id: `${workflowId}-node-${index + 1}`
-    })),
+    nodes: [createNodeDraft("query-input"), createNodeDraft("return-text")].map(
+      (node, index) => ({
+        ...node,
+        id: `${workflowId}-node-${index + 1}`
+      })
+    ),
     edges: [
       {
         id: `${workflowId}-edge-1`,
@@ -100,7 +99,10 @@ export function sortWorkflowNodes(workflow: WorkflowRecord): WorkflowNode[] {
       continue;
     }
     indegree.set(edge.toNodeId, (indegree.get(edge.toNodeId) ?? 0) + 1);
-    outgoing.set(edge.fromNodeId, [...(outgoing.get(edge.fromNodeId) ?? []), edge.toNodeId]);
+    outgoing.set(edge.fromNodeId, [
+      ...(outgoing.get(edge.fromNodeId) ?? []),
+      edge.toNodeId
+    ]);
   }
 
   const queue = workflow.nodes
@@ -142,7 +144,7 @@ export function defaultConfigForNode(type: WorkflowNodeType): Record<string, unk
       return {
         method: "GET",
         urlTemplate: "https://example.com?q={{args.query | urlencode}}",
-        headersTemplate: "{\n  \"Accept\": \"application/json\"\n}",
+        headersTemplate: '{\n  "Accept": "application/json"\n}',
         queryParamsTemplate: "",
         jsonBodyTemplate: "",
         timeoutMs: 5000
@@ -196,8 +198,8 @@ export function defaultConfigForNode(type: WorkflowNodeType): Record<string, unk
         itemsPath: "",
         actionKind: "open-url",
         actionTitle: "Open result",
-        actionPayloadTemplate: "{\n  \"url\": \"{{item}}\"\n}",
-        payloadTemplate: "{\n  \"value\": \"{{item}}\"\n}"
+        actionPayloadTemplate: '{\n  "url": "{{item}}"\n}',
+        payloadTemplate: '{\n  "value": "{{item}}"\n}'
       };
     case "return-text":
       return { template: "{{input}}" };
