@@ -1,4 +1,4 @@
-# Pulse Launcher Demo
+# Open Spotlight Bar Demo
 
 ## Recommended script
 
@@ -11,12 +11,12 @@
 7. Rebuild the index and show the updated health message.
 8. Search a clipboard item or snippet and trigger its primary action.
 9. Type `/config`, press `Enter`, move through the hub with arrow keys, and open a detail surface.
-10. Search `g pulse launcher`, run it, and explain that keyword workflows now behave like launcher-native commands rather than editor-only automation demos.
-11. Search `/google pulse launcher`, run it, and show that slash-command workflows still use the same runtime and logs model.
+10. Search `g open spotlight bar`, run it, and explain that keyword workflows now behave like launcher-native commands rather than editor-only automation demos.
+11. Search `/google open spotlight bar`, run it, and show that slash-command workflows still use the same runtime and logs model.
 12. Search `/clip-clean`, run it, and show the clipboard-normalization action through the workflow runtime.
 13. Search `/json-pretty {"hello":"world"}`, run it, and show structured JSON parsing plus pretty-print output.
-14. Search `/url-encode pulse launcher`, run it, and explain the template filter system.
-15. Search `gh pulse launcher`, run it, and show that a workflow can fetch remote JSON and emit real launcher-native results instead of just returning text.
+14. Search `/url-encode open spotlight bar`, run it, and explain the template filter system.
+15. Search `gh open spotlight bar`, run it, and show that a workflow can fetch remote JSON and emit real launcher-native results instead of just returning text.
 16. Search `weather Shanghai`, run it, and show a practical HTTP-backed text summary workflow.
 17. Open `/config workflow`, inspect the reusable helpers, and explain that `Normalize Query`, `Build Search URL`, and `GitHub Response Items` are local reusable subflows rather than separate products.
 18. Open the `g` or `gh` workflow in the editor, show the trigger metadata plus `Invoke Workflow` node, and expand the nested debug logs after a run.

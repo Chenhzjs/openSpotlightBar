@@ -1,4 +1,4 @@
-import type { WorkflowNodeCategory } from "@pulse/core";
+import type { WorkflowNodeCategory } from "@osb/core";
 
 export const NODE_WIDTH = 220;
 export const NODE_MIN_HEIGHT = 60;

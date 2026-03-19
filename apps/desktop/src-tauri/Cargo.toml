@@ -1,13 +1,13 @@
 [package]
-name = "pulse-launcher"
+name = "open-spotlight-bar"
 version = "0.1.0"
-description = "Pulse Launcher desktop application"
+description = "Open Spotlight Bar desktop application"
 authors = ["Codex"]
 edition = "2021"
-default-run = "pulse-launcher"
+default-run = "open-spotlight-bar"
 
 [lib]
-name = "pulse_launcher_lib"
+name = "open_spotlight_bar_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

@@ -90,7 +90,7 @@ pub fn run() {
             uninstall_marketplace_plugin
         ])
         .run(tauri::generate_context!())
-        .expect("error while running Pulse Launcher");
+        .expect("error while running Open Spotlight Bar");
 }
 
 pub fn refresh_app_cache(app_handle: &AppHandle) {

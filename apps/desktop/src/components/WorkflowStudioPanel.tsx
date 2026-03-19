@@ -7,7 +7,7 @@ import {
   getWorkflowTriggerDisplayLabel,
   getWorkflowSlashCommand,
   validateWorkflow
-} from "@pulse/core";
+} from "@osb/core";
 import type {
   ActionKind,
   WorkflowNode,
@@ -21,7 +21,7 @@ import type {
   WorkflowTrigger,
   WorkflowValidationIssue,
   WorkflowValueType
-} from "@pulse/shared-types";
+} from "@osb/shared-types";
 
 import {
   WORKFLOW_NODE_LIBRARY,

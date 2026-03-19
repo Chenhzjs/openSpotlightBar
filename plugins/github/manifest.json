@@ -1,5 +1,5 @@
 {
-  "id": "com.pulse.github",
+  "id": "com.osb.github",
   "name": "GitHub Search",
   "version": "0.1.0",
   "entry": "src/index.js",

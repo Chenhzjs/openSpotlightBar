@@ -13,7 +13,7 @@ import type {
   WorkflowRunResult,
   WorkflowValidationIssue,
   WorkflowValueType
-} from "@pulse/shared-types";
+} from "@osb/shared-types";
 
 import {
   renderWorkflowTemplate,

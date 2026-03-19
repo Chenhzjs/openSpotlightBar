@@ -1,4 +1,4 @@
-import { DEFAULT_SETTINGS, getBuiltInWorkflows } from "@pulse/core";
+import { DEFAULT_SETTINGS, getBuiltInWorkflows } from "@osb/core";
 import type {
   ActionItem,
   ActionResponse,
@@ -16,7 +16,7 @@ import type {
   WorkflowHttpRequest,
   WorkflowHttpResponse,
   WorkflowRecord
-} from "@pulse/shared-types";
+} from "@osb/shared-types";
 
 interface PluginShellResult {
   exitCode: number;
@@ -62,8 +62,8 @@ let mockClipboardItems: ClipboardItem[] = [
   {
     id: "clip-2",
     contentType: "text",
-    text: "Pulse Launcher architecture checklist",
-    preview: "Pulse Launcher architecture checklist",
+    text: "Open Spotlight Bar architecture checklist",
+    preview: "Open Spotlight Bar architecture checklist",
     pinned: false,
     createdAt: Date.now() - 15_000,
     sourceApp: "Notes",
@@ -92,7 +92,7 @@ let mockWorkflows: WorkflowRecord[] = getBuiltInWorkflows().map((workflow) =>
 const mockPlugins: DiscoveredPlugin[] = [
   {
     manifest: {
-      id: "com.pulse.calculator",
+      id: "com.osb.calculator",
       name: "Calculator",
       version: "0.1.0",
       entry: "src/index.js",
@@ -194,7 +194,7 @@ export default plugin;
   },
   {
     manifest: {
-      id: "com.pulse.github",
+      id: "com.osb.github",
       name: "GitHub Search",
       version: "0.1.0",
       entry: "src/index.js",
@@ -240,7 +240,7 @@ export default plugin;
   },
   {
     manifest: {
-      id: "com.pulse.shell",
+      id: "com.osb.shell",
       name: "Shell Command",
       version: "0.1.0",
       entry: "src/index.js",
@@ -657,33 +657,33 @@ export async function openDevtools(): Promise<void> {
 
 const MOCK_MARKETPLACE_ENTRIES: MarketplaceEntry[] = [
   {
-    id: "com.pulse.color-picker",
+    id: "com.osb.color-picker",
     name: "Color Picker",
     description: "Pick colors from anywhere on screen and convert between formats.",
     version: "1.0.0",
-    repoUrl: "https://github.com/pulseLauncher/plugin-color-picker",
-    author: "Pulse Team",
+    repoUrl: "https://github.com/openSpotlightBar/plugin-color-picker",
+    author: "OSB Team",
     stars: 1240,
     tags: ["utility", "design"],
     updatedAt: "2026-02-15"
   },
   {
-    id: "com.pulse.emoji-search",
+    id: "com.osb.emoji-search",
     name: "Emoji Search",
     description: "Search and copy emojis by name or keyword.",
     version: "0.3.0",
-    repoUrl: "https://github.com/pulseLauncher/plugin-emoji-search",
+    repoUrl: "https://github.com/openSpotlightBar/plugin-emoji-search",
     author: "community",
     stars: 890,
     tags: ["utility", "search"],
     updatedAt: "2026-01-20"
   },
   {
-    id: "com.pulse.devdocs",
+    id: "com.osb.devdocs",
     name: "DevDocs Lookup",
     description: "Search DevDocs.io documentation directly from the launcher.",
     version: "0.5.0",
-    repoUrl: "https://github.com/pulseLauncher/plugin-devdocs",
+    repoUrl: "https://github.com/openSpotlightBar/plugin-devdocs",
     author: "community",
     stars: 670,
     tags: ["dev-tools", "search"],

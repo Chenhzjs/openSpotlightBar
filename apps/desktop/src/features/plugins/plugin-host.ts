@@ -8,12 +8,12 @@ import type {
   PluginRuntimeSnapshot,
   ResultItem,
   SearchContext
-} from "@pulse/shared-types";
+} from "@osb/shared-types";
 import type {
   PluginActionContext,
   PluginSearchContext,
   PluginSearchResult
-} from "@pulse/plugin-sdk";
+} from "@osb/plugin-sdk";
 
 import {
   pluginExecShell,

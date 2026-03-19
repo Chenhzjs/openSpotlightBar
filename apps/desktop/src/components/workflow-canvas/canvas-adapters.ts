@@ -1,10 +1,10 @@
-import { WORKFLOW_NODE_LIBRARY_BY_TYPE, extractImplicitNodeDependencies, extractWorkflowTemplateReferences } from "@pulse/core";
-import type { WorkflowNodeCategory } from "@pulse/core";
+import { WORKFLOW_NODE_LIBRARY_BY_TYPE, extractImplicitNodeDependencies, extractWorkflowTemplateReferences } from "@osb/core";
+import type { WorkflowNodeCategory } from "@osb/core";
 import type {
   WorkflowEdge,
   WorkflowNode,
   WorkflowRecord
-} from "@pulse/shared-types";
+} from "@osb/shared-types";
 import type { Edge, Node } from "@xyflow/react";
 
 import { autoLayout } from "./canvas-layout";

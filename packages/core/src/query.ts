@@ -1,4 +1,4 @@
-import type { SearchScope } from "@pulse/shared-types";
+import type { SearchScope } from "@osb/shared-types";
 
 export interface ParsedQuery {
   scope: SearchScope;

@@ -13,7 +13,7 @@ import {
   SearchEngine,
   getBuiltInWorkflows,
   parseQuery
-} from "@pulse/core";
+} from "@osb/core";
 import type {
   ActionItem,
   FileIndexStatus,
@@ -24,7 +24,7 @@ import type {
   SnippetInput,
   SnippetRecord,
   WorkflowRecord
-} from "@pulse/shared-types";
+} from "@osb/shared-types";
 
 import { ActionPanel } from "./components/ActionPanel";
 import { ConfigHub } from "./components/ConfigHub";
@@ -246,7 +246,7 @@ export default function App() {
         });
         if (!cancelled) {
           setErrorMessage(
-            error instanceof Error ? error.message : "Failed to bootstrap Pulse Launcher."
+            error instanceof Error ? error.message : "Failed to bootstrap Open Spotlight Bar."
           );
         }
       }

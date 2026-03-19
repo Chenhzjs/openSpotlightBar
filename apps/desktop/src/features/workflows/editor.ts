@@ -1,10 +1,10 @@
-import { WORKFLOW_NODE_LIBRARY, WORKFLOW_NODE_LIBRARY_BY_TYPE } from "@pulse/core";
+import { WORKFLOW_NODE_LIBRARY, WORKFLOW_NODE_LIBRARY_BY_TYPE } from "@osb/core";
 import type {
   WorkflowEdge,
   WorkflowNode,
   WorkflowNodeType,
   WorkflowRecord
-} from "@pulse/shared-types";
+} from "@osb/shared-types";
 
 export { WORKFLOW_NODE_LIBRARY, WORKFLOW_NODE_LIBRARY_BY_TYPE };
 

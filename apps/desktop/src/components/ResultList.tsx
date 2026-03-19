@@ -1,6 +1,6 @@
 import clsx from "clsx";
 
-import type { ResultItem } from "@pulse/shared-types";
+import type { ResultItem } from "@osb/shared-types";
 
 interface ResultListProps {
   results: ResultItem[];

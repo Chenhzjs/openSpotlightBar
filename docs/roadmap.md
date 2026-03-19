@@ -1,4 +1,4 @@
-# Pulse Launcher Roadmap
+# Open Spotlight Bar Roadmap
 
 ## Phase 1
 

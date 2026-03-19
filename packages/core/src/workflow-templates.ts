@@ -1,4 +1,4 @@
-import type { WorkflowRecord } from "@pulse/shared-types";
+import type { WorkflowRecord } from "@osb/shared-types";
 
 export interface WorkflowTemplate {
   id: string;

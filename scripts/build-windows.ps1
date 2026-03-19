@@ -17,7 +17,7 @@ function Require-Command {
 Require-Command pnpm
 Require-Command cargo
 
-Write-Host "==> Pulse Launcher release build (windows)"
+Write-Host "==> Open Spotlight Bar release build (windows)"
 Write-Host "Workspace: $Root"
 
 Push-Location $Root

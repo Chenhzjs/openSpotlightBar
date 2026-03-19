@@ -1,5 +1,5 @@
 {
-  "name": "@pulse/plugin-sdk",
+  "name": "@osb/plugin-sdk",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -14,7 +14,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@pulse/shared-types": "workspace:*"
+    "@osb/shared-types": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.6.3"

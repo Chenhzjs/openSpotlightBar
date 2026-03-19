@@ -105,12 +105,12 @@ struct MacShellBridge: Sendable {
         let environment = ProcessInfo.processInfo.environment
 
         let candidates = [
-            environment["PULSE_BRIDGE_BIN"],
+            environment["OSB_BRIDGE_BIN"],
             resolveRepoRoot()?.appendingPathComponent(
-                "apps/desktop/src-tauri/target/debug/pulse_launcher_bridge"
+                "apps/desktop/src-tauri/target/debug/osb_bridge"
             ).path,
             resolveRepoRoot()?.appendingPathComponent(
-                "apps/desktop/src-tauri/target/release/pulse_launcher_bridge"
+                "apps/desktop/src-tauri/target/release/osb_bridge"
             ).path
         ]
             .compactMap { $0 }
@@ -126,7 +126,7 @@ struct MacShellBridge: Sendable {
         let fileManager = FileManager.default
         let environment = ProcessInfo.processInfo.environment
 
-        if let repoRoot = environment["PULSE_REPO_ROOT"] {
+        if let repoRoot = environment["OSB_REPO_ROOT"] {
             return URL(fileURLWithPath: repoRoot, isDirectory: true)
         }
 

@@ -1,7 +1,7 @@
 import clsx from "clsx";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import type { MarketplaceEntry } from "@pulse/shared-types";
+import type { MarketplaceEntry } from "@osb/shared-types";
 
 import {
   fetchPluginRegistry,

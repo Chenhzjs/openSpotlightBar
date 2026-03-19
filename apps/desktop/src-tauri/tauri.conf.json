@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Pulse Launcher",
+  "productName": "Open Spotlight Bar",
   "version": "0.1.0",
-  "identifier": "com.pulse.launcher",
+  "identifier": "com.osb.launcher",
   "build": {
     "beforeDevCommand": "vite",
     "beforeBuildCommand": "tsc --noEmit && vite build",
@@ -14,7 +14,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Pulse Launcher",
+        "title": "Open Spotlight Bar",
         "width": 940,
         "height": 108,
         "center": true,
@@ -34,7 +34,7 @@
     "active": true,
     "targets": "all",
     "category": "Productivity",
-    "shortDescription": "Keyboard-first local desktop launcher",
-    "longDescription": "Pulse Launcher is a cross-platform desktop launcher focused on fast local search, keyboard-first actions, and a clean extensible architecture."
+    "shortDescription": "Keyboard-first cross-platform desktop launcher",
+    "longDescription": "Open Spotlight Bar is a cross-platform desktop launcher focused on fast local search, keyboard-first actions, and a clean extensible architecture."
   }
 }

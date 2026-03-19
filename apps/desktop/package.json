@@ -1,5 +1,5 @@
 {
-  "name": "@pulse/desktop",
+  "name": "@osb/desktop",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -10,8 +10,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@pulse/core": "workspace:*",
-    "@pulse/shared-types": "workspace:*",
+    "@osb/core": "workspace:*",
+    "@osb/shared-types": "workspace:*",
     "@tauri-apps/api": "^2.0.0",
     "@xyflow/react": "^12.10.1",
     "clsx": "^2.1.1",

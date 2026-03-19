@@ -1,5 +1,5 @@
 {
-  "name": "@pulse/plugin-github",
+  "name": "@osb/plugin-github",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -15,7 +15,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@pulse/plugin-sdk": "workspace:*"
+    "@osb/plugin-sdk": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.6.3"

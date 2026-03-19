@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { DEFAULT_SETTINGS } from "./default-settings";
 import { SearchEngine } from "./search-engine";
-import type { ResultItem, SearchContext, SearchProvider } from "@pulse/shared-types";
+import type { ResultItem, SearchContext, SearchProvider } from "@osb/shared-types";
 
 function createResult(
   id: string,

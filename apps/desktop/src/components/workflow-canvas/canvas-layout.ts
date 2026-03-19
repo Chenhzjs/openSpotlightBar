@@ -1,4 +1,4 @@
-import type { WorkflowRecord } from "@pulse/shared-types";
+import type { WorkflowRecord } from "@osb/shared-types";
 
 import { sortWorkflowNodes } from "../../features/workflows/editor";
 import { LAYER_GAP_X, LAYER_GAP_Y, NODE_WIDTH } from "./canvas-constants";

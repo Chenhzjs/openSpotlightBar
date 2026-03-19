@@ -1,4 +1,4 @@
-import type { LauncherSettings } from "@pulse/shared-types";
+import type { LauncherSettings } from "@osb/shared-types";
 
 export const DEFAULT_SETTINGS: LauncherSettings = {
   hotkey: "Alt+Space",

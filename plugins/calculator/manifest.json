@@ -1,5 +1,5 @@
 {
-  "id": "com.pulse.calculator",
+  "id": "com.osb.calculator",
   "name": "Calculator",
   "version": "0.1.0",
   "entry": "src/index.js",

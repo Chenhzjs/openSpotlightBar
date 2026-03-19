@@ -531,7 +531,7 @@ pub async fn open_devtools(app: AppHandle) -> Result<(), String> {
 }
 
 const DEFAULT_REGISTRY_URL: &str =
-    "https://raw.githubusercontent.com/pulseLauncher/plugin-registry/main/registry.json";
+    "https://raw.githubusercontent.com/openSpotlightBar/plugin-registry/main/registry.json";
 
 #[tauri::command]
 pub async fn fetch_plugin_registry() -> Result<Vec<MarketplaceEntry>, String> {

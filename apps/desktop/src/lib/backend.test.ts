@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { ActionItem, ResultItem } from "@pulse/shared-types";
+import type { ActionItem, ResultItem } from "@osb/shared-types";
 
 import { resolveActionValue } from "./backend";
 

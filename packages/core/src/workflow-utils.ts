@@ -1,7 +1,7 @@
 import type {
   WorkflowRecord,
   WorkflowRunContext
-} from "@pulse/shared-types";
+} from "@osb/shared-types";
 
 import {
   getWorkflowKeywordTrigger,

@@ -10,7 +10,7 @@ import type {
   ResultSource,
   SnippetInput,
   SnippetRecord
-} from "@pulse/shared-types";
+} from "@osb/shared-types";
 
 import type { ConfigSection } from "../features/commands/config-command";
 import { MarketplacePanel } from "./MarketplacePanel";

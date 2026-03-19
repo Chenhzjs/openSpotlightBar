@@ -15,12 +15,12 @@
     "skipLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@pulse/shared-types": ["packages/shared-types/src/index.ts"],
-      "@pulse/core": ["packages/core/src/index.ts"],
-      "@pulse/plugin-sdk": ["packages/plugin-sdk/src/index.ts"],
-      "@pulse/plugin-calculator": ["plugins/calculator/src/index.js"],
-      "@pulse/plugin-github": ["plugins/github/src/index.js"],
-      "@pulse/plugin-shell": ["plugins/shell/src/index.js"]
+      "@osb/shared-types": ["packages/shared-types/src/index.ts"],
+      "@osb/core": ["packages/core/src/index.ts"],
+      "@osb/plugin-sdk": ["packages/plugin-sdk/src/index.ts"],
+      "@osb/plugin-calculator": ["plugins/calculator/src/index.js"],
+      "@osb/plugin-github": ["plugins/github/src/index.js"],
+      "@osb/plugin-shell": ["plugins/shell/src/index.js"]
     }
   }
 }

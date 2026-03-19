@@ -22,7 +22,7 @@ pub struct Database {
 impl Database {
     pub fn new(base_dir: &Path) -> AppResult<Self> {
         std::fs::create_dir_all(base_dir)?;
-        let database_path = base_dir.join("pulse-launcher.sqlite");
+        let database_path = base_dir.join("open-spotlight-bar.sqlite");
         let connection = Connection::open(database_path)?;
         let database = Self {
             connection: Mutex::new(connection),

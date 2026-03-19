@@ -1,4 +1,4 @@
-import type { ResultItem, SearchContext, SearchProvider } from "@pulse/shared-types";
+import type { ResultItem, SearchContext, SearchProvider } from "@osb/shared-types";
 
 import { rankResult } from "./ranking";
 

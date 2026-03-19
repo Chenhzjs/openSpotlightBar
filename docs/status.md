@@ -1,4 +1,4 @@
-# Pulse Launcher Status
+# Open Spotlight Bar Status
 
 ## Demo-ready now
 

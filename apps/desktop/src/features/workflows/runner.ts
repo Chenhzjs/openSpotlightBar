@@ -3,7 +3,7 @@ import {
   parseQuery,
   runWorkflow,
   type WorkflowRuntimeServices
-} from "@pulse/core";
+} from "@osb/core";
 import type {
   ActionResponse,
   ClipboardItem,
@@ -16,7 +16,7 @@ import type {
   WorkflowHttpRequest,
   WorkflowRecord,
   WorkflowRunResult
-} from "@pulse/shared-types";
+} from "@osb/shared-types";
 
 import type { PluginHost } from "../plugins/plugin-host";
 import { getDefaultAction } from "../search/providers";

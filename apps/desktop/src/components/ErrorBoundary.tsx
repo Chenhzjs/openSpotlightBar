@@ -34,7 +34,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
         <main className="min-h-screen bg-ink-950 px-6 py-12 text-slate-100">
           <div className="mx-auto max-w-2xl rounded-[28px] border border-rose-400/20 bg-rose-500/8 p-8">
             <div className="text-xs uppercase tracking-[0.22em] text-rose-200/80">
-              Pulse Launcher
+              Open Spotlight Bar
             </div>
             <h1 className="mt-3 font-display text-3xl text-white">
               The launcher hit a fatal UI error.

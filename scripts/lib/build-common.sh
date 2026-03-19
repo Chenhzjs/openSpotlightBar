@@ -20,7 +20,7 @@ run_release_build() {
   require_cmd pnpm
   require_cmd cargo
 
-  echo "==> Pulse Launcher release build ($platform)"
+  echo "==> Open Spotlight Bar release build ($platform)"
   echo "Workspace: $ROOT_DIR"
 
   pnpm install --frozen-lockfile

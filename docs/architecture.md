@@ -1,4 +1,4 @@
-# Pulse Launcher Architecture
+# Open Spotlight Bar Architecture
 
 ## Current objective
 

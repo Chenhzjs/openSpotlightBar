@@ -1,5 +1,5 @@
 {
-  "id": "com.pulse.shell",
+  "id": "com.osb.shell",
   "name": "Shell Command",
   "version": "0.1.0",
   "entry": "src/index.js",

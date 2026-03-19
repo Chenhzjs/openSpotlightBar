@@ -2,7 +2,7 @@ import type {
   WorkflowNodeStatus,
   WorkflowNodeType,
   WorkflowValueType
-} from "@pulse/shared-types";
+} from "@osb/shared-types";
 
 export type WorkflowNodeCategory = "input" | "transform" | "action" | "output";
 

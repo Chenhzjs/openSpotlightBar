@@ -17,8 +17,8 @@ import {
   type NodeMouseHandler
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import type { WorkflowNodeType, WorkflowRecord } from "@pulse/shared-types";
-import { WORKFLOW_NODE_LIBRARY_BY_TYPE } from "@pulse/core";
+import type { WorkflowNodeType, WorkflowRecord } from "@osb/shared-types";
+import { WORKFLOW_NODE_LIBRARY_BY_TYPE } from "@osb/core";
 
 import { createNodeDraft } from "../../features/workflows/editor";
 import {

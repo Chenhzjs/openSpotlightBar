@@ -1,5 +1,5 @@
-import { WORKFLOW_TEMPLATES, type WorkflowTemplate } from "@pulse/core";
-import type { WorkflowRecord } from "@pulse/shared-types";
+import { WORKFLOW_TEMPLATES, type WorkflowTemplate } from "@osb/core";
+import type { WorkflowRecord } from "@osb/shared-types";
 
 interface WorkflowTemplateGalleryProps {
   onSelect(workflow: WorkflowRecord): void;

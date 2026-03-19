@@ -14,7 +14,7 @@ import type {
   UsageStat,
   WorkflowRecord,
   WorkflowRunResult
-} from "@pulse/shared-types";
+} from "@osb/shared-types";
 
 interface LauncherState {
   initialized: boolean;

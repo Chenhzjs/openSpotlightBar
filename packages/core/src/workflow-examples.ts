@@ -1,4 +1,4 @@
-import type { WorkflowRecord } from "@pulse/shared-types";
+import type { WorkflowRecord } from "@osb/shared-types";
 
 const BUILTIN_TIMESTAMP = 1_710_000_000_000;
 
@@ -387,7 +387,7 @@ function createGitHubHttpWorkflow(): WorkflowRecord {
         method: "GET",
         urlTemplate: "https://api.github.com/search/repositories",
         headersTemplate:
-          '{\n  "Accept": "application/vnd.github+json",\n  "User-Agent": "Pulse Launcher"\n}',
+          '{\n  "Accept": "application/vnd.github+json",\n  "User-Agent": "Open Spotlight Bar"\n}',
         queryParamsTemplate:
           '{\n  "q": "{{args.query}}",\n  "per_page": "5"\n}',
         timeoutMs: 5000

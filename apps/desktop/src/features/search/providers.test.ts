@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_SETTINGS, getBuiltInWorkflows } from "@pulse/core";
-import type { ResultItem } from "@pulse/shared-types";
+import { DEFAULT_SETTINGS, getBuiltInWorkflows } from "@osb/core";
+import type { ResultItem } from "@osb/shared-types";
 
 import { createProviders, getDefaultAction, getScopedInput } from "./providers";
 

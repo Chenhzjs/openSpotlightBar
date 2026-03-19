@@ -1,4 +1,4 @@
-import type { ResultItem, UsageStat } from "@pulse/shared-types";
+import type { ResultItem, UsageStat } from "@osb/shared-types";
 
 import { scoreTextMatch } from "./fuzzy";
 

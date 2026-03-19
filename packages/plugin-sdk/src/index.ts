@@ -6,7 +6,7 @@ import type {
   PluginManifest,
   PluginPermission,
   ResultItemType
-} from "@pulse/shared-types";
+} from "@osb/shared-types";
 
 export interface PluginSearchContext {
   query: string;

@@ -49,7 +49,7 @@ describe("workflow references", () => {
       item: {
         type: "object" as const,
         value: {
-          title: "Pulse Launcher"
+          title: "Open Spotlight Bar"
         }
       },
       index: {
@@ -78,7 +78,7 @@ describe("workflow references", () => {
 
   it("supports extra reference roots used by workflow result mapping", () => {
     expect(renderWorkflowTemplate("{{item.title}} #{{index}}", environment)).toBe(
-      "Pulse Launcher #2"
+      "Open Spotlight Bar #2"
     );
   });
 });

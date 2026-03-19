@@ -8,15 +8,15 @@ const rootDir = path.dirname(fileURLToPath(import.meta.url));
 export default defineConfig({
   resolve: {
     alias: {
-      "@pulse/shared-types": path.resolve(rootDir, "packages/shared-types/src/index.ts"),
-      "@pulse/core": path.resolve(rootDir, "packages/core/src/index.ts"),
-      "@pulse/plugin-sdk": path.resolve(rootDir, "packages/plugin-sdk/src/index.ts"),
-      "@pulse/plugin-calculator": path.resolve(
+      "@osb/shared-types": path.resolve(rootDir, "packages/shared-types/src/index.ts"),
+      "@osb/core": path.resolve(rootDir, "packages/core/src/index.ts"),
+      "@osb/plugin-sdk": path.resolve(rootDir, "packages/plugin-sdk/src/index.ts"),
+      "@osb/plugin-calculator": path.resolve(
         rootDir,
         "plugins/calculator/src/index.js"
       ),
-      "@pulse/plugin-github": path.resolve(rootDir, "plugins/github/src/index.js"),
-      "@pulse/plugin-shell": path.resolve(rootDir, "plugins/shell/src/index.js")
+      "@osb/plugin-github": path.resolve(rootDir, "plugins/github/src/index.js"),
+      "@osb/plugin-shell": path.resolve(rootDir, "plugins/shell/src/index.js")
     }
   },
   test: {

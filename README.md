@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="apps/desktop/src-tauri/icons/icon.png" width="128" height="128" alt="Pulse Launcher" />
+  <img src="apps/desktop/src-tauri/icons/icon.png" width="128" height="128" alt="Open Spotlight Bar" />
 </p>
 
-<h1 align="center">Pulse Launcher</h1>
+<h1 align="center">Open Spotlight Bar</h1>
 
 <p align="center">
   <strong>A keyboard-first, cross-platform desktop launcher.</strong><br/>
@@ -20,9 +20,9 @@
 
 ---
 
-## Why Pulse Launcher?
+## Why Open Spotlight Bar?
 
-Pulse Launcher is an open-source alternative to Alfred, Raycast, and PowerToys Run. Built with **Tauri 2 + React + Rust**, it delivers native performance with a modern web UI — all while keeping your data local by default.
+Open Spotlight Bar is an open-source alternative to Alfred, Raycast, and PowerToys Run. Built with **Tauri 2 + React + Rust**, it delivers native performance with a modern web UI — all while keeping your data local by default.
 
 ## Features
 
@@ -88,7 +88,7 @@ pnpm release:linux      # Production build for Linux
 ## Architecture
 
 ```
-pulse-launcher-workspace/
+open-spotlight-bar/
 ├── apps/
 │   ├── desktop/                 # React + Tailwind UI, Tauri shell
 │   │   └── src-tauri/           # Rust backend: commands, SQLite, file index, plugins
@@ -193,8 +193,8 @@ Workflows are a visual, node-based automation system triggered from the launcher
 
 | Type | Example |
 |------|---------|
-| Slash command | `/google pulse launcher` |
-| Keyword | `g pulse launcher`, `weather Shanghai` |
+| Slash command | `/google open spotlight bar` |
+| Keyword | `g open spotlight bar`, `weather Shanghai` |
 | Manual | Run from the workflow editor |
 | Hotkey | *(scaffold — coming soon)* |
 

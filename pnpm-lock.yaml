@@ -41,10 +41,10 @@ importers:
 
   apps/desktop:
     dependencies:
-      '@pulse/core':
+      '@osb/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@pulse/shared-types':
+      '@osb/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types
       '@tauri-apps/api':
@@ -99,7 +99,7 @@ importers:
 
   packages/core:
     dependencies:
-      '@pulse/shared-types':
+      '@osb/shared-types':
         specifier: workspace:*
         version: link:../shared-types
     devDependencies:
@@ -109,7 +109,7 @@ importers:
 
   packages/plugin-sdk:
     dependencies:
-      '@pulse/shared-types':
+      '@osb/shared-types':
         specifier: workspace:*
         version: link:../shared-types
     devDependencies:
@@ -125,7 +125,7 @@ importers:
 
   plugins/calculator:
     dependencies:
-      '@pulse/plugin-sdk':
+      '@osb/plugin-sdk':
         specifier: workspace:*
         version: link:../../packages/plugin-sdk
     devDependencies:
@@ -135,7 +135,7 @@ importers:
 
   plugins/github:
     dependencies:
-      '@pulse/plugin-sdk':
+      '@osb/plugin-sdk':
         specifier: workspace:*
         version: link:../../packages/plugin-sdk
     devDependencies:
@@ -145,7 +145,7 @@ importers:
 
   plugins/shell:
     dependencies:
-      '@pulse/plugin-sdk':
+      '@osb/plugin-sdk':
         specifier: workspace:*
         version: link:../../packages/plugin-sdk
     devDependencies:

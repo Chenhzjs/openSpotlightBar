@@ -3,7 +3,7 @@ import type {
   WorkflowRecord,
   WorkflowSlashCommandTrigger,
   WorkflowTriggerType
-} from "@pulse/shared-types";
+} from "@osb/shared-types";
 
 export interface ParsedSlashCommandInvocation {
   command: string;

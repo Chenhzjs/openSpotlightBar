@@ -7,7 +7,7 @@ import {
   parseQuery,
   parseSlashCommandInvocation,
   type WorkflowTriggerRegistration
-} from "@pulse/core";
+} from "@osb/core";
 import type {
   ActionItem,
   AppRecord,
@@ -18,7 +18,7 @@ import type {
   SearchProvider,
   SearchScope,
   SnippetRecord
-} from "@pulse/shared-types";
+} from "@osb/shared-types";
 
 import type { PluginHost } from "../plugins/plugin-host";
 

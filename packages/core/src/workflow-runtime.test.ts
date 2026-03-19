@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { WorkflowHttpRequest, WorkflowRecord } from "@pulse/shared-types";
+import type { WorkflowHttpRequest, WorkflowRecord } from "@osb/shared-types";
 
 import {
   buildWorkflowRunContext,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { ResultItem, UsageStat } from "@pulse/shared-types";
+import type { ResultItem, UsageStat } from "@osb/shared-types";
 
 import { rankResult } from "./ranking";
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { WorkflowRecord } from "@pulse/shared-types";
+import type { WorkflowRecord } from "@osb/shared-types";
 
 import { getBuiltInWorkflows } from "./workflow-examples";
 import { validateWorkflow } from "./workflow-validation";

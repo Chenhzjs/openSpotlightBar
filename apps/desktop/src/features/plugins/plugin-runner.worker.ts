@@ -1,11 +1,11 @@
-import type { ActionResponse, PluginPermission } from "@pulse/shared-types";
+import type { ActionResponse, PluginPermission } from "@osb/shared-types";
 import type {
   LauncherPluginModule,
   PluginActionContext,
   PluginApi,
   PluginSearchContext,
   PluginSearchResult
-} from "@pulse/plugin-sdk";
+} from "@osb/plugin-sdk";
 
 type HostToWorkerMessage =
   | {

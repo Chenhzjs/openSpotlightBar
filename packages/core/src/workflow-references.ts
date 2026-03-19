@@ -2,7 +2,7 @@ import type {
   WorkflowNode,
   WorkflowRunContext,
   WorkflowValueType
-} from "@pulse/shared-types";
+} from "@osb/shared-types";
 
 export interface WorkflowReferenceValue {
   type?: WorkflowValueType;

@@ -1,4 +1,4 @@
-# Pulse Launcher Build and Release Notes
+# Open Spotlight Bar Build and Release Notes
 
 This document covers the local build and packaging flow for the current Phase 4 codebase. It does not cover signing, notarization, or auto-update publishing yet.
 
