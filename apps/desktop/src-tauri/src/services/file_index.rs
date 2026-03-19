@@ -15,7 +15,7 @@ use crate::{
     state::AppState,
 };
 
-pub const MAX_INDEXED_FILES: usize = 15_000;
+pub const MAX_INDEXED_FILES: usize = 100_000;
 
 pub fn spawn_rebuild(app_handle: AppHandle) {
     tauri::async_runtime::spawn(async move {
@@ -318,9 +318,7 @@ fn resolve_paths(paths: &[String], require_existing: bool) -> Vec<PathBuf> {
 fn default_roots() -> Vec<PathBuf> {
     let mut roots = Vec::new();
     if let Some(user_dirs) = UserDirs::new() {
-        roots.push(user_dirs.home_dir().join("Desktop"));
-        roots.push(user_dirs.home_dir().join("Documents"));
-        roots.push(user_dirs.home_dir().join("Downloads"));
+        roots.push(user_dirs.home_dir().to_path_buf());
     }
     roots
 }
@@ -336,9 +334,15 @@ fn expand_tilde(path: &str) -> PathBuf {
 
 fn should_visit(entry: &DirEntry, excluded_paths: &[PathBuf]) -> bool {
     let file_name = entry.file_name().to_string_lossy();
+    // Skip hidden dirs (except well-known ones), build artifacts, and OS noise
+    if file_name.starts_with('.') {
+        return false;
+    }
     if matches!(
         file_name.as_ref(),
-        ".git" | "node_modules" | "target" | ".DS_Store" | "Library" | ".cache"
+        "node_modules" | "target" | "Library" | "Caches"
+        | "vendor" | "dist" | "build" | "__pycache__"
+        | "Pods" | "DerivedData" | "xcuserdata"
     ) {
         return false;
     }

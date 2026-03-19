@@ -283,16 +283,14 @@ export function SettingsPanel({
   onRevokePluginPermission,
   onDismissPluginPermissionRequest,
   onTogglePluginEnabled,
-  onClose
+  onClose: _onClose
 }: SettingsPanelProps) {
   const sections = getSettingsSections(useChineseCopy);
   const copy = useChineseCopy
     ? {
         settingsTitle: "设置",
-        back: "返回",
         save: "保存",
         saving: "保存中...",
-        commandEntry: "命令入口",
         metricDedicated: "独立界面",
         overviewTitle: "总览",
         overviewDescription: "把整个启动器的关键计数和健康状态集中放在这里。",
@@ -325,7 +323,7 @@ export function SettingsPanel({
           maxResults: "最大结果数",
           defaultWebEngine: "默认网页搜索引擎",
           launcherHotkey: "启动器快捷键",
-          hotkeyTodo: "TODO：后续替换为平台感知的按键录制和冲突检测。"
+          hotkeyTodo: "快捷键录制和冲突检测将在后续版本中支持。"
         },
         search: {
           title: "搜索",
@@ -355,7 +353,7 @@ export function SettingsPanel({
           privateApps: "私密应用（每行一个）",
           privateAppsPlaceholder: "1Password\n钥匙串访问",
           clearHistory: "清空历史",
-          privacyTodo: "TODO：后续按平台把私密应用排除真正接进原生剪贴板监听。"
+          privacyTodo: "私密应用排除将在后续版本中接入原生剪贴板监听。"
         },
         indexing: {
           title: "目录索引",
@@ -396,7 +394,7 @@ export function SettingsPanel({
           showInSearch: "在启动器搜索中显示片段",
           enableHooks: "启用展开钩子",
           variablesNote:
-            "变量：{{date}}、{{time}}、{{clipboard}}、{{uuid}}。TODO：全局文本展开钩子仍是平台相关工作。",
+            "变量：{{date}}、{{time}}、{{clipboard}}、{{uuid}}。全局文本展开钩子将在后续版本中按平台实现。",
           newSnippet: "新建片段",
           name: "名称",
           trigger: "触发词",
@@ -426,7 +424,7 @@ export function SettingsPanel({
           noPermissions: "这个插件没有申请权限。",
           lastHostError: "最近一次宿主错误",
           sandboxTodo:
-            "TODO：把插件执行放进更严格的沙箱，并补上第三方插件签名安装流程。"
+            "插件在 Worker 中隔离运行，后续将加入更严格的沙箱和第三方插件签名安装流程。"
         },
         appearance: {
           title: "外观",
@@ -437,7 +435,7 @@ export function SettingsPanel({
           dark: "深色",
           denseMode: "紧凑模式",
           reduceMotion: "减少动效",
-          todo: "TODO：等桌面端视觉语言稳定后，再补更完整的主题系统。"
+          todo: "更完整的主题系统将在桌面端视觉语言稳定后推出。"
         },
         workflow: {
           title: "工作流",
@@ -447,7 +445,7 @@ export function SettingsPanel({
           today:
             "当前最接近的扩展点还是 snippets、plugin commands 和 action composition。专用工作流编辑器仍需要独立模型和执行层。",
           todo:
-            "TODO：补上工作流定义、排序、触发器和逐条权限控制，同时不要把 launcher shell 变成整页设置应用。"
+            "后续将补上工作流定义、排序、触发器和逐条权限控制。"
         },
         marketplace: {
           title: "插件市场",
@@ -456,10 +454,8 @@ export function SettingsPanel({
       }
     : {
         settingsTitle: "Settings",
-        back: "Back",
         save: "Save",
         saving: "Saving...",
-        commandEntry: "Command entry",
         metricDedicated: "Dedicated",
         overviewTitle: "Overview",
         overviewDescription: "Cross-launcher counts and health summarized in one place.",
@@ -486,7 +482,7 @@ export function SettingsPanel({
           description: "Launcher-wide preferences, language, and baseline search defaults.",
           hotkeyTitle: "Hotkey",
           hotkeyDescription:
-            "Scaffold for global hotkey customization. Native key capture remains a later TODO.",
+            "Global hotkey customization. Native key capture and conflict detection coming soon.",
           language: "Language",
           followSystem: "Follow system",
           english: "English",
@@ -495,7 +491,7 @@ export function SettingsPanel({
           defaultWebEngine: "Default web engine",
           launcherHotkey: "Launcher hotkey",
           hotkeyTodo:
-            "TODO: replace free-form input with a platform-aware recorder and conflict detection."
+            "Platform-aware key recorder and conflict detection coming in a future release."
         },
         search: {
           title: "Search",
@@ -527,7 +523,7 @@ export function SettingsPanel({
           privateAppsPlaceholder: "1Password\nKeychain Access",
           clearHistory: "Clear history",
           privacyTodo:
-            "TODO: enforce private-app exclusion from native clipboard watchers per platform."
+            "Private-app exclusion from native clipboard watchers coming in a future release."
         },
         indexing: {
           title: "Directory Indexing",
@@ -570,7 +566,7 @@ export function SettingsPanel({
           showInSearch: "Show snippets in launcher search",
           enableHooks: "Enable expansion hooks",
           variablesNote:
-            "Variables: {{date}}, {{time}}, {{clipboard}}, {{uuid}}. TODO: global text expansion hooks remain platform-specific work.",
+            "Variables: {{date}}, {{time}}, {{clipboard}}, {{uuid}}. Global text expansion hooks are platform-specific and coming soon.",
           newSnippet: "New snippet",
           name: "Name",
           trigger: "Trigger",
@@ -601,7 +597,7 @@ export function SettingsPanel({
           noPermissions: "This plugin does not request permissions.",
           lastHostError: "Last host error",
           sandboxTodo:
-            "TODO: move plugin execution into a stricter sandbox and add signed-install flows for third-party plugins."
+            "Plugins run in isolated Workers. Stricter sandboxing and signed-install flows for third-party plugins are planned."
         },
         appearance: {
           title: "Appearance",
@@ -614,7 +610,7 @@ export function SettingsPanel({
           denseMode: "Dense mode",
           reduceMotion: "Reduce motion",
           todo:
-            "TODO: add a broader theming system once the visual language stabilizes across desktop platforms."
+            "A broader theming system will land once the visual language stabilizes across desktop platforms."
         },
         workflow: {
           title: "Workflow",
@@ -624,7 +620,7 @@ export function SettingsPanel({
           today:
             "Today, the closest extension points are snippets, plugin commands, and action composition. A dedicated workflow editor still needs a separate model and execution layer.",
           todo:
-            "TODO: add workflow definitions, ordering, triggers, and per-workflow permissions without turning the launcher shell into a full-page settings app."
+            "Workflow definitions, ordering, triggers, and per-workflow permissions are planned for a future release."
         },
         marketplace: {
           title: "Marketplace",
@@ -721,31 +717,23 @@ export function SettingsPanel({
   return (
     <section className="shell-panel rounded-[28px] p-4 md:p-5">
       <div className="flex flex-col gap-4 border-b border-[color:var(--shell-border)] pb-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <div className="shell-kicker">{copy.settingsTitle}</div>
             <div className="mt-2 text-2xl font-semibold text-[color:var(--shell-text-primary)]">
               {sectionMeta.label}
             </div>
-            <div className="mt-1 text-sm text-[color:var(--shell-text-secondary)]">
-              {sectionMeta.description}
-            </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <button type="button" className={secondaryButtonClassName} onClick={onClose}>
-              {copy.back}
-            </button>
-            <button
-              type="button"
-              className={primaryButtonClassName}
-              onClick={() => {
-                void handleSaveSettings();
-              }}
-              disabled={savingSettings}
-            >
-              {savingSettings ? copy.saving : copy.save}
-            </button>
-          </div>
+          <button
+            type="button"
+            className={primaryButtonClassName}
+            onClick={() => {
+              void handleSaveSettings();
+            }}
+            disabled={savingSettings}
+          >
+            {savingSettings ? copy.saving : copy.save}
+          </button>
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -764,10 +752,6 @@ export function SettingsPanel({
               {section.label}
             </button>
           ))}
-        </div>
-
-        <div className="rounded-2xl border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-muted)] px-4 py-3 text-sm text-[color:var(--shell-text-secondary)]">
-          {copy.commandEntry}: <code>{sectionMeta.command}</code>
         </div>
       </div>
 

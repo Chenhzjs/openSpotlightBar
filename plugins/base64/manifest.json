@@ -1,0 +1,15 @@
+{
+  "id": "com.osb.base64",
+  "name": "Encode / Decode",
+  "version": "0.5.0",
+  "entry": "src/index.js",
+  "description": "Base64, URL encoding, HTML entities and other common encodings.",
+  "commands": [
+    { "name": "b64", "title": "Base64 encode/decode" },
+    { "name": "url", "title": "URL encode/decode" },
+    { "name": "html", "title": "HTML entity encode/decode" },
+    { "name": "hex", "title": "Hex encode/decode" },
+    { "name": "encode", "title": "Encode / Decode" }
+  ],
+  "permissions": []
+}

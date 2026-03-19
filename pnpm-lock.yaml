@@ -123,7 +123,47 @@ importers:
         specifier: ^5.6.3
         version: 5.9.3
 
+  plugins/base64:
+    dependencies:
+      '@osb/plugin-sdk':
+        specifier: workspace:*
+        version: link:../../packages/plugin-sdk
+    devDependencies:
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+
   plugins/calculator:
+    dependencies:
+      '@osb/plugin-sdk':
+        specifier: workspace:*
+        version: link:../../packages/plugin-sdk
+    devDependencies:
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+
+  plugins/color-picker:
+    dependencies:
+      '@osb/plugin-sdk':
+        specifier: workspace:*
+        version: link:../../packages/plugin-sdk
+    devDependencies:
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+
+  plugins/devdocs:
+    dependencies:
+      '@osb/plugin-sdk':
+        specifier: workspace:*
+        version: link:../../packages/plugin-sdk
+    devDependencies:
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+
+  plugins/emoji-search:
     dependencies:
       '@osb/plugin-sdk':
         specifier: workspace:*
@@ -143,7 +183,57 @@ importers:
         specifier: ^5.6.3
         version: 5.9.3
 
+  plugins/hash:
+    dependencies:
+      '@osb/plugin-sdk':
+        specifier: workspace:*
+        version: link:../../packages/plugin-sdk
+    devDependencies:
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+
+  plugins/ip-lookup:
+    dependencies:
+      '@osb/plugin-sdk':
+        specifier: workspace:*
+        version: link:../../packages/plugin-sdk
+    devDependencies:
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+
+  plugins/lorem:
+    dependencies:
+      '@osb/plugin-sdk':
+        specifier: workspace:*
+        version: link:../../packages/plugin-sdk
+    devDependencies:
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+
   plugins/shell:
+    dependencies:
+      '@osb/plugin-sdk':
+        specifier: workspace:*
+        version: link:../../packages/plugin-sdk
+    devDependencies:
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+
+  plugins/timestamp:
+    dependencies:
+      '@osb/plugin-sdk':
+        specifier: workspace:*
+        version: link:../../packages/plugin-sdk
+    devDependencies:
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+
+  plugins/uuid-gen:
     dependencies:
       '@osb/plugin-sdk':
         specifier: workspace:*

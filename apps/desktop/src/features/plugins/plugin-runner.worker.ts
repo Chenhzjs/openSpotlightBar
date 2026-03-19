@@ -265,7 +265,7 @@ function getLoadedPlugin(): LauncherPluginModule {
 }
 
 function disableAmbientCapabilities() {
-  // TODO: Move plugin execution into a stricter sandbox. Worker isolation is the Phase 3 baseline.
+  // Worker isolation: disable ambient network and timer access for untrusted plugin code.
   try {
     Object.defineProperty(globalThis, "fetch", {
       value: undefined,

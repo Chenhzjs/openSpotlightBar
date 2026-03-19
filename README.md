@@ -1,8 +1,6 @@
 <p align="center">
-  <img src="apps/desktop/src-tauri/icons/icon.png" width="128" height="128" alt="Open Spotlight Bar" />
+  <img src="docs/banner.svg" alt="Open Spotlight Bar" />
 </p>
-
-<h1 align="center">Open Spotlight Bar</h1>
 
 <p align="center">
   <strong>A keyboard-first, cross-platform desktop launcher.</strong><br/>
@@ -33,7 +31,7 @@ Open Spotlight Bar is an open-source alternative to Alfred, Raycast, and PowerTo
 | **Snippets** | Text expansion with `{{date}}`, `{{time}}`, `{{clipboard}}`, `{{uuid}}` variables |
 | **Workflows** | Visual node editor with slash-command & keyword triggers, HTTP requests, JSON transforms, reusable subflows |
 | **Plugins** | Worker-isolated JS plugins with permission-gated APIs (network, filesystem, clipboard, shell) |
-| **Plugin Marketplace** | Browse, search, install & uninstall community plugins from an online registry |
+| **Plugin Marketplace** | Browse, install & uninstall built-in plugins from Settings |
 | **Settings Hub** | Unified `/config` surface for every subsystem |
 | **Cross-platform** | macOS, Windows, Linux via Tauri |
 
@@ -175,11 +173,11 @@ Missing permissions surface as approval requests in Settings → Plugins.
 
 ### Plugin Marketplace
 
-The marketplace connects to a remote plugin registry (GitHub-hosted JSON index). From **Settings → Marketplace** you can:
+Built-in plugins ship with the repository under `plugins/`. From **Settings → Marketplace** you can:
 
-- Browse available community plugins sorted by stars or update date
+- Browse available built-in plugins
 - Search by name, description, or tags
-- One-click install via `git clone`
+- One-click install (local file copy)
 - Uninstall with directory cleanup
 
 ## Workflows

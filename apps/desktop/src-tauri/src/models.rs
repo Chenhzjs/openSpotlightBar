@@ -400,18 +400,10 @@ pub struct MarketplaceEntry {
     pub name: String,
     pub description: String,
     pub version: String,
-    pub repo_url: String,
     pub author: String,
     pub stars: u64,
     pub tags: Vec<String>,
     pub updated_at: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct MarketplaceRegistry {
-    pub version: u32,
-    pub plugins: Vec<MarketplaceEntry>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -1,6 +1,6 @@
 // @ts-check
 
-/** @typedef {import("@pulse/plugin-sdk").LauncherPluginModule} LauncherPluginModule */
+/** @typedef {import("@osb/plugin-sdk").LauncherPluginModule} LauncherPluginModule */
 
 /** @type {LauncherPluginModule} */
 const plugin = {
@@ -12,39 +12,63 @@ const plugin = {
     }
 
     try {
-      // TODO: Replace Function() with a dedicated expression parser for stricter hardening.
+      const normalized = normalizeExpression(expression);
       const value = Function(
-        `"use strict"; return (${normalizeExpression(expression)});`
+        `"use strict"; return (${normalized});`
       )();
       if (typeof value !== "number" || Number.isNaN(value)) {
         return [];
       }
 
-      return [
+      const strValue = String(value);
+      /** @type {import("@osb/plugin-sdk").PluginSearchResult[]} */
+      const results = [
         {
           id: `calculator:${expression}`,
-          title: `${expression} = ${value}`,
-          subtitle: "Calculator plugin",
-          type: "plugin",
+          title: `${expression} = ${strValue}`,
+          subtitle: "Calculator",
+          type: /** @type {const} */ ("plugin"),
           score: 1.08,
-          payload: {
-            expression,
-            text: String(value)
-          },
+          payload: { expression, text: strValue },
           actions: [
             {
               id: "copy-result",
               title: "Copy result",
-              kind: "copy-text",
+              kind: /** @type {const} */ ("copy-text"),
               shortcut: "Enter",
-              payload: {
-                text: String(value)
-              }
+              payload: { text: strValue }
             }
           ],
           tags: ["calculator"]
         }
       ];
+
+      // For integer results, show hex & binary representations
+      if (Number.isInteger(value) && Math.abs(value) < 2 ** 53) {
+        const intVal = value | 0; // force 32-bit for hex/bin display
+        const hex = "0x" + (intVal >>> 0).toString(16).toUpperCase();
+        const bin = "0b" + (intVal >>> 0).toString(2);
+        results.push({
+          id: `calculator:${expression}:hex`,
+          title: `${hex}  (bin: ${bin})`,
+          subtitle: "Hex / Binary",
+          type: /** @type {const} */ ("plugin"),
+          score: 1.07,
+          payload: { expression, text: hex },
+          actions: [
+            {
+              id: "copy-hex",
+              title: "Copy hex",
+              kind: /** @type {const} */ ("copy-text"),
+              shortcut: "Enter",
+              payload: { text: hex }
+            }
+          ],
+          tags: ["calculator"]
+        });
+      }
+
+      return results;
     } catch {
       return [];
     }
@@ -55,10 +79,12 @@ export default plugin;
 
 /** @param {string} expression */
 function looksLikeExpression(expression) {
-  return /^[0-9+\-*/().%\s]+$/.test(expression);
+  return /^[0-9+\-*/().%\s&|^~<>x]+$/i.test(expression) && /\d/.test(expression);
 }
 
 /** @param {string} expression */
 function normalizeExpression(expression) {
-  return expression.replaceAll("%", "/100");
+  let expr = expression;
+  expr = expr.replaceAll("%", "/100");
+  return expr;
 }

@@ -40,8 +40,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
               The launcher hit a fatal UI error.
             </h1>
             <p className="mt-3 text-sm text-slate-200">
-              Check the developer console for diagnostics, then reload the window. TODO:
-              add crash recovery flows for persisted UI state.
+              Check the developer console for diagnostics, then reload the window.
             </p>
           </div>
         </main>

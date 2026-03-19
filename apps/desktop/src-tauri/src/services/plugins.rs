@@ -41,7 +41,7 @@ pub fn discover_plugins(app: &AppHandle) -> AppResult<Vec<DiscoveredPlugin>> {
     Ok(discovered)
 }
 
-fn candidate_plugin_roots(app: &AppHandle) -> AppResult<Vec<PathBuf>> {
+pub fn candidate_plugin_roots(app: &AppHandle) -> AppResult<Vec<PathBuf>> {
     let mut roots = Vec::new();
     let mut seen = HashSet::new();
 
@@ -55,9 +55,32 @@ fn candidate_plugin_roots(app: &AppHandle) -> AppResult<Vec<PathBuf>> {
 
     if let Ok(current_dir) = std::env::current_dir() {
         push_unique_path(&mut roots, &mut seen, current_dir.join("plugins"));
+        // Walk up from CWD to find the repo-root plugins/ directory (handles tauri dev
+        // where CWD is apps/desktop/src-tauri/ instead of the workspace root).
+        let mut ancestor = current_dir.as_path();
+        while let Some(parent) = ancestor.parent() {
+            let candidate = parent.join("plugins");
+            if candidate.is_dir() {
+                push_unique_path(&mut roots, &mut seen, candidate);
+                break;
+            }
+            ancestor = parent;
+        }
     }
 
-    // TODO: Add packaged resource discovery so example plugins can ship with production builds.
+    // Also check relative to the running executable for production builds.
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(exe_dir) = exe.parent() {
+            for ancestor in exe_dir.ancestors().take(5) {
+                let candidate = ancestor.join("plugins");
+                if candidate.is_dir() {
+                    push_unique_path(&mut roots, &mut seen, candidate);
+                    break;
+                }
+            }
+        }
+    }
+
     Ok(roots)
 }
 

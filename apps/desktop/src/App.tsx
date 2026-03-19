@@ -649,6 +649,7 @@ export default function App() {
 
     try {
       if (action.kind === "show-settings") {
+        setQuery("");
         openConfigHub("overview");
         return;
       }
@@ -1281,8 +1282,12 @@ export default function App() {
             }}
             onKeyDown={onKeyDown}
             placeholder={
-              useChineseCopy ? "搜索内容或输入 /config" : "Search or type /config"
+              useChineseCopy ? "搜索内容或输入 config" : "Search or type config"
             }
+            autoCapitalize="off"
+            autoCorrect="off"
+            autoComplete="off"
+            spellCheck={false}
             className="w-full border-0 bg-transparent text-[1.6rem] font-medium tracking-[-0.03em] text-[color:var(--shell-text-primary)] outline-none placeholder:text-[color:var(--shell-text-muted)]"
           />
         </div>

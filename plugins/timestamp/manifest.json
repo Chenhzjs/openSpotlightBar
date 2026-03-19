@@ -1,0 +1,12 @@
+{
+  "id": "com.osb.timestamp",
+  "name": "Timestamp Converter",
+  "version": "0.2.0",
+  "entry": "src/index.js",
+  "description": "Convert between Unix timestamps, ISO 8601, and human-readable date formats.",
+  "commands": [
+    { "name": "ts", "title": "Timestamp convert" },
+    { "name": "timestamp", "title": "Timestamp convert" }
+  ],
+  "permissions": []
+}

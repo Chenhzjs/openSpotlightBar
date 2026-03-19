@@ -1,6 +1,6 @@
 // @ts-check
 
-/** @typedef {import("@pulse/plugin-sdk").LauncherPluginModule} LauncherPluginModule */
+/** @typedef {import("@osb/plugin-sdk").LauncherPluginModule} LauncherPluginModule */
 
 /** @type {LauncherPluginModule} */
 const plugin = {

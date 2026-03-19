@@ -366,6 +366,13 @@ export async function searchFiles(query: string): Promise<FileRecord[]> {
   return invokeCommand<FileRecord[]>("search_files", { query });
 }
 
+export async function liveSearchFiles(query: string): Promise<FileRecord[]> {
+  if (!isTauriEnvironment()) {
+    return [];
+  }
+  return invokeCommand<FileRecord[]>("live_search_files", { query });
+}
+
 export async function listClipboardItems(): Promise<ClipboardItem[]> {
   if (!isTauriEnvironment()) {
     return [...mockClipboardItems];
@@ -657,37 +664,84 @@ export async function openDevtools(): Promise<void> {
 
 const MOCK_MARKETPLACE_ENTRIES: MarketplaceEntry[] = [
   {
+    id: "com.osb.base64",
+    name: "Encode / Decode",
+    description: "Base64, URL encoding, HTML entities and other common encodings.",
+    version: "0.4.0",
+    author: "OSB",
+    stars: 0,
+    tags: [],
+    updatedAt: ""
+  },
+  {
+    id: "com.osb.calculator",
+    name: "Calculator",
+    description: "Evaluate arithmetic expressions inline.",
+    version: "0.1.0",
+    author: "OSB",
+    stars: 0,
+    tags: [],
+    updatedAt: ""
+  },
+  {
     id: "com.osb.color-picker",
     name: "Color Picker",
-    description: "Pick colors from anywhere on screen and convert between formats.",
+    description: "Pick colors from anywhere on screen, convert between HEX / RGB / HSL formats.",
     version: "1.0.0",
-    repoUrl: "https://github.com/openSpotlightBar/plugin-color-picker",
-    author: "OSB Team",
-    stars: 1240,
-    tags: ["utility", "design"],
-    updatedAt: "2026-02-15"
+    author: "OSB",
+    stars: 0,
+    tags: [],
+    updatedAt: ""
   },
   {
-    id: "com.osb.emoji-search",
-    name: "Emoji Search",
-    description: "Search and copy emojis by name or keyword.",
-    version: "0.3.0",
-    repoUrl: "https://github.com/openSpotlightBar/plugin-emoji-search",
-    author: "community",
-    stars: 890,
-    tags: ["utility", "search"],
-    updatedAt: "2026-01-20"
+    id: "com.osb.github",
+    name: "GitHub Search",
+    description: "Open GitHub repository and code searches from the launcher.",
+    version: "0.1.0",
+    author: "OSB",
+    stars: 0,
+    tags: ["network"],
+    updatedAt: ""
   },
   {
-    id: "com.osb.devdocs",
-    name: "DevDocs Lookup",
-    description: "Search DevDocs.io documentation directly from the launcher.",
-    version: "0.5.0",
-    repoUrl: "https://github.com/openSpotlightBar/plugin-devdocs",
-    author: "community",
-    stars: 670,
-    tags: ["dev-tools", "search"],
-    updatedAt: "2026-03-01"
+    id: "com.osb.hash",
+    name: "Hash Generator",
+    description: "Compute SHA-256 hashes for text.",
+    version: "0.2.0",
+    author: "OSB",
+    stars: 0,
+    tags: [],
+    updatedAt: ""
+  },
+  {
+    id: "com.osb.ip-lookup",
+    name: "IP Lookup",
+    description: "Show your public IP, geolocation, and ISP info. Also look up any IP or domain.",
+    version: "0.3.1",
+    author: "OSB",
+    stars: 0,
+    tags: ["network"],
+    updatedAt: ""
+  },
+  {
+    id: "com.osb.shell",
+    name: "Shell Command",
+    description: "Run an ad-hoc shell command from the launcher (prefers iTerm2).",
+    version: "0.1.0",
+    author: "OSB",
+    stars: 0,
+    tags: ["shell.exec"],
+    updatedAt: ""
+  },
+  {
+    id: "com.osb.timestamp",
+    name: "Timestamp Converter",
+    description: "Convert between Unix timestamps, ISO 8601, and human-readable date formats.",
+    version: "0.2.0",
+    author: "OSB",
+    stars: 0,
+    tags: [],
+    updatedAt: ""
   }
 ];
 
@@ -700,14 +754,13 @@ export async function fetchPluginRegistry(): Promise<MarketplaceEntry[]> {
 }
 
 export async function installMarketplacePlugin(
-  repoUrl: string,
   pluginId: string
 ): Promise<void> {
   if (!isTauriEnvironment()) {
     return;
   }
 
-  await invokeCommand("install_marketplace_plugin", { repoUrl, pluginId });
+  await invokeCommand("install_marketplace_plugin", { pluginId });
 }
 
 export async function uninstallMarketplacePlugin(pluginId: string): Promise<void> {
@@ -760,7 +813,7 @@ async function handleBrowserAction(
       }
       return {
         ok: true,
-        message: "Copied to clipboard. TODO: add desktop paste simulation hooks."
+        message: "Copied to clipboard."
       };
     }
     case "pin-clipboard-item":
@@ -797,7 +850,7 @@ async function handleBrowserAction(
       insertMockClipboardText(expanded);
       return {
         ok: true,
-        message: `Expanded snippet ${snippet.trigger}. TODO: add OS-level insertion hooks.`
+        message: `Expanded snippet ${snippet.trigger}. Copied to clipboard.`
       };
     }
     case "launch-app":

@@ -683,7 +683,7 @@ export class PluginHost {
           "notifications",
           "Notification access requested by plugin."
         );
-        // TODO: Route plugin notifications through a native notification channel.
+        // Notification permission granted but native channel not yet wired.
         return null;
       }
     }

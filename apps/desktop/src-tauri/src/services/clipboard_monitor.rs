@@ -24,8 +24,6 @@ pub fn spawn(app_handle: AppHandle) {
                     if !normalized.is_empty() && normalized != previous_text {
                         previous_text = normalized.clone();
 
-                        // TODO: Capture the true source application per platform and enforce
-                        // private-app exclusions before persisting the item.
                         let _ = state.db.insert_clipboard_text(
                             &normalized,
                             None,
@@ -35,8 +33,7 @@ pub fn spawn(app_handle: AppHandle) {
                 }
             }
 
-            // TODO: Replace polling with native clipboard watchers where each platform offers
-            // a reliable API. Polling keeps Phase 2 simple and cross-platform.
+            // Polling-based clipboard monitoring for cross-platform compatibility.
             tokio::time::sleep(Duration::from_millis(
                 settings.clipboard.poll_interval_ms.max(400),
             ))

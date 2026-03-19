@@ -1,4 +1,3 @@
-import clsx from "clsx";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { MarketplaceEntry } from "@osb/shared-types";
@@ -15,7 +14,16 @@ interface MarketplacePanelProps {
   onPluginsChanged(): void;
 }
 
-type SortBy = "stars" | "updated";
+const ZH_DESCRIPTIONS: Record<string, string> = {
+  "com.osb.calculator": "内联数学计算，输入表达式即时得到结果。",
+  "com.osb.base64": "常见编码解码：Base64、URL 编码、HTML 实体等。",
+  "com.osb.color-picker": "HEX / RGB / HSL 颜色格式互转，一键复制。",
+  "com.osb.github": "从启动器搜索 GitHub 仓库并打开。",
+  "com.osb.hash": "计算文本的 SHA-256 哈希值。",
+  "com.osb.ip-lookup": "查询公网 IP、地理位置和 ISP 信息。",
+  "com.osb.shell": "从启动器运行 Shell 命令（优先使用 iTerm2）。",
+  "com.osb.timestamp": "Unix 时间戳与日期格式互转。"
+};
 
 export function MarketplacePanel({
   installedPluginIds,
@@ -24,7 +32,6 @@ export function MarketplacePanel({
 }: MarketplacePanelProps) {
   const [entries, setEntries] = useState<MarketplaceEntry[]>([]);
   const [search, setSearch] = useState("");
-  const [sortBy, setSortBy] = useState<SortBy>("stars");
   const [installedIds, setInstalledIds] = useState<Set<string>>(
     () => new Set(installedPluginIds)
   );
@@ -66,21 +73,18 @@ export function MarketplacePanel({
         (e) =>
           e.name.toLowerCase().includes(q) ||
           e.description.toLowerCase().includes(q) ||
+          (ZH_DESCRIPTIONS[e.id] ?? "").includes(q) ||
           e.tags.some((t) => t.toLowerCase().includes(q))
       );
     }
-    return [...list].sort((a, b) =>
-      sortBy === "stars"
-        ? b.stars - a.stars
-        : b.updatedAt.localeCompare(a.updatedAt)
-    );
-  }, [entries, search, sortBy]);
+    return [...list].sort((a, b) => a.name.localeCompare(b.name));
+  }, [entries, search]);
 
   const handleInstall = useCallback(
     async (entry: MarketplaceEntry) => {
       setInstalling(entry.id);
       try {
-        await installMarketplacePlugin(entry.repoUrl, entry.id);
+        await installMarketplacePlugin(entry.id);
         setInstalledIds((prev) => new Set([...prev, entry.id]));
         onPluginsChanged();
       } catch (err) {
@@ -111,56 +115,28 @@ export function MarketplacePanel({
     },
     [onPluginsChanged]
   );
-  function formatStars(n: number): string {
-    if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
-    return String(n);
-  }
 
   return (
     <section className="rounded-[24px] border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-muted)] p-4 md:p-5">
       <div className="mb-4">
         <div className="text-xl font-semibold text-[color:var(--shell-text-primary)]">
-          {zh ? "插件市场" : "Plugin Marketplace"}
+          {zh ? "内置插件" : "Built-in Plugins"}
         </div>
         <div className="mt-1 text-sm text-[color:var(--shell-text-secondary)]">
           {zh
-            ? "浏览和安装社区插件"
-            : "Browse and install community plugins"}
+            ? "浏览和安装内置插件"
+            : "Browse and install built-in plugins"}
         </div>
       </div>
 
-      <div className="mb-4 flex items-center gap-2">
+      <div className="mb-4">
         <input
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder={zh ? "搜索插件..." : "Search plugins..."}
-          className="flex-1 rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-[color:var(--shell-text-primary)] placeholder:text-[color:var(--shell-text-tertiary)] outline-none focus:border-white/20"
+          className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-[color:var(--shell-text-primary)] placeholder:text-[color:var(--shell-text-tertiary)] outline-none focus:border-white/20"
         />
-        <button
-          type="button"
-          onClick={() => setSortBy("stars")}
-          className={clsx(
-            "rounded-lg px-3 py-2 text-xs font-medium transition-colors",
-            sortBy === "stars"
-              ? "bg-white/15 text-[color:var(--shell-text-primary)]"
-              : "text-[color:var(--shell-text-tertiary)] hover:text-[color:var(--shell-text-secondary)]"
-          )}
-        >
-          Stars
-        </button>
-        <button
-          type="button"
-          onClick={() => setSortBy("updated")}
-          className={clsx(
-            "rounded-lg px-3 py-2 text-xs font-medium transition-colors",
-            sortBy === "updated"
-              ? "bg-white/15 text-[color:var(--shell-text-primary)]"
-              : "text-[color:var(--shell-text-tertiary)] hover:text-[color:var(--shell-text-secondary)]"
-          )}
-        >
-          {zh ? "最近更新" : "Updated"}
-        </button>
       </div>
       {error && (
         <div className="mb-3 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
@@ -170,7 +146,7 @@ export function MarketplacePanel({
 
       {loading ? (
         <div className="py-12 text-center text-sm text-[color:var(--shell-text-tertiary)]">
-          {zh ? "加载中..." : "Loading registry..."}
+          {zh ? "加载中..." : "Loading..."}
         </div>
       ) : filtered.length === 0 ? (
         <div className="py-12 text-center text-sm text-[color:var(--shell-text-tertiary)]">
@@ -182,6 +158,9 @@ export function MarketplacePanel({
             const isInstalled = installedIds.has(entry.id);
             const isInstallingThis = installing === entry.id;
             const isUninstallingThis = uninstalling === entry.id;
+            const desc = zh
+              ? (ZH_DESCRIPTIONS[entry.id] ?? entry.description)
+              : entry.description;
 
             return (
               <div
@@ -190,20 +169,13 @@ export function MarketplacePanel({
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-[color:var(--shell-text-primary)]">
-                        {entry.name}
-                      </span>
-                      <span className="text-xs text-yellow-400/80">
-                        ★ {formatStars(entry.stars)}
-                      </span>
+                    <div className="text-sm font-semibold text-[color:var(--shell-text-primary)]">
+                      {entry.name}
                     </div>
                     <div className="mt-1 text-xs text-[color:var(--shell-text-secondary)] line-clamp-2">
-                      {entry.description}
+                      {desc}
                     </div>
                     <div className="mt-2 flex items-center gap-2 text-[10px] text-[color:var(--shell-text-tertiary)]">
-                      <span>{entry.author}</span>
-                      <span>·</span>
                       <span>v{entry.version}</span>
                       {entry.tags.map((tag) => (
                         <span

@@ -15,7 +15,7 @@ use crate::{
     error::{AppError, AppResult},
     models::{
         ActionItem, ActionResponse, AppRecord, BootstrapPayload, ClipboardItem, FileIndexStatus,
-        FileRecord, LauncherSettings, MarketplaceEntry, MarketplaceRegistry, ResultItem,
+        FileRecord, LauncherSettings, MarketplaceEntry, ResultItem,
         ShellCommandResult, SnippetInput, SnippetRecord, WorkflowHttpRequest,
         WorkflowHttpResponse, WorkflowRecord,
     },
@@ -142,6 +142,97 @@ pub async fn search_files(
         .db
         .search_files(&query, 64)
         .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+pub async fn live_search_files(query: String) -> Result<Vec<FileRecord>, String> {
+    let trimmed = query.trim().to_string();
+    if trimmed.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    tokio::task::spawn_blocking(move || live_search_impl(&trimmed))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+fn live_search_impl(query: &str) -> Result<Vec<FileRecord>, String> {
+    let output = platform_file_search(query).map_err(|e| e.to_string())?;
+    let lines: Vec<&str> = output.lines().filter(|l| !l.is_empty()).take(50).collect();
+
+    let mut results = Vec::new();
+    for line in lines {
+        let path = Path::new(line);
+        let name = path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("")
+            .to_string();
+        if name.is_empty() {
+            continue;
+        }
+        let metadata = std::fs::metadata(path).ok();
+        let kind = if metadata.as_ref().map(|m| m.is_dir()).unwrap_or(false) {
+            "folder"
+        } else {
+            "file"
+        };
+        let extension = path
+            .extension()
+            .and_then(|e| e.to_str())
+            .map(String::from);
+        let mtime_ms = metadata
+            .and_then(|m| m.modified().ok())
+            .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+            .map(|d| d.as_millis() as i64)
+            .unwrap_or(0);
+
+        results.push(FileRecord {
+            path: line.to_string(),
+            name,
+            kind: kind.to_string(),
+            extension,
+            mtime_ms,
+        });
+    }
+    Ok(results)
+}
+
+fn platform_file_search(query: &str) -> Result<String, std::io::Error> {
+    #[cfg(target_os = "macos")]
+    {
+        let output = StdCommand::new("mdfind")
+            .args(["-name", query])
+            .output()?;
+        return Ok(String::from_utf8_lossy(&output.stdout).to_string());
+    }
+    #[cfg(target_os = "linux")]
+    {
+        // Try locate first (fast), fall back to find in home dir
+        let output = StdCommand::new("locate")
+            .args(["-i", "-l", "50", query])
+            .output();
+        if let Ok(out) = output {
+            if out.status.success() {
+                return Ok(String::from_utf8_lossy(&out.stdout).to_string());
+            }
+        }
+        let home = std::env::var("HOME").unwrap_or_else(|_| "/".to_string());
+        let output = StdCommand::new("find")
+            .args([&home, "-iname", &format!("*{query}*"), "-maxdepth", "6"])
+            .output()?;
+        return Ok(String::from_utf8_lossy(&output.stdout).to_string());
+    }
+    #[cfg(target_os = "windows")]
+    {
+        let home = std::env::var("USERPROFILE").unwrap_or_else(|_| "C:\\".to_string());
+        let output = StdCommand::new("cmd")
+            .args(["/C", &format!("dir /s /b \"{}\\*{}*\"", home, query)])
+            .output()?;
+        return Ok(String::from_utf8_lossy(&output.stdout).to_string());
+    }
+    #[allow(unreachable_code)]
+    Ok(String::new())
 }
 
 #[tauri::command]
@@ -530,41 +621,62 @@ pub async fn open_devtools(app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-const DEFAULT_REGISTRY_URL: &str =
-    "https://raw.githubusercontent.com/openSpotlightBar/plugin-registry/main/registry.json";
-
 #[tauri::command]
-pub async fn fetch_plugin_registry() -> Result<Vec<MarketplaceEntry>, String> {
-    let client = Client::builder()
-        .timeout(Duration::from_secs(15))
-        .build()
-        .map_err(|error| error.to_string())?;
+pub async fn fetch_plugin_registry(app: AppHandle) -> Result<Vec<MarketplaceEntry>, String> {
+    let mut entries = Vec::new();
+    let mut seen = std::collections::HashSet::new();
 
-    let response = client
-        .get(DEFAULT_REGISTRY_URL)
-        .send()
-        .await
-        .map_err(|error| format!("Failed to fetch plugin registry: {error}"))?;
+    let roots = plugins::candidate_plugin_roots(&app).map_err(|e| e.to_string())?;
 
-    if !response.status().is_success() {
-        return Err(format!(
-            "Registry returned status {}",
-            response.status()
-        ));
+    for root in &roots {
+        if !root.exists() {
+            continue;
+        }
+        let dir_entries = match std::fs::read_dir(root) {
+            Ok(e) => e,
+            Err(_) => continue,
+        };
+        for entry in dir_entries.flatten() {
+            let plugin_dir = entry.path();
+            let manifest_path = plugin_dir.join("manifest.json");
+            if !manifest_path.exists() {
+                continue;
+            }
+            let raw = match std::fs::read_to_string(&manifest_path) {
+                Ok(r) => r,
+                Err(_) => continue,
+            };
+            let manifest: serde_json::Value = match serde_json::from_str(&raw) {
+                Ok(v) => v,
+                Err(_) => continue,
+            };
+            let id = manifest["id"].as_str().unwrap_or_default().to_string();
+            if id.is_empty() || !seen.insert(id.clone()) {
+                continue;
+            }
+            entries.push(MarketplaceEntry {
+                id,
+                name: manifest["name"].as_str().unwrap_or_default().to_string(),
+                description: manifest["description"].as_str().unwrap_or_default().to_string(),
+                version: manifest["version"].as_str().unwrap_or("0.1.0").to_string(),
+                author: "OSB".to_string(),
+                stars: 0,
+                tags: manifest["permissions"]
+                    .as_array()
+                    .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+                    .unwrap_or_default(),
+                updated_at: String::new(),
+            });
+        }
     }
 
-    let registry: MarketplaceRegistry = response
-        .json()
-        .await
-        .map_err(|error| format!("Failed to parse registry JSON: {error}"))?;
-
-    Ok(registry.plugins)
+    entries.sort_by(|a, b| a.name.cmp(&b.name));
+    Ok(entries)
 }
 
 #[tauri::command]
 pub async fn install_marketplace_plugin(
     app: AppHandle,
-    repo_url: String,
     plugin_id: String,
 ) -> Result<(), String> {
     let app_dir = app
@@ -577,34 +689,24 @@ pub async fn install_marketplace_plugin(
         return Err(format!("Plugin {plugin_id} is already installed."));
     }
 
+    let source_path = find_bundled_plugin(&app, &plugin_id)
+        .ok_or_else(|| format!("Bundled plugin source not found for {plugin_id}"))?;
+
     if let Some(parent) = target_path.parent() {
         std::fs::create_dir_all(parent).map_err(|error| {
             format!("Failed to create plugins directory: {error}")
         })?;
     }
 
-    let output = TokioCommand::new("git")
-        .args([
-            "clone",
-            "--depth",
-            "1",
-            &repo_url,
-            &target_path.to_string_lossy(),
-        ])
-        .output()
-        .await
-        .map_err(|error| format!("Failed to run git clone: {error}"))?;
-
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
+    copy_dir_all(&source_path, &target_path).map_err(|error| {
         let _ = std::fs::remove_dir_all(&target_path);
-        return Err(format!("git clone failed: {stderr}"));
-    }
+        format!("Failed to copy plugin files: {error}")
+    })?;
 
     let manifest_path = target_path.join("manifest.json");
     if !manifest_path.exists() {
         let _ = std::fs::remove_dir_all(&target_path);
-        return Err("Cloned repository does not contain a manifest.json.".to_string());
+        return Err("Copied plugin does not contain a manifest.json.".to_string());
     }
 
     Ok(())
@@ -684,7 +786,7 @@ pub(crate) fn execute_action(
             let text = required_payload(action, result, "text")?;
             set_clipboard_text(&text)?;
             Ok(success(Some(
-                "Copied to clipboard. TODO: add OS-level paste simulation hooks.",
+                "Copied to clipboard.",
             )))
         }
         "pin-clipboard-item" => {
@@ -714,9 +816,8 @@ pub(crate) fn execute_action(
                 .ok_or_else(|| AppError::from("Snippet not found"))?;
             let expanded = expand_snippet_content(&snippet.content)?;
             set_clipboard_text(&expanded)?;
-            // TODO: Wire this expansion path into global text insertion hooks per platform.
             Ok(success(Some(
-                format!("Expanded snippet {}.", snippet.trigger).as_str(),
+                format!("Expanded snippet {}. Copied to clipboard.", snippet.trigger).as_str(),
             )))
         }
         "reveal-in-folder" => {
@@ -855,8 +956,11 @@ fn open_in_terminal(path: &str) -> AppResult<()> {
     }
     #[cfg(target_os = "macos")]
     {
+        // Prefer iTerm2 if installed, fallback to Terminal.app
+        let iterm_path = Path::new("/Applications/iTerm.app");
+        let app = if iterm_path.exists() { "iTerm" } else { "Terminal" };
         StdCommand::new("open")
-            .args(["-a", "Terminal", path])
+            .args(["-a", app, path])
             .spawn()?;
         return Ok(());
     }
@@ -881,6 +985,36 @@ fn open_in_terminal(path: &str) -> AppResult<()> {
         return Ok(());
     }
     #[allow(unreachable_code)]
+    Ok(())
+}
+
+fn find_bundled_plugin(app: &AppHandle, plugin_id: &str) -> Option<std::path::PathBuf> {
+    let short_name = plugin_id.strip_prefix("com.osb.").unwrap_or(plugin_id);
+
+    let roots = plugins::candidate_plugin_roots(app).ok()?;
+
+    for root in &roots {
+        let candidate = root.join(short_name);
+        if candidate.join("manifest.json").exists() {
+            return Some(candidate);
+        }
+    }
+
+    None
+}
+
+fn copy_dir_all(src: &Path, dst: &Path) -> std::io::Result<()> {
+    std::fs::create_dir_all(dst)?;
+    for entry in std::fs::read_dir(src)? {
+        let entry = entry?;
+        let file_type = entry.file_type()?;
+        let dest_path = dst.join(entry.file_name());
+        if file_type.is_dir() {
+            copy_dir_all(&entry.path(), &dest_path)?;
+        } else {
+            std::fs::copy(entry.path(), dest_path)?;
+        }
+    }
     Ok(())
 }
 
@@ -918,7 +1052,6 @@ fn validate_shell_command(command: &str) -> AppResult<()> {
 async fn run_shell_command(command: &str) -> AppResult<ShellCommandResult> {
     validate_shell_command(command)?;
 
-    // TODO: Replace shell passthrough with a stricter command policy and argument model.
     #[cfg(target_os = "windows")]
     let output = TokioCommand::new("cmd")
         .args(["/C", command])

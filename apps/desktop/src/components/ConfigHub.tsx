@@ -30,7 +30,7 @@ export function ConfigHub({
   useChineseCopy,
   onSelect,
   onOpen,
-  onClose
+  onClose: _onClose
 }: ConfigHubProps) {
   const meta = getConfigSectionMeta(selectedSection, useChineseCopy);
   const showOverviewMetrics = selectedSection === "overview";
@@ -45,12 +45,6 @@ export function ConfigHub({
   const copy = useChineseCopy
     ? {
         configuration: "配置",
-        sectionIntro: "分区介绍",
-        sharedCountsNote:
-          "共享状态卡片已移到 /config overview，这样每个分区可以专注自己的控制项。",
-        openPrefix: "打开",
-        back: "返回",
-        navigationHint: "上下切换，回车进入",
         metrics: {
           indexedFiles: "已索引文件",
           clipboard: "剪贴板",
@@ -71,12 +65,6 @@ export function ConfigHub({
       }
     : {
         configuration: "Configuration",
-        sectionIntro: "Section Intro",
-        sharedCountsNote:
-          "Shared launcher counts now live under /config overview so each section can focus on its own controls.",
-        openPrefix: "Open",
-        back: "Back",
-        navigationHint: "Up/Down to move, Enter to open",
         metrics: {
           indexedFiles: "Indexed files",
           clipboard: "Clipboard",
@@ -131,18 +119,9 @@ export function ConfigHub({
         </div>
 
         <div className="rounded-[24px] border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-muted)] p-5">
-          <div className="shell-kicker">{copy.sectionIntro}</div>
-          <h2 className="mt-2 text-[1.9rem] font-semibold tracking-[-0.03em] text-[color:var(--shell-text-primary)]">
+          <h2 className="text-[1.9rem] font-semibold tracking-[-0.03em] text-[color:var(--shell-text-primary)]">
             {meta.label}
           </h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-[color:var(--shell-text-secondary)]">
-            {meta.intro}
-          </p>
-
-          <div className="mt-5 rounded-[20px] border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-soft)] px-4 py-3 text-sm text-[color:var(--shell-text-secondary)]">
-            {meta.summary}
-          </div>
-
           {showOverviewMetrics ? (
             <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               <MetricCard
@@ -177,27 +156,10 @@ export function ConfigHub({
               />
             </div>
           ) : (
-            <div className="mt-5 rounded-[20px] border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-soft)] px-4 py-3 text-sm text-[color:var(--shell-text-secondary)]">
-              {copy.sharedCountsNote}
-            </div>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-[color:var(--shell-text-secondary)]">
+              {meta.intro}
+            </p>
           )}
-
-          <div className="mt-5 flex flex-wrap gap-2">
-            <button
-              type="button"
-              className="button-primary"
-              onClick={() => onOpen(selectedSection)}
-            >
-              {copy.openPrefix} {meta.label}
-            </button>
-            <button type="button" className="button-secondary" onClick={onClose}>
-              {copy.back}
-            </button>
-          </div>
-
-          <div className="mt-5 text-xs uppercase tracking-[0.24em] text-[color:var(--shell-text-tertiary)]">
-            {copy.navigationHint}
-          </div>
         </div>
       </div>
     </section>

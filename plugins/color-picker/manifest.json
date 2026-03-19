@@ -1,0 +1,12 @@
+{
+  "id": "com.osb.color-picker",
+  "name": "Color Picker",
+  "version": "1.0.0",
+  "entry": "src/index.js",
+  "description": "Pick colors from anywhere on screen, convert between HEX / RGB / HSL formats.",
+  "commands": [
+    { "name": "color", "title": "Color convert" },
+    { "name": "#", "title": "HEX color" }
+  ],
+  "permissions": []
+}

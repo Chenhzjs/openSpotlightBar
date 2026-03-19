@@ -501,16 +501,10 @@ export interface MarketplaceEntry {
   name: string;
   description: string;
   version: string;
-  repoUrl: string;
   author: string;
   stars: number;
   tags: string[];
   updatedAt: string;
-}
-
-export interface MarketplaceRegistry {
-  version: number;
-  plugins: MarketplaceEntry[];
 }
 
 export interface WorkflowRunResult {

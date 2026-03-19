@@ -22,7 +22,7 @@ import type {
 
 import type { PluginHost } from "../plugins/plugin-host";
 
-import { searchApps, searchFiles } from "../../lib/backend";
+import { searchApps, searchFiles, liveSearchFiles } from "../../lib/backend";
 
 const SEARCHABLE_SCOPES: SearchScope[] = [
   "all",
@@ -41,6 +41,7 @@ export function createProviders(pluginHost: PluginHost): SearchProvider[] {
     createSystemProvider(),
     createAppProvider(),
     createFileProvider(),
+    createLiveFileProvider(),
     createClipboardProvider(),
     createSnippetProvider(),
     createPluginProvider(pluginHost),
@@ -61,7 +62,12 @@ function createWorkflowProvider(): SearchProvider {
 
       const trimmed = query.trim();
       const registry = createWorkflowTriggerRegistry(context.workflows);
+      // Also try matching without "/" prefix so users can type "google foo" instead of "/google foo"
+      const effectiveQuery = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
       const invocationMatch = matchWorkflowTriggerInvocation(trimmed, registry);
+      const slashlessMatch = !trimmed.startsWith("/")
+        ? matchWorkflowTriggerInvocation(effectiveQuery, registry)
+        : null;
       const candidates = new Map<
         string,
         {
@@ -97,6 +103,35 @@ function createWorkflowProvider(): SearchProvider {
           }
         }
       } else {
+        // Match slash commands without the "/" prefix (e.g. "google foo" → "/google foo")
+        if (slashlessMatch) {
+          candidates.set(slashlessMatch.workflow.id, {
+            workflow: slashlessMatch.workflow,
+            registration: slashlessMatch.registration,
+            matchKind: "invocation"
+          });
+        } else {
+          const normalizedCommand = parseSlashCommandInvocation(effectiveQuery)?.command ?? "/";
+          for (const registration of registry.activeRegistrations) {
+            if (
+              registration.triggerType !== "slash-command" ||
+              !registration.normalizedToken
+            ) {
+              continue;
+            }
+            if (
+              registration.normalizedToken.startsWith(normalizedCommand) ||
+              normalizedCommand.startsWith(registration.normalizedToken)
+            ) {
+              candidates.set(registration.workflowId, {
+                workflow: registration.workflow,
+                registration,
+                matchKind: "suggestion"
+              });
+            }
+          }
+        }
+
         if (invocationMatch) {
           candidates.set(invocationMatch.workflow.id, {
             workflow: invocationMatch.workflow,
@@ -155,17 +190,18 @@ function createSystemProvider(): SearchProvider {
         shouldOfferSystemResult(context.scope, "system") &&
         matchesKeywordGroup(
           normalized,
-          ["settings", "preferences", "prefs", "config"],
+          ["settings", "preferences", "prefs", "config", "/config"],
           true
         )
       ) {
+        const isExactConfig = normalized === "config" || normalized === "/config";
         results.push({
           id: "system:settings",
           title: "Open settings",
           subtitle: "General, search, clipboard, snippets, plugins, appearance",
           type: "system",
           source: "system",
-          score: 0.78,
+          score: isExactConfig ? 2.0 : 0.78,
           payload: {},
           actions: [
             {
@@ -269,6 +305,29 @@ function createFileProvider(): SearchProvider {
 
       const files = await searchFiles(query);
       return files.map((file) => toFileResult(file));
+    }
+  };
+}
+
+function createLiveFileProvider(): SearchProvider {
+  return {
+    id: "live-files",
+    label: "Live file search",
+    source: "files",
+    sourceWeight: 1.05,
+    timeoutMs: 5000,
+    async search(query) {
+      const trimmed = query.trim();
+      if (!trimmed.startsWith("dir ")) {
+        return [];
+      }
+      const fileQuery = trimmed.slice(4).trim();
+      if (fileQuery.length < 2) {
+        return [];
+      }
+
+      const files = await liveSearchFiles(fileQuery);
+      return files.map((file) => toFileResult(file, true));
     }
   };
 }
@@ -582,13 +641,13 @@ function toAppResult(app: AppRecord): ResultItem {
   };
 }
 
-function toFileResult(file: FileRecord): ResultItem {
+function toFileResult(file: FileRecord, live = false): ResultItem {
   const relativeTime = formatRelativeTime(file.mtimeMs);
 
   return {
     id: `file:${file.path}`,
     title: file.name,
-    subtitle: `${file.path} • ${relativeTime}`,
+    subtitle: `${file.path} • ${relativeTime}${live ? " • live" : ""}`,
     type: file.kind,
     source: "files",
     score: file.kind === "folder" ? 0.8 : 0.82,
@@ -676,7 +735,7 @@ function toClipboardResult(item: ClipboardItem): ResultItem {
         id: `paste:${item.id}`,
         title: "Paste item",
         kind: "paste-text",
-        description: "TODO: native paste simulation hooks land in a later phase.",
+        description: "Copies to clipboard, then paste into the active app.",
         payload: { text }
       },
       pinAction,
@@ -723,7 +782,7 @@ function toSnippetResult(snippet: SnippetRecord): ResultItem {
         id: `paste-template:${snippet.id}`,
         title: "Paste template",
         kind: "paste-text",
-        description: "TODO: hook into OS-level insertion when global expansion lands.",
+        description: "Copies expanded snippet to clipboard.",
         payload: { text: snippet.content }
       }
     ]

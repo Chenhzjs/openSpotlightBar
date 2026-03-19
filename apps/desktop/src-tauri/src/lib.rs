@@ -10,7 +10,8 @@ use std::sync::Arc;
 
 use commands::{
     bootstrap_state, delete_snippet, delete_workflow, fetch_plugin_registry,
-    get_file_index_status, hide_window, install_marketplace_plugin, open_devtools, resize_window,
+    get_file_index_status, hide_window, install_marketplace_plugin, live_search_files,
+    open_devtools, resize_window,
     list_clipboard_items, list_snippets, list_workflows, perform_action, plugin_exec_shell,
     plugin_read_clipboard_text, plugin_write_clipboard_text, rebuild_file_index, record_selection,
     save_snippet, save_workflow, search_apps, search_files, uninstall_marketplace_plugin,
@@ -59,6 +60,7 @@ pub fn run() {
             resize_window,
             search_apps,
             search_files,
+            live_search_files,
             list_clipboard_items,
             list_snippets,
             save_snippet,
