@@ -128,6 +128,14 @@ function getQueryPriority(result: ResultItem, query: string): number {
     return 1;
   }
 
+  if (
+    result.source === "system" &&
+    (normalizedQuery === "config" || normalizedQuery === "/config" ||
+     normalizedQuery === "settings" || normalizedQuery === "preferences")
+  ) {
+    return 2;
+  }
+
   return 0;
 }
 
