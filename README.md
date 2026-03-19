@@ -35,7 +35,7 @@ Open Spotlight Bar is an open-source alternative to Alfred, Raycast, and PowerTo
 | **Plugins** | Worker-isolated JS plugins with permission-gated APIs (network, filesystem, clipboard, shell) |
 | **Plugin Marketplace** | Browse, search, install & uninstall community plugins from an online registry |
 | **Settings Hub** | Unified `/config` surface for every subsystem |
-| **Cross-platform** | macOS (native SwiftUI shell + Tauri), Windows, Linux |
+| **Cross-platform** | macOS, Windows, Linux via Tauri |
 
 ### Keyboard Shortcuts
 
@@ -79,7 +79,6 @@ pnpm lint               # ESLint
 pnpm format             # Prettier
 pnpm verify             # Full CI pipeline (format + lint + typecheck + test + build)
 
-pnpm macos:native:dev   # Run native SwiftUI/AppKit macOS host
 pnpm release:macos      # Production build for macOS
 pnpm release:windows    # Production build for Windows
 pnpm release:linux      # Production build for Linux
@@ -90,9 +89,8 @@ pnpm release:linux      # Production build for Linux
 ```
 open-spotlight-bar/
 ├── apps/
-│   ├── desktop/                 # React + Tailwind UI, Tauri shell
-│   │   └── src-tauri/           # Rust backend: commands, SQLite, file index, plugins
-│   └── macos/                   # Native SwiftUI/AppKit host
+│   └── desktop/                 # React + Tailwind UI, Tauri shell
+│       └── src-tauri/           # Rust backend: commands, SQLite, file index, plugins
 ├── packages/
 │   ├── core/                    # Query parsing, ranking, search engine, workflow runtime
 │   ├── shared-types/            # Domain models shared across frontend & backend
@@ -109,7 +107,6 @@ open-spotlight-bar/
 | Desktop shell | [Tauri 2](https://v2.tauri.app/) |
 | Frontend | React 19, TypeScript, Tailwind CSS, Vite |
 | Backend | Rust, SQLite (via rusqlite), reqwest, tokio |
-| Native macOS | SwiftUI + AppKit |
 | Monorepo | pnpm workspaces |
 | Testing | Vitest, ESLint, Prettier |
 
@@ -224,7 +221,7 @@ Keyword triggers: `g`, `jira`, `gh`, `weather`
 
 | Platform | Status |
 |----------|--------|
-| **macOS** | Native SwiftUI/AppKit shell + Tauri — demo-ready |
+| **macOS** | Tauri shell — demo-ready |
 | **Windows** | Tauri shell — demo-ready |
 | **Linux** | Tauri shell — demo-ready |
 

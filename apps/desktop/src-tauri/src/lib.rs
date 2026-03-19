@@ -1,4 +1,3 @@
-pub mod bridge;
 mod commands;
 mod db;
 mod error;
