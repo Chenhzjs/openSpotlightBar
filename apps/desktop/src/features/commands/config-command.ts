@@ -40,20 +40,17 @@ export const CONFIG_SECTION_META: Record<ConfigSection, ConfigSectionMeta> = {
     label: "Overview",
     labelZh: "总览",
     command: "config overview",
-    summary:
-      "View the running status of each launcher module at a glance.",
+    summary: "View the running status of each launcher module at a glance.",
     summaryZh: "查看启动器各模块的运行概况。",
     intro:
       "Overview centralizes status cards so each settings page can stay focused on its own controls.",
-    introZh:
-      "总览集中展示各模块的状态卡片，让具体配置页只关注各自的控制项。"
+    introZh: "总览集中展示各模块的状态卡片，让具体配置页只关注各自的控制项。"
   },
   general: {
     label: "General",
     labelZh: "常规",
     command: "config general",
-    summary:
-      "Launcher defaults, language, and how the bar appears or dismisses.",
+    summary: "Launcher defaults, language, and how the bar appears or dismisses.",
     summaryZh: "启动器默认行为、语言，以及 bar 的展示与收起方式。",
     intro:
       "Use this section for launcher-wide behavior such as language, entry points, dismissal rules, and baseline interaction across platforms.",
@@ -68,8 +65,7 @@ export const CONFIG_SECTION_META: Record<ConfigSection, ConfigSectionMeta> = {
     summaryZh: "搜索来源权重和结果数量设置。",
     intro:
       "Search controls ranking, source weighting, file indexing roots, and how usage history influences result order.",
-    introZh:
-      "搜索页负责排序、来源权重、文件索引根目录，以及使用历史如何影响结果顺序。"
+    introZh: "搜索页负责排序、来源权重、文件索引根目录，以及使用历史如何影响结果顺序。"
   },
   clipboard: {
     label: "Clipboard",
@@ -90,8 +86,7 @@ export const CONFIG_SECTION_META: Record<ConfigSection, ConfigSectionMeta> = {
     summaryZh: "管理片段和文本展开设置。",
     intro:
       "Snippets manage saved expansions, variables, and how reusable text appears in launcher search.",
-    introZh:
-      "片段页管理已保存的扩展文本、变量，以及这些可复用文本如何出现在搜索结果中。"
+    introZh: "片段页管理已保存的扩展文本、变量，以及这些可复用文本如何出现在搜索结果中。"
   },
   plugins: {
     label: "Plugins",
@@ -122,8 +117,7 @@ export const CONFIG_SECTION_META: Record<ConfigSection, ConfigSectionMeta> = {
     summaryZh: "工作流自动化设置。",
     intro:
       "Workflow opens its own dedicated surface. This is where higher-level command composition will live.",
-    introZh:
-      "工作流拥有独立的专用界面，承载更高层级的命令编排能力。"
+    introZh: "工作流拥有独立的专用界面，承载更高层级的命令编排能力。"
   },
   indexing: {
     label: "Indexing",

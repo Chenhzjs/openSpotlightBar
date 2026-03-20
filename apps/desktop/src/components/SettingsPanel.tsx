@@ -344,8 +344,7 @@ export function SettingsPanel({
         },
         indexing: {
           title: "目录索引",
-          description:
-            "管理文件搜索的索引目录和排除项。",
+          description: "管理文件搜索的索引目录和排除项。",
           state: "状态",
           indexedEntries: "已索引条目",
           indexedEntriesCap: (maxIndexedFiles: number) =>
@@ -410,8 +409,7 @@ export function SettingsPanel({
           revoke: "撤销",
           noPermissions: "这个插件没有申请权限。",
           lastHostError: "最近一次宿主错误",
-          sandboxTodo:
-            "插件在独立环境中运行，后续将加入更完善的安全机制。"
+          sandboxTodo: "插件在独立环境中运行，后续将加入更完善的安全机制。"
         },
         appearance: {
           title: "外观",
@@ -449,7 +447,8 @@ export function SettingsPanel({
         saving: "Saving...",
         metricDedicated: "Dedicated",
         overviewTitle: "Overview",
-        overviewDescription: "View the running status of each launcher module at a glance.",
+        overviewDescription:
+          "View the running status of each launcher module at a glance.",
         overviewFooter:
           "This is the overview entry. Jump into the specific settings pages when you need to change behavior.",
         metricTitles: {
@@ -488,8 +487,7 @@ export function SettingsPanel({
         },
         search: {
           title: "Search",
-          description:
-            "Source weights and ranking settings that drive result ordering.",
+          description: "Source weights and ranking settings that drive result ordering.",
           fileIndex: "File index",
           fileIndexFallback: "Lightweight filename and path indexing powers file search.",
           indexedFiles: "Indexed files",
@@ -509,8 +507,7 @@ export function SettingsPanel({
         },
         clipboard: {
           title: "Clipboard",
-          description:
-            "Local clipboard history and privacy settings.",
+          description: "Local clipboard history and privacy settings.",
           storedItems: "Stored items",
           pollInterval: "Poll interval (ms)",
           currentItems: "Current local items",
@@ -522,8 +519,7 @@ export function SettingsPanel({
         },
         indexing: {
           title: "Directory Indexing",
-          description:
-            "Manage file search index directories and exclusions.",
+          description: "Manage file search index directories and exclusions.",
           state: "State",
           indexedEntries: "Indexed entries",
           indexedEntriesCap: (maxIndexedFiles: number) =>
@@ -574,8 +570,7 @@ export function SettingsPanel({
         },
         plugins: {
           title: "Plugins",
-          description:
-            "Manage installed plugin runtime state and permissions.",
+          description: "Manage installed plugin runtime state and permissions.",
           enableHost: "Enable plugin host",
           promptOnFirstPermission: "Prompt on first permission",
           timeout: "Plugin timeout (ms)",
@@ -596,8 +591,7 @@ export function SettingsPanel({
         },
         appearance: {
           title: "Appearance",
-          description:
-            "Theme and display density settings.",
+          description: "Theme and display density settings.",
           theme: "Theme",
           system: "System",
           light: "Light",
@@ -608,8 +602,7 @@ export function SettingsPanel({
         },
         workflow: {
           title: "Workflow",
-          description:
-            "Workflow automation settings.",
+          description: "Workflow automation settings.",
           intro:
             "This section is the placeholder for workflow authoring and automation rules that should be reachable from the launcher via config workflow.",
           today:
@@ -634,7 +627,8 @@ export function SettingsPanel({
   const [indexPathDraft, setIndexPathDraft] = useState("");
   const [indexExclusionDraft, setIndexExclusionDraft] = useState("");
   const [implicitIgnoresDraft, setImplicitIgnoresDraft] = useState<string[]>(
-    () => settings.implicitIgnores ?? [".git", "node_modules", "target", "Library", ".cache"]
+    () =>
+      settings.implicitIgnores ?? [".git", "node_modules", "target", "Library", ".cache"]
   );
   const [implicitIgnoreDraft, setImplicitIgnoreDraft] = useState("");
   const [snippetDraft, setSnippetDraft] = useState<SnippetFormState>(EMPTY_SNIPPET);
@@ -1818,7 +1812,6 @@ export function SettingsPanel({
             </div>
           </SectionCard>
         );
-
     }
   }
 }

@@ -33,10 +33,7 @@
   "bundle": {
     "active": true,
     "targets": "all",
-    "resources": [
-      "bundled-plugins/**/manifest.json",
-      "bundled-plugins/**/src/index.js"
-    ],
+    "resources": ["bundled-plugins/**/manifest.json", "bundled-plugins/**/src/index.js"],
     "icon": [
       "icons/icon.png",
       "icons/128x128.png",

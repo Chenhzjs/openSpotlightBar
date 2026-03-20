@@ -8,7 +8,14 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const pluginsSource = join(__dirname, "..", "plugins");
-const bundledTarget = join(__dirname, "..", "apps", "desktop", "src-tauri", "bundled-plugins");
+const bundledTarget = join(
+  __dirname,
+  "..",
+  "apps",
+  "desktop",
+  "src-tauri",
+  "bundled-plugins"
+);
 
 mkdirSync(bundledTarget, { recursive: true });
 
