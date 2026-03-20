@@ -231,6 +231,7 @@ export interface LauncherSettings {
   language: LauncherLanguage;
   indexPaths: string[];
   indexExclusions: string[];
+  implicitIgnores: string[];
   indexingPaused: boolean;
   search: {
     maxResults: number;

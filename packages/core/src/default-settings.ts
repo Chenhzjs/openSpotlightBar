@@ -6,6 +6,7 @@ export const DEFAULT_SETTINGS: LauncherSettings = {
   language: "system",
   indexPaths: [],
   indexExclusions: [],
+  implicitIgnores: [".git", "node_modules", "target", "Library", ".cache"],
   indexingPaused: false,
   search: {
     maxResults: 9,

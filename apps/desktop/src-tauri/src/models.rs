@@ -351,6 +351,8 @@ pub struct LauncherSettings {
     pub language: String,
     pub index_paths: Vec<String>,
     pub index_exclusions: Vec<String>,
+    #[serde(default = "default_implicit_ignores")]
+    pub implicit_ignores: Vec<String>,
     pub indexing_paused: bool,
     pub search: SearchSettings,
     pub clipboard: ClipboardSettings,
@@ -368,6 +370,7 @@ impl Default for LauncherSettings {
             language: default_language(),
             index_paths: Vec::new(),
             index_exclusions: Vec::new(),
+            implicit_ignores: default_implicit_ignores(),
             indexing_paused: false,
             search: SearchSettings::default(),
             clipboard: ClipboardSettings::default(),
@@ -381,6 +384,16 @@ impl Default for LauncherSettings {
 
 fn default_language() -> String {
     "system".to_string()
+}
+
+fn default_implicit_ignores() -> Vec<String> {
+    vec![
+        ".git".to_string(),
+        "node_modules".to_string(),
+        "target".to_string(),
+        "Library".to_string(),
+        ".cache".to_string(),
+    ]
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

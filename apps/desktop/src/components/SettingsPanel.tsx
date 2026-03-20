@@ -1,5 +1,5 @@
 import clsx from "clsx";
-import { useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
 import type {
   FileIndexStatus,
@@ -147,7 +147,7 @@ function getSettingsSections(useChineseCopy: boolean): Array<{
           id: "overview",
           label: "总览",
           command: "config overview",
-          description: "查看整个启动器的全局计数和健康状态。"
+          description: "查看启动器各模块的运行概况。"
         },
         {
           id: "general",
@@ -159,7 +159,7 @@ function getSettingsSections(useChineseCopy: boolean): Array<{
           id: "search",
           label: "搜索",
           command: "config search",
-          description: "Provider 权重、结果数量和作用域提示。"
+          description: "搜索来源权重和结果数量设置。"
         },
         {
           id: "clipboard",
@@ -171,31 +171,25 @@ function getSettingsSections(useChineseCopy: boolean): Array<{
           id: "indexing",
           label: "索引",
           command: "config indexing",
-          description: "轻量文件搜索所使用的目录根路径。"
+          description: "管理文件搜索的索引目录和排除项。"
         },
         {
           id: "snippets",
           label: "片段",
           command: "config snippets",
-          description: "片段的增删改查与展开设置。"
+          description: "管理片段和文本展开设置。"
         },
         {
           id: "plugins",
           label: "插件",
           command: "config plugins",
-          description: "插件宿主状态、权限和超时配置。"
-        },
-        {
-          id: "marketplace",
-          label: "插件市场",
-          command: "config marketplace",
-          description: "浏览、安装和管理社区插件。"
+          description: "插件运行状态和权限管理。"
         },
         {
           id: "appearance",
           label: "外观",
           command: "config appearance",
-          description: "主题和密度等外观设置。"
+          description: "主题和显示密度设置。"
         }
       ]
     : [
@@ -203,55 +197,49 @@ function getSettingsSections(useChineseCopy: boolean): Array<{
           id: "overview",
           label: "Overview",
           command: "config overview",
-          description: "Cross-launcher counts and health snapshot."
+          description: "View the running status of each launcher module."
         },
         {
           id: "general",
           label: "General",
           command: "config general",
-          description: "Launcher defaults and hotkey scaffolding."
+          description: "Launcher defaults and hotkey settings."
         },
         {
           id: "search",
           label: "Search",
           command: "config search",
-          description: "Provider weights, result limits, and scope hints."
+          description: "Source weights, result limits, and ranking settings."
         },
         {
           id: "clipboard",
           label: "Clipboard",
           command: "config clipboard",
-          description: "Local clipboard retention and privacy scaffolding."
+          description: "Local clipboard retention and privacy settings."
         },
         {
           id: "indexing",
           label: "Indexing",
           command: "config indexing",
-          description: "Directory roots for lightweight file search."
+          description: "Manage file search index directories and exclusions."
         },
         {
           id: "snippets",
           label: "Snippets",
           command: "config snippets",
-          description: "Snippet CRUD and expansion settings."
+          description: "Manage snippets and text expansion settings."
         },
         {
           id: "plugins",
           label: "Plugins",
           command: "config plugins",
-          description: "Plugin host state, permissions, and timeouts."
-        },
-        {
-          id: "marketplace",
-          label: "Marketplace",
-          command: "config marketplace",
-          description: "Browse, install, and manage community plugins."
+          description: "Plugin runtime state and permission management."
         },
         {
           id: "appearance",
           label: "Appearance",
           command: "config appearance",
-          description: "Theme and density placeholders."
+          description: "Theme and density settings."
         }
       ];
 }
@@ -292,8 +280,8 @@ export function SettingsPanel({
         saving: "保存中...",
         metricDedicated: "独立界面",
         overviewTitle: "总览",
-        overviewDescription: "把整个启动器的关键计数和健康状态集中放在这里。",
-        overviewFooter: "把这里当作全局快照入口，需要调整具体行为时再进入对应分区。",
+        overviewDescription: "在这里查看启动器各模块的运行概况。",
+        overviewFooter: "这里是总览入口，需要调整时可进入对应的设置页。",
         metricTitles: {
           indexedFiles: "已索引文件",
           clipboard: "剪贴板",
@@ -303,12 +291,12 @@ export function SettingsPanel({
           permPrompts: "权限请求"
         },
         metricDetails: {
-          indexedFiles: "轻量文件名和路径条目已可用于文件搜索。",
-          clipboard: "本地剪贴板条目可用于搜索和动作执行。",
-          snippets: "已保存片段可用于搜索和展开动作。",
-          plugins: "当前工作区中已发现的插件运行时或清单。",
+          indexedFiles: "可搜索的文件数量。",
+          clipboard: "已保存的剪贴板条目数。",
+          snippets: "已保存的文本片段数。",
+          plugins: "已安装的插件数量。",
           workflow: "工作流保持独立界面，避免把启动器 bar 挤满。",
-          permPrompts: "等待处理的插件权限批准请求。"
+          permPrompts: "需要处理的权限请求。"
         },
         general: {
           title: "常规",
@@ -326,7 +314,7 @@ export function SettingsPanel({
         },
         search: {
           title: "搜索",
-          description: "调节排序管线中的 Provider 权重和作用域快捷方式。",
+          description: "调节各搜索来源的权重和排序方式。",
           fileIndex: "文件索引",
           fileIndexFallback: "轻量文件名和路径索引支撑文件搜索。",
           indexedFiles: "已索引文件",
@@ -345,19 +333,19 @@ export function SettingsPanel({
         },
         clipboard: {
           title: "剪贴板",
-          description: "以文本优先的本地历史，带隐私排除和动作钩子。",
+          description: "本地剪贴板历史和隐私设置。",
           storedItems: "存储条数",
           pollInterval: "轮询间隔（毫秒）",
           currentItems: "当前本地条目",
           privateApps: "私密应用（每行一个）",
-          privateAppsPlaceholder: "1Password\n钥匙串访问",
+          privateAppsPlaceholder: "1Password\nKeychain Access",
           clearHistory: "清空历史",
           privacyTodo: "私密应用排除将在后续版本中接入原生剪贴板监听。"
         },
         indexing: {
           title: "目录索引",
           description:
-            "这里只做轻量文件名、路径和元数据索引。管理根目录和排除项后再重建。",
+            "管理文件搜索的索引目录和排除项。",
           state: "状态",
           indexedEntries: "已索引条目",
           indexedEntriesCap: (maxIndexedFiles: number) =>
@@ -398,15 +386,15 @@ export function SettingsPanel({
           name: "名称",
           trigger: "触发词",
           content: "内容",
-          scope: "作用域占位",
-          appRestriction: "应用限制占位",
+          scope: "作用域（可选）",
+          appRestriction: "限定应用（可选）",
           enabled: "启用片段",
           saveSnippet: "保存片段",
           deleteSnippet: "删除片段"
         },
         plugins: {
           title: "插件",
-          description: "Worker 隔离插件宿主，带显式本地权限和优雅失败处理。",
+          description: "管理已安装插件的运行状态和权限。",
           enableHost: "启用插件宿主",
           promptOnFirstPermission: "首次权限请求时提示",
           timeout: "插件超时（毫秒）",
@@ -423,11 +411,11 @@ export function SettingsPanel({
           noPermissions: "这个插件没有申请权限。",
           lastHostError: "最近一次宿主错误",
           sandboxTodo:
-            "插件在 Worker 中隔离运行，后续将加入更严格的沙箱和第三方插件签名安装流程。"
+            "插件在独立环境中运行，后续将加入更完善的安全机制。"
         },
         appearance: {
           title: "外观",
-          description: "启动器 UI 仍保持紧凑，这里先提供主题和密度相关设置。",
+          description: "主题和显示密度设置。",
           theme: "主题",
           system: "跟随系统",
           light: "浅色",
@@ -438,7 +426,7 @@ export function SettingsPanel({
         },
         workflow: {
           title: "工作流",
-          description: "面向未来工作流自动化的命令式配置入口。",
+          description: "工作流自动化设置。",
           intro:
             "这里是工作流编排和自动化规则的占位入口，后续会通过 config workflow 从启动器进入。",
           today:
@@ -448,7 +436,12 @@ export function SettingsPanel({
         marketplace: {
           title: "插件市场",
           description: "浏览、安装和管理内置插件。"
-        }
+        },
+        pluginTabs: {
+          installed: "已安装",
+          discover: "发现新插件"
+        },
+        privateAppsNote: "这些应用的剪贴板内容不会被记录。"
       }
     : {
         settingsTitle: "Settings",
@@ -456,9 +449,9 @@ export function SettingsPanel({
         saving: "Saving...",
         metricDedicated: "Dedicated",
         overviewTitle: "Overview",
-        overviewDescription: "Cross-launcher counts and health summarized in one place.",
+        overviewDescription: "View the running status of each launcher module at a glance.",
         overviewFooter:
-          "Use this section as the launcher-wide snapshot, then jump into the task-specific pages below when you need to change behavior.",
+          "This is the overview entry. Jump into the specific settings pages when you need to change behavior.",
         metricTitles: {
           indexedFiles: "Indexed files",
           clipboard: "Clipboard",
@@ -468,13 +461,13 @@ export function SettingsPanel({
           permPrompts: "Perm prompts"
         },
         metricDetails: {
-          indexedFiles: "Lightweight filename and path entries ready for file search.",
-          clipboard: "Local clipboard items available to search and actions.",
-          snippets: "Saved snippets ready for search and expansion actions.",
-          plugins: "Discovered plugin runtimes or manifests in the current workspace.",
+          indexedFiles: "Number of files available for search.",
+          clipboard: "Saved clipboard entries.",
+          snippets: "Saved text snippets.",
+          plugins: "Installed plugins.",
           workflow:
             "Workflow opens as its own surface instead of bloating the launcher bar.",
-          permPrompts: "Pending plugin permission approvals waiting for attention."
+          permPrompts: "Permission requests that need attention."
         },
         general: {
           title: "General",
@@ -496,7 +489,7 @@ export function SettingsPanel({
         search: {
           title: "Search",
           description:
-            "Provider weights and scope shortcuts that drive the ranking pipeline.",
+            "Source weights and ranking settings that drive result ordering.",
           fileIndex: "File index",
           fileIndexFallback: "Lightweight filename and path indexing powers file search.",
           indexedFiles: "Indexed files",
@@ -517,7 +510,7 @@ export function SettingsPanel({
         clipboard: {
           title: "Clipboard",
           description:
-            "Text-first history with local storage, privacy scaffolding, and action hooks.",
+            "Local clipboard history and privacy settings.",
           storedItems: "Stored items",
           pollInterval: "Poll interval (ms)",
           currentItems: "Current local items",
@@ -530,7 +523,7 @@ export function SettingsPanel({
         indexing: {
           title: "Directory Indexing",
           description:
-            "Lightweight filename, path, and metadata indexing only. Manage roots and exclusions here, then rebuild.",
+            "Manage file search index directories and exclusions.",
           state: "State",
           indexedEntries: "Indexed entries",
           indexedEntriesCap: (maxIndexedFiles: number) =>
@@ -573,8 +566,8 @@ export function SettingsPanel({
           name: "Name",
           trigger: "Trigger",
           content: "Content",
-          scope: "Scope scaffold",
-          appRestriction: "App restriction scaffold",
+          scope: "Scope (optional)",
+          appRestriction: "App restriction (optional)",
           enabled: "Snippet enabled",
           saveSnippet: "Save snippet",
           deleteSnippet: "Delete snippet"
@@ -582,7 +575,7 @@ export function SettingsPanel({
         plugins: {
           title: "Plugins",
           description:
-            "Worker-isolated plugin host with explicit local permissions and graceful failure handling.",
+            "Manage installed plugin runtime state and permissions.",
           enableHost: "Enable plugin host",
           promptOnFirstPermission: "Prompt on first permission",
           timeout: "Plugin timeout (ms)",
@@ -599,12 +592,12 @@ export function SettingsPanel({
           noPermissions: "This plugin does not request permissions.",
           lastHostError: "Last host error",
           sandboxTodo:
-            "Plugins run in isolated Workers. Stricter sandboxing and signed-install flows for third-party plugins are planned."
+            "Plugins run in isolated environments. Stricter sandboxing and signed-install flows are planned."
         },
         appearance: {
           title: "Appearance",
           description:
-            "Theme and density placeholder while the launcher UI system stays compact.",
+            "Theme and display density settings.",
           theme: "Theme",
           system: "System",
           light: "Light",
@@ -616,7 +609,7 @@ export function SettingsPanel({
         workflow: {
           title: "Workflow",
           description:
-            "Command-driven configuration entry for future workflow automation.",
+            "Workflow automation settings.",
           intro:
             "This section is the placeholder for workflow authoring and automation rules that should be reachable from the launcher via config workflow.",
           today:
@@ -626,7 +619,12 @@ export function SettingsPanel({
         marketplace: {
           title: "Marketplace",
           description: "Browse, install, and manage built-in plugins."
-        }
+        },
+        pluginTabs: {
+          installed: "Installed",
+          discover: "Discover"
+        },
+        privateAppsNote: "Clipboard content from these apps will not be recorded."
       };
   const [draft, setDraft] = useState(() => cloneSettings(settings));
   const [activeSection, setActiveSection] = useState<ConfigSection>(initialSection);
@@ -635,16 +633,23 @@ export function SettingsPanel({
   );
   const [indexPathDraft, setIndexPathDraft] = useState("");
   const [indexExclusionDraft, setIndexExclusionDraft] = useState("");
+  const [implicitIgnoresDraft, setImplicitIgnoresDraft] = useState<string[]>(
+    () => settings.implicitIgnores ?? [".git", "node_modules", "target", "Library", ".cache"]
+  );
+  const [implicitIgnoreDraft, setImplicitIgnoreDraft] = useState("");
   const [snippetDraft, setSnippetDraft] = useState<SnippetFormState>(EMPTY_SNIPPET);
   const [selectedSnippetId, setSelectedSnippetId] = useState<string | null>(
     snippets[0]?.id ?? null
   );
-  const [savingSettings, setSavingSettings] = useState(false);
   const [savingSnippet, setSavingSnippet] = useState(false);
+  const [pluginTab, setPluginTab] = useState<"installed" | "discover">("installed");
 
   useEffect(() => {
     setDraft(cloneSettings(settings));
     setPrivateAppsDraft(settings.clipboard.privateApps.join("\n"));
+    setImplicitIgnoresDraft(
+      settings.implicitIgnores ?? [".git", "node_modules", "target", "Library", ".cache"]
+    );
   }, [settings]);
 
   useEffect(() => {
@@ -663,13 +668,13 @@ export function SettingsPanel({
     }
   }, [selectedSnippetId, snippets]);
 
-  async function handleSaveSettings() {
-    setSavingSettings(true);
+  const handleSaveSettings = useCallback(async () => {
     try {
       await onSaveSettings({
         ...draft,
         indexPaths: draft.indexPaths.filter((entry) => entry.trim().length > 0),
         indexExclusions: draft.indexExclusions.filter((entry) => entry.trim().length > 0),
+        implicitIgnores: implicitIgnoresDraft,
         clipboard: {
           ...draft.clipboard,
           privateApps: parseLines(privateAppsDraft)
@@ -677,10 +682,34 @@ export function SettingsPanel({
       });
     } catch {
       // The parent surface owns error presentation. Keep the settings form responsive.
-    } finally {
-      setSavingSettings(false);
     }
-  }
+  }, [draft, privateAppsDraft, implicitIgnoresDraft, onSaveSettings]);
+
+  // Auto-save: debounce 500ms after draft or privateAppsDraft changes
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const initialRenderRef = useRef(true);
+
+  useEffect(() => {
+    // Skip auto-save on initial render
+    if (initialRenderRef.current) {
+      initialRenderRef.current = false;
+      return;
+    }
+
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+    }
+
+    autoSaveTimerRef.current = setTimeout(() => {
+      void handleSaveSettings();
+    }, 500);
+
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+    };
+  }, [draft, privateAppsDraft, implicitIgnoresDraft, handleSaveSettings]);
 
   async function handleSaveSnippet() {
     const nextSnippet = normalizeSnippetForm(snippetDraft);
@@ -726,16 +755,6 @@ export function SettingsPanel({
               {sectionMeta.label}
             </div>
           </div>
-          <button
-            type="button"
-            className={primaryButtonClassName}
-            onClick={() => {
-              void handleSaveSettings();
-            }}
-            disabled={savingSettings}
-          >
-            {savingSettings ? copy.saving : copy.save}
-          </button>
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -850,19 +869,18 @@ export function SettingsPanel({
                 </Field>
 
                 <Field label={copy.general.defaultWebEngine}>
-                  <input
-                    type="text"
+                  <WebEngineSelect
                     value={draft.webSearch.defaultEngine}
-                    onChange={(event) =>
+                    onChange={(value) =>
                       setDraft({
                         ...draft,
                         webSearch: {
                           ...draft.webSearch,
-                          defaultEngine: event.target.value
+                          defaultEngine: value
                         }
                       })
                     }
-                    className={inputClassName}
+                    useChineseCopy={useChineseCopy}
                   />
                 </Field>
               </div>
@@ -1013,6 +1031,9 @@ export function SettingsPanel({
                 className={textareaClassName}
                 placeholder={copy.clipboard.privateAppsPlaceholder}
               />
+              <p className="mt-1 text-sm text-[color:var(--shell-text-secondary)]">
+                {copy.privateAppsNote}
+              </p>
             </Field>
 
             <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -1211,11 +1232,55 @@ export function SettingsPanel({
               >
                 {copy.indexing.rebuildIndex}
               </button>
-              <div className="text-sm text-[color:var(--shell-text-secondary)]">
-                {copy.indexing.implicitIgnores}: <code>.git</code>,{" "}
-                <code>node_modules</code>, <code>target</code>, <code>Library</code>,{" "}
-                <code>.cache</code>.
+            </div>
+
+            <Field label={copy.indexing.implicitIgnores}>
+              <div className="flex flex-wrap gap-2">
+                {implicitIgnoresDraft.map((item) => (
+                  <div
+                    key={item}
+                    className="flex items-center gap-2 rounded-full border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-soft)] px-3 py-2 text-sm text-[color:var(--shell-text-primary)]"
+                  >
+                    <span>{item}</span>
+                    <button
+                      type="button"
+                      className="text-[color:var(--shell-text-secondary)] transition hover:text-[color:var(--shell-text-primary)]"
+                      onClick={() =>
+                        setImplicitIgnoresDraft(
+                          implicitIgnoresDraft.filter((entry) => entry !== item)
+                        )
+                      }
+                    >
+                      {copy.indexing.remove}
+                    </button>
+                  </div>
+                ))}
               </div>
+            </Field>
+
+            <div className="mt-3 flex flex-col gap-3 md:flex-row">
+              <input
+                type="text"
+                value={implicitIgnoreDraft}
+                onChange={(event) => setImplicitIgnoreDraft(event.target.value)}
+                className={inputClassName}
+                placeholder=".DS_Store"
+              />
+              <button
+                type="button"
+                className={secondaryButtonClassName}
+                onClick={() => {
+                  const next = implicitIgnoreDraft.trim();
+                  if (!next || implicitIgnoresDraft.includes(next)) {
+                    return;
+                  }
+
+                  setImplicitIgnoresDraft([...implicitIgnoresDraft, next]);
+                  setImplicitIgnoreDraft("");
+                }}
+              >
+                {copy.indexing.addExclusion}
+              </button>
             </div>
 
             <p className="mt-3 text-sm text-[color:var(--shell-text-secondary)]">
@@ -1410,237 +1475,274 @@ export function SettingsPanel({
       case "plugins":
         return (
           <SectionCard title={copy.plugins.title} description={copy.plugins.description}>
-            <div className="space-y-3">
-              <ToggleRow
-                label={copy.plugins.enableHost}
-                checked={draft.plugins.enableHost}
-                onChange={(checked) =>
-                  setDraft({
-                    ...draft,
-                    plugins: {
-                      ...draft.plugins,
-                      enableHost: checked
-                    }
-                  })
-                }
-              />
-              <ToggleRow
-                label={copy.plugins.promptOnFirstPermission}
-                checked={draft.plugins.promptOnFirstPermission}
-                onChange={(checked) =>
-                  setDraft({
-                    ...draft,
-                    plugins: {
-                      ...draft.plugins,
-                      promptOnFirstPermission: checked
-                    }
-                  })
-                }
-              />
-              <Field label={copy.plugins.timeout}>
-                <input
-                  type="number"
-                  min={250}
-                  max={10_000}
-                  value={draft.plugins.timeoutMs}
-                  onChange={(event) =>
+            <div className="mb-4 flex gap-2">
+              <button
+                type="button"
+                className={clsx(
+                  "rounded-full border px-3 py-1.5 text-sm transition",
+                  pluginTab === "installed"
+                    ? "border-[color:var(--shell-accent-soft)] bg-[color:var(--shell-accent-muted)] text-[color:var(--shell-text-primary)]"
+                    : "border-[color:var(--shell-border)] bg-[color:var(--shell-fill-muted)] text-[color:var(--shell-text-secondary)] hover:border-[color:var(--shell-border-strong)] hover:text-[color:var(--shell-text-primary)]"
+                )}
+                onClick={() => setPluginTab("installed")}
+              >
+                {copy.pluginTabs.installed}
+              </button>
+              <button
+                type="button"
+                className={clsx(
+                  "rounded-full border px-3 py-1.5 text-sm transition",
+                  pluginTab === "discover"
+                    ? "border-[color:var(--shell-accent-soft)] bg-[color:var(--shell-accent-muted)] text-[color:var(--shell-text-primary)]"
+                    : "border-[color:var(--shell-border)] bg-[color:var(--shell-fill-muted)] text-[color:var(--shell-text-secondary)] hover:border-[color:var(--shell-border-strong)] hover:text-[color:var(--shell-text-primary)]"
+                )}
+                onClick={() => setPluginTab("discover")}
+              >
+                {copy.pluginTabs.discover}
+              </button>
+            </div>
+
+            {pluginTab === "installed" ? (
+              <div className="space-y-3">
+                <ToggleRow
+                  label={copy.plugins.enableHost}
+                  checked={draft.plugins.enableHost}
+                  onChange={(checked) =>
                     setDraft({
                       ...draft,
                       plugins: {
                         ...draft.plugins,
-                        timeoutMs: clampNumber(event.target.value, 1200, 250, 10_000)
+                        enableHost: checked
                       }
                     })
                   }
-                  className={inputClassName}
                 />
-              </Field>
+                <ToggleRow
+                  label={copy.plugins.promptOnFirstPermission}
+                  checked={draft.plugins.promptOnFirstPermission}
+                  onChange={(checked) =>
+                    setDraft({
+                      ...draft,
+                      plugins: {
+                        ...draft.plugins,
+                        promptOnFirstPermission: checked
+                      }
+                    })
+                  }
+                />
+                <Field label={copy.plugins.timeout}>
+                  <input
+                    type="number"
+                    min={250}
+                    max={10_000}
+                    value={draft.plugins.timeoutMs}
+                    onChange={(event) =>
+                      setDraft({
+                        ...draft,
+                        plugins: {
+                          ...draft.plugins,
+                          timeoutMs: clampNumber(event.target.value, 1200, 250, 10_000)
+                        }
+                      })
+                    }
+                    className={inputClassName}
+                  />
+                </Field>
 
-              {permissionRequests.length > 0 ? (
-                <div className="rounded-2xl border border-amber-400/20 bg-amber-500/8 p-4">
-                  <div className="mb-3 font-medium text-amber-100">
-                    {copy.plugins.pendingPrompts}
-                  </div>
-                  <div className="space-y-3">
-                    {permissionRequests.map((request) => (
-                      <div
-                        key={`${request.pluginId}:${request.permission}`}
-                        className="rounded-2xl border border-white/8 bg-black/20 p-3"
-                      >
-                        <div className="text-sm text-white">
-                          {copy.plugins.requestsPermission(request.pluginName)}{" "}
-                          <code>{request.permission}</code>
-                        </div>
-                        <div className="mt-1 text-sm text-slate-400">
-                          {request.reason}
-                        </div>
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            className={primaryButtonClassName}
-                            onClick={() => {
-                              void onGrantPluginPermission(
-                                request.pluginId,
-                                request.permission
-                              );
-                            }}
-                          >
-                            {copy.plugins.grant}
-                          </button>
-                          <button
-                            type="button"
-                            className={secondaryButtonClassName}
-                            onClick={() =>
-                              onDismissPluginPermissionRequest(
-                                request.pluginId,
-                                request.permission
-                              )
-                            }
-                          >
-                            {copy.plugins.dismiss}
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-
-              <div className="space-y-3">
-                {plugins.map((plugin) => {
-                  const enabled = !draft.plugins.disabledPluginIds.includes(
-                    plugin.pluginId
-                  );
-
-                  return (
-                    <div
-                      key={plugin.pluginId}
-                      className="rounded-2xl border border-white/8 bg-black/20 p-4"
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                          <div className="font-medium text-white">
-                            {plugin.manifest.name}
+                {permissionRequests.length > 0 ? (
+                  <div className="rounded-2xl border border-amber-400/20 bg-amber-500/8 p-4">
+                    <div className="mb-3 font-medium text-amber-100">
+                      {copy.plugins.pendingPrompts}
+                    </div>
+                    <div className="space-y-3">
+                      {permissionRequests.map((request) => (
+                        <div
+                          key={`${request.pluginId}:${request.permission}`}
+                          className="rounded-2xl border border-white/8 bg-black/20 p-3"
+                        >
+                          <div className="text-sm text-white">
+                            {copy.plugins.requestsPermission(request.pluginName)}{" "}
+                            <code>{request.permission}</code>
                           </div>
                           <div className="mt-1 text-sm text-slate-400">
-                            {plugin.manifest.id} · v{plugin.manifest.version}
+                            {request.reason}
                           </div>
-                          {plugin.manifest.description ? (
-                            <div className="mt-2 text-sm text-slate-300">
-                              {plugin.manifest.description}
-                            </div>
-                          ) : null}
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <div className="rounded-full border border-white/8 px-3 py-1 text-xs uppercase tracking-[0.18em] text-slate-300">
-                            {formatPluginStatusLabel(plugin.status, useChineseCopy)}
-                          </div>
-                          <button
-                            type="button"
-                            className={secondaryButtonClassName}
-                            onClick={() => {
-                              void onTogglePluginEnabled(plugin.pluginId, !enabled);
-                            }}
-                          >
-                            {enabled ? copy.plugins.disable : copy.plugins.enable}
-                          </button>
-                        </div>
-                      </div>
-
-                      {plugin.manifest.commands.length > 0 ? (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {plugin.manifest.commands.map((command) => (
-                            <div
-                              key={command.name}
-                              className="rounded-full border border-white/8 bg-white/4 px-3 py-1.5 text-xs text-slate-300"
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              className={primaryButtonClassName}
+                              onClick={() => {
+                                void onGrantPluginPermission(
+                                  request.pluginId,
+                                  request.permission
+                                );
+                              }}
                             >
-                              {command.name} · {command.title}
-                            </div>
-                          ))}
-                        </div>
-                      ) : null}
-
-                      {plugin.manifest.permissions.length > 0 ? (
-                        <div className="mt-3">
-                          <div className="mb-2 text-xs uppercase tracking-[0.18em] text-slate-400">
-                            {copy.plugins.permissions}
-                          </div>
-                          <div className="space-y-2">
-                            {plugin.manifest.permissions.map((permission) => {
-                              const granted =
-                                plugin.grantedPermissions.includes(permission);
-
-                              return (
-                                <div
-                                  key={permission}
-                                  className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/8 bg-black/25 px-3 py-3"
-                                >
-                                  <div className="text-sm text-slate-200">
-                                    <code>{permission}</code>
-                                  </div>
-                                  <div className="flex flex-wrap gap-2">
-                                    <div className="rounded-full border border-white/8 px-3 py-1 text-xs text-slate-300">
-                                      {granted
-                                        ? copy.plugins.granted
-                                        : copy.plugins.notGranted}
-                                    </div>
-                                    {granted ? (
-                                      <button
-                                        type="button"
-                                        className={secondaryButtonClassName}
-                                        onClick={() => {
-                                          void onRevokePluginPermission(
-                                            plugin.pluginId,
-                                            permission
-                                          );
-                                        }}
-                                      >
-                                        {copy.plugins.revoke}
-                                      </button>
-                                    ) : (
-                                      <button
-                                        type="button"
-                                        className={secondaryButtonClassName}
-                                        onClick={() => {
-                                          void onGrantPluginPermission(
-                                            plugin.pluginId,
-                                            permission
-                                          );
-                                        }}
-                                      >
-                                        {copy.plugins.grant}
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
-                              );
-                            })}
+                              {copy.plugins.grant}
+                            </button>
+                            <button
+                              type="button"
+                              className={secondaryButtonClassName}
+                              onClick={() =>
+                                onDismissPluginPermissionRequest(
+                                  request.pluginId,
+                                  request.permission
+                                )
+                              }
+                            >
+                              {copy.plugins.dismiss}
+                            </button>
                           </div>
                         </div>
-                      ) : (
-                        <div className="mt-3 text-sm text-slate-400">
-                          {copy.plugins.noPermissions}
-                        </div>
-                      )}
-
-                      {plugin.validationErrors.length > 0 ? (
-                        <div className="mt-3 rounded-2xl border border-rose-400/20 bg-rose-500/8 p-3 text-sm text-rose-100">
-                          {plugin.validationErrors.join(" ")}
-                        </div>
-                      ) : null}
-
-                      {plugin.lastError ? (
-                        <div className="mt-3 rounded-2xl border border-amber-400/20 bg-amber-500/8 p-3 text-sm text-amber-100">
-                          {copy.plugins.lastHostError}: {plugin.lastError}
-                        </div>
-                      ) : null}
+                      ))}
                     </div>
-                  );
-                })}
-              </div>
+                  </div>
+                ) : null}
 
-              <p className="text-sm text-slate-400">{copy.plugins.sandboxTodo}</p>
-            </div>
+                <div className="space-y-3">
+                  {plugins.map((plugin) => {
+                    const enabled = !draft.plugins.disabledPluginIds.includes(
+                      plugin.pluginId
+                    );
+
+                    return (
+                      <div
+                        key={plugin.pluginId}
+                        className="rounded-2xl border border-white/8 bg-black/20 p-4"
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div>
+                            <div className="font-medium text-white">
+                              {plugin.manifest.name}
+                            </div>
+                            <div className="mt-1 text-sm text-slate-400">
+                              {plugin.manifest.id} · v{plugin.manifest.version}
+                            </div>
+                            {plugin.manifest.description ? (
+                              <div className="mt-2 text-sm text-slate-300">
+                                {plugin.manifest.description}
+                              </div>
+                            ) : null}
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <div className="rounded-full border border-white/8 px-3 py-1 text-xs uppercase tracking-[0.18em] text-slate-300">
+                              {formatPluginStatusLabel(plugin.status, useChineseCopy)}
+                            </div>
+                            <button
+                              type="button"
+                              className={secondaryButtonClassName}
+                              onClick={() => {
+                                void onTogglePluginEnabled(plugin.pluginId, !enabled);
+                              }}
+                            >
+                              {enabled ? copy.plugins.disable : copy.plugins.enable}
+                            </button>
+                          </div>
+                        </div>
+
+                        {plugin.manifest.commands.length > 0 ? (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {plugin.manifest.commands.map((command) => (
+                              <div
+                                key={command.name}
+                                className="rounded-full border border-white/8 bg-white/4 px-3 py-1.5 text-xs text-slate-300"
+                              >
+                                {command.name} · {command.title}
+                              </div>
+                            ))}
+                          </div>
+                        ) : null}
+
+                        {plugin.manifest.permissions.length > 0 ? (
+                          <div className="mt-3">
+                            <div className="mb-2 text-xs uppercase tracking-[0.18em] text-slate-400">
+                              {copy.plugins.permissions}
+                            </div>
+                            <div className="space-y-2">
+                              {plugin.manifest.permissions.map((permission) => {
+                                const granted =
+                                  plugin.grantedPermissions.includes(permission);
+
+                                return (
+                                  <div
+                                    key={permission}
+                                    className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/8 bg-black/25 px-3 py-3"
+                                  >
+                                    <div className="text-sm text-slate-200">
+                                      <code>{permission}</code>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                      <div className="rounded-full border border-white/8 px-3 py-1 text-xs text-slate-300">
+                                        {granted
+                                          ? copy.plugins.granted
+                                          : copy.plugins.notGranted}
+                                      </div>
+                                      {granted ? (
+                                        <button
+                                          type="button"
+                                          className={secondaryButtonClassName}
+                                          onClick={() => {
+                                            void onRevokePluginPermission(
+                                              plugin.pluginId,
+                                              permission
+                                            );
+                                          }}
+                                        >
+                                          {copy.plugins.revoke}
+                                        </button>
+                                      ) : (
+                                        <button
+                                          type="button"
+                                          className={secondaryButtonClassName}
+                                          onClick={() => {
+                                            void onGrantPluginPermission(
+                                              plugin.pluginId,
+                                              permission
+                                            );
+                                          }}
+                                        >
+                                          {copy.plugins.grant}
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="mt-3 text-sm text-slate-400">
+                            {copy.plugins.noPermissions}
+                          </div>
+                        )}
+
+                        {plugin.validationErrors.length > 0 ? (
+                          <div className="mt-3 rounded-2xl border border-rose-400/20 bg-rose-500/8 p-3 text-sm text-rose-100">
+                            {plugin.validationErrors.join(" ")}
+                          </div>
+                        ) : null}
+
+                        {plugin.lastError ? (
+                          <div className="mt-3 rounded-2xl border border-amber-400/20 bg-amber-500/8 p-3 text-sm text-amber-100">
+                            {copy.plugins.lastHostError}: {plugin.lastError}
+                          </div>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <p className="text-sm text-slate-400">{copy.plugins.sandboxTodo}</p>
+              </div>
+            ) : (
+              <MarketplacePanel
+                installedPluginIds={plugins.map((p) => p.pluginId)}
+                useChineseCopy={useChineseCopy}
+                onPluginsChanged={() => {
+                  // Trigger a re-bootstrap to refresh plugin list
+                }}
+              />
+            )}
           </SectionCard>
         );
 
@@ -1717,17 +1819,6 @@ export function SettingsPanel({
           </SectionCard>
         );
 
-      case "marketplace":
-        return (
-          <MarketplacePanel
-            installedPluginIds={plugins.map((p) => p.pluginId)}
-            useChineseCopy={useChineseCopy}
-            onPluginsChanged={() => {
-              // Trigger a re-bootstrap to refresh plugin list
-              // The parent component handles this via onClose + re-open
-            }}
-          />
-        );
     }
   }
 }
@@ -1834,6 +1925,61 @@ function ShortcutTag({ children }: { children: ReactNode }) {
   );
 }
 
+const KNOWN_ENGINES: Record<string, string> = {
+  google: "https://www.google.com/search?q={query}",
+  bing: "https://www.bing.com/search?q={query}"
+};
+
+function detectEngineKey(url: string): string {
+  for (const [key, value] of Object.entries(KNOWN_ENGINES)) {
+    if (url === value) return key;
+  }
+  return "custom";
+}
+
+function WebEngineSelect({
+  value,
+  onChange,
+  useChineseCopy
+}: {
+  value: string;
+  onChange(value: string): void;
+  useChineseCopy: boolean;
+}) {
+  const engineKey = detectEngineKey(value);
+  const customLabel = useChineseCopy ? "自定义" : "Custom";
+
+  return (
+    <div className="space-y-2">
+      <select
+        value={engineKey}
+        onChange={(event) => {
+          const key = event.target.value;
+          if (key === "custom") {
+            onChange("");
+          } else {
+            onChange(KNOWN_ENGINES[key]);
+          }
+        }}
+        className={selectClassName}
+      >
+        <option value="google">Google</option>
+        <option value="bing">Bing</option>
+        <option value="custom">{customLabel}</option>
+      </select>
+      {engineKey === "custom" ? (
+        <input
+          type="text"
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className={inputClassName}
+          placeholder="https://example.com/search?q={query}"
+        />
+      ) : null}
+    </div>
+  );
+}
+
 function toSnippetForm(snippet: SnippetRecord): SnippetFormState {
   return {
     id: snippet.id,
@@ -1888,6 +2034,7 @@ function cloneSettings(settings: LauncherSettings): LauncherSettings {
     ...settings,
     indexPaths: [...settings.indexPaths],
     indexExclusions: [...settings.indexExclusions],
+    implicitIgnores: [...(settings.implicitIgnores ?? [])],
     indexingPaused: settings.indexingPaused,
     search: {
       ...settings.search,

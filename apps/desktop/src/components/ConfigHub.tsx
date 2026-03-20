@@ -54,12 +54,12 @@ export function ConfigHub({
         },
         workflowValue: "独立界面",
         notes: {
-          indexedFiles: "轻量文件名和路径条目已可用于文件搜索。",
-          clipboard: "本地剪贴板条目可用于搜索和动作执行。",
-          snippets: "已保存片段可用于搜索和展开动作。",
-          plugins: "当前工作区中已发现的插件运行时或清单。",
+          indexedFiles: "可搜索的文件数量。",
+          clipboard: "已保存的剪贴板条目数。",
+          snippets: "已保存的文本片段数。",
+          plugins: "已安装的插件数量。",
           workflow: "工作流保持独立界面，避免把启动器 bar 挤满。",
-          permPrompts: "等待处理的插件权限批准请求。"
+          permPrompts: "需要处理的权限请求。"
         }
       }
     : {
@@ -74,13 +74,13 @@ export function ConfigHub({
         },
         workflowValue: "Dedicated",
         notes: {
-          indexedFiles: "Lightweight filename and path entries ready for file search.",
-          clipboard: "Local clipboard items available to search and actions.",
-          snippets: "Saved snippets ready for search and expansion actions.",
-          plugins: "Discovered plugin runtimes or manifests in the current workspace.",
+          indexedFiles: "Number of files available for search.",
+          clipboard: "Saved clipboard entries.",
+          snippets: "Saved text snippets.",
+          plugins: "Installed plugins.",
           workflow:
             "Workflow opens as its own surface instead of bloating the launcher bar.",
-          permPrompts: "Pending plugin permission approvals waiting for attention."
+          permPrompts: "Permission requests that need attention."
         }
       };
 
