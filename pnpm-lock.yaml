@@ -156,26 +156,6 @@ importers:
         specifier: ^5.6.3
         version: 5.9.3
 
-  plugins/devdocs:
-    dependencies:
-      '@osb/plugin-sdk':
-        specifier: workspace:*
-        version: link:../../packages/plugin-sdk
-    devDependencies:
-      typescript:
-        specifier: ^5.6.3
-        version: 5.9.3
-
-  plugins/emoji-search:
-    dependencies:
-      '@osb/plugin-sdk':
-        specifier: workspace:*
-        version: link:../../packages/plugin-sdk
-    devDependencies:
-      typescript:
-        specifier: ^5.6.3
-        version: 5.9.3
-
   plugins/github:
     dependencies:
       '@osb/plugin-sdk':
@@ -206,16 +186,6 @@ importers:
         specifier: ^5.6.3
         version: 5.9.3
 
-  plugins/lorem:
-    dependencies:
-      '@osb/plugin-sdk':
-        specifier: workspace:*
-        version: link:../../packages/plugin-sdk
-    devDependencies:
-      typescript:
-        specifier: ^5.6.3
-        version: 5.9.3
-
   plugins/shell:
     dependencies:
       '@osb/plugin-sdk':
@@ -227,16 +197,6 @@ importers:
         version: 5.9.3
 
   plugins/timestamp:
-    dependencies:
-      '@osb/plugin-sdk':
-        specifier: workspace:*
-        version: link:../../packages/plugin-sdk
-    devDependencies:
-      typescript:
-        specifier: ^5.6.3
-        version: 5.9.3
-
-  plugins/uuid-gen:
     dependencies:
       '@osb/plugin-sdk':
         specifier: workspace:*

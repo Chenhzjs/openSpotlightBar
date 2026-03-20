@@ -1296,7 +1296,7 @@ export default function App() {
       className={`platform-shell platform-${platformShell} flex ${isWorkflowStudio ? "h-screen" : "max-h-screen"} flex-col bg-transparent p-0 text-[color:var(--shell-text-primary)]`}
     >
       <div
-        className={`shell-bar shrink-0 rounded-[30px]${isWorkflowStudio ? " hidden" : ""}`}
+        className={`shell-bar shrink-0 rounded-[30px]${isWorkflowStudio || mode === "settings" ? " hidden" : ""}`}
       >
         <div className="flex items-center gap-3 px-5 py-4">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[color:var(--shell-border)] bg-[color:var(--shell-fill-muted)] text-sm text-[color:var(--shell-text-secondary)]">
@@ -1328,7 +1328,9 @@ export default function App() {
           className={
             isWorkflowStudio
               ? "mt-1 min-h-0 flex-1 overflow-hidden"
-              : "scrollbar-hidden mt-1 min-h-0 flex-1 overflow-y-auto"
+              : showSearchResults
+                ? "mt-1 min-h-0 flex-1 overflow-hidden"
+                : "scrollbar-hidden mt-1 min-h-0 flex-1 overflow-y-auto"
           }
         >
           {contentPanel}
