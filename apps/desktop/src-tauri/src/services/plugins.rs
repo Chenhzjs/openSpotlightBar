@@ -53,6 +53,11 @@ pub fn candidate_plugin_roots(app: &AppHandle) -> AppResult<Vec<PathBuf>> {
 
     push_unique_path(&mut roots, &mut seen, app_plugins_dir);
 
+    // Bundled plugins shipped as Tauri resources.
+    if let Ok(resource_dir) = app.path().resource_dir() {
+        push_unique_path(&mut roots, &mut seen, resource_dir.join("bundled-plugins"));
+    }
+
     if let Ok(current_dir) = std::env::current_dir() {
         push_unique_path(&mut roots, &mut seen, current_dir.join("plugins"));
         // Walk up from CWD to find the repo-root plugins/ directory (handles tauri dev

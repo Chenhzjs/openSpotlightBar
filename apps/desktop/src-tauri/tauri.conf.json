@@ -5,7 +5,7 @@
   "identifier": "com.osb.launcher",
   "build": {
     "beforeDevCommand": "vite",
-    "beforeBuildCommand": "tsc --noEmit && vite build",
+    "beforeBuildCommand": "tsc --noEmit && vite build && node ../../scripts/copy-plugins.mjs",
     "devUrl": "http://localhost:1420",
     "frontendDist": "../dist"
   },
@@ -33,6 +33,10 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "resources": [
+      "bundled-plugins/**/manifest.json",
+      "bundled-plugins/**/src/index.js"
+    ],
     "icon": [
       "icons/icon.png",
       "icons/128x128.png",
